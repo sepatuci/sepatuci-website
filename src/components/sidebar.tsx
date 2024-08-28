@@ -1,11 +1,9 @@
 'use client';
 
 import {
-  Bell,
-  Bookmark,
+  Star,
+  Rocket,
   Home,
-  List,
-  Mail,
   MoreHorizontal,
   User,
   Users,
@@ -19,42 +17,19 @@ import { SidebarMobile } from './sidebar-mobile';
 const sidebarItems: SidebarItems = {
   links: [
     { label: 'Home', href: '/', icon: Home },
-    { label: 'Notifications', href: '/item/notifications', icon: Bell },
-    { label: 'Messages', href: '/item/messages', icon: Mail },
     {
-      href: '/item/lists',
-      icon: List,
-      label: 'Lists',
-    },
-    {
-      href: '/item/bookmarks',
-      icon: Bookmark,
-      label: 'Bookmarks',
-    },
-    {
-      href: '/item/communities',
+      href: '/item/actives',
       icon: Users,
-      label: 'Communities',
+      label: 'Actives',
     },
     {
-      href: '/item/profile',
-      icon: User,
-      label: 'Profile',
+      href: '/item/startups',
+      icon: Rocket,
+      label: 'Startups',
     },
+
   ],
-  extras: (
-    <div className='flex flex-col gap-2'>
-      <SidebarButton icon={MoreHorizontal} className='w-full'>
-        More
-      </SidebarButton>
-      <SidebarButton
-        className='w-full justify-center text-white'
-        variant='default'
-      >
-        Tweet
-      </SidebarButton>
-    </div>
-  ),
+
 };
 
 export function Sidebar() {
