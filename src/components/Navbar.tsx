@@ -8,7 +8,6 @@ import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your lo
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
-  
   return (
     <nav className="bg-transparent fixed w-full z-10 backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
