@@ -32,7 +32,7 @@ export default   function FocusCardsDemo() {
         src: bookit.src,
       },
       {
-        title: "Antonio",
+        title: "Cartello",
         src: cartello.src,
       },
       {

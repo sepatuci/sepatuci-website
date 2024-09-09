@@ -1,6 +1,9 @@
 "use client";
 import React from "react";
 import { InfiniteMovingCards } from "../components/ui/infinite-moving-cards";
+import { FlipWords } from "./ui/flip-words";
+
+
 
 import aifinals from "../assets/community/compressed/aifinals Large.jpeg";
 import alphaog from "../assets/community/compressed/alphaog Large.jpeg";
@@ -45,12 +48,17 @@ export default function Community() {
     { image: vnmoderators.src, name: "vnmoderators", title: "vnmoderators" },
     { image: web3mixer.src, name: "web3mixer", title: "web3mixer" },
   ];
+  const words = ["Founders", "Innovators", "Builders"];
 
   return (
+    
     <div className="h-screen flex flex-col antialiased bg-white dark:bg-black dark:bg-grid-white/[0.05] items-center justify-center relative overflow-hidden">
-      <h1 className="text-center md:text-7xl sm:text-6xl text-5xl font-bold md:py-8 sm:py-6 py-6 text-white">
+      {/* <h1 className="text-center md:text-7xl sm:text-6xl text-5xl font-bold md:py-8 sm:py-6 py-6 text-white">
         Our Community
-      </h1>
+      </h1> */}
+      <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
+        <FlipWords words={words} /> <br />
+      </div>
       <InfiniteMovingCards items={images} direction="right" speed="slow" />
     </div>
   );

@@ -3,10 +3,11 @@
 import { motion } from "framer-motion";
 import React from "react";
 import { AuroraBackground } from "./ui/aurora-background";
-// import Stats from '@/components/stats'
-import { HoverEffect } from "./ui/card-hover-effect";
+import { FlipWords } from "./ui/flip-words";
+
 
 export function AuroraBackgroundDemo() {
+  const words = ["Founders", "Innovators", "Builders"];
   return (
     <div>
         <AuroraBackground>
@@ -23,11 +24,11 @@ export function AuroraBackgroundDemo() {
         <div className="text-3xl md:text-7xl font-bold dark:text-white text-center">
             UCI's Premier Entrepreneurship Fraternity
         </div>
-        <div className="font-extralight text-base md:text-4xl dark:text-neutral-200 py-4">
-          Founders. Innovators. Builders.
-        </div>
+        {/* <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
+        <FlipWords words={words} /> <br />
+      </div> */}
         <button className="bg-black dark:bg-white rounded-full w-fit text-white dark:text-black px-4 py-2">
-          Interested?
+          Get Started
         </button>
       </motion.div>
     </AuroraBackground>

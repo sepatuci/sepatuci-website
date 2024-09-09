@@ -27,8 +27,8 @@ export const Card = React.memo(
         src={card.src}
         alt={card.title}
         fill
-        className="object-cover absolute inset-0 transition-opacity opacity-0 duration-[2s]"
-        onLoadingComplete={(image)  => image.classList.remove("opacity-0")}
+        className="object-contain absolute inset-0 transition-opacity opacity-0 duration-[2s]"
+        onLoadingComplete={(image) => image.classList.remove("opacity-0")}
       />
       <div
         className={cn(
@@ -44,12 +44,7 @@ export const Card = React.memo(
           {card.description}
         </div>
         {/* Button */}
-        <button
-          className="mt-4 py-2 px-4 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors duration-300"
-          onClick={card.onClick}
-        >
-          {card.buttonText}
-        </button>
+
       </div>
     </div>
   )
