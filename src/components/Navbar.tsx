@@ -28,32 +28,36 @@ const Navbar: React.FC = () => {
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
-              href="/about"
+              href="/founderseducation"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              About
+              Founder's Education
             </Link>
             <Link
-              href="/projects"
+              href="/community"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              Projects
+              Community
             </Link>
             <Link
-              href="/contact"
+              href="/recruitment"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              Contact
+              Recruitment
             </Link>
 
             {/* Call to Action Button */}
-            <Link href="/apply">
+            <Link
+              href="https://google.com" // google form here
+              target="_blank"
+              rel="noopener noreferrer"
+            >
               <button
                 className="bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
               >
                 Apply
               </button>
-            </Link>
+          </Link>
           </div>
 
           {/* Mobile Menu Button */}
@@ -126,13 +130,17 @@ const Navbar: React.FC = () => {
       </Link>
 
       {/* Mobile Call to Action Button */}
-      <Link href="/apply">
+      <Link
+              href="https://google.com" // google form here
+              target="_blank"
+              rel="noopener noreferrer"
+            >
         <button
           className="w-full bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
         >
           Apply
         </button>
-      </Link>
+        </Link>
     </div>
   </div>
 )}

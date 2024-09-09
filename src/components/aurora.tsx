@@ -3,8 +3,6 @@
 import { motion } from "framer-motion";
 import React from "react";
 import { AuroraBackground } from "./ui/aurora-background";
-import { FlipWords } from "./ui/flip-words";
-
 
 export function AuroraBackgroundDemo() {
   const words = ["Founders", "Innovators", "Builders"];
@@ -39,7 +37,6 @@ export function AuroraBackgroundDemo() {
   );
 
 }
-
 
 export const projects = [
     {
