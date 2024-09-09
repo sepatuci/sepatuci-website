@@ -24,12 +24,15 @@ export function AuroraBackgroundDemo() {
         <div className="text-3xl md:text-7xl font-bold dark:text-white text-center">
             UCI's Premier Entrepreneurship Fraternity
         </div>
-        {/* <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
-        <FlipWords words={words} /> <br />
-      </div> */}
-        <button className="bg-black dark:bg-white rounded-full w-fit text-white dark:text-black px-4 py-2">
-          Get Started
-        </button>
+          <a
+          href="https://google.com" // Add google form
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+        <button className="bg-gradient-to-r from-blue-900 to-purple-600 text-white text-lg font-medium px-6 py-5 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+        Interested?
+          </button>
+        </a>
       </motion.div>
     </AuroraBackground>
     </div>
