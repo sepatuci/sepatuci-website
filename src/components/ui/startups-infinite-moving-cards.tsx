@@ -72,14 +72,21 @@ export const StartupsInfiniteMovingCards = ({
         {items.map((item, idx) => (
           <li
             key={idx}
-            className="w-[200px] h-[300px] sm:w-[450px] sm:h-[450px] flex items-center justify-center max-w-full relative rounded-2xl flex-shrink-0 bg-gray-900"
+            className="w-[200px] h-[350px] sm:w-[450px] sm:h-[500px] flex flex-col items-center justify-center max-w-full relative rounded-2xl flex-shrink-0 bg-gray-900"
           >
+            {/* Image */}
             <img
               src={item.image}
               alt={item.name || item.title || `Item ${idx}`}
-              className="w-full h-full object-contain rounded-2xl"
+              className="w-full h-[80%] object-contain rounded-t-2xl"
               loading="lazy"
             />
+            {/* Text Box below the image */}
+            {item.name && (
+              <div className="w-full text-white text-center rounded-b-2xl py-2 bg-transparent">
+                <span className="text-lg font-bold">{item.name}</span>
+              </div>
+            )}
           </li>
         ))}
       </ul>

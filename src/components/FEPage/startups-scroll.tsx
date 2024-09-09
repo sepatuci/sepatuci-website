@@ -29,19 +29,18 @@ export default function ScrollStartups() {
     { image: clearly.src, name: "clearly", title: "clearly" },
     { image: diba.src, name: "diba", title: "diba" },
     { image: disko.src, name: "disko", title: "disko" },
-    // { image: check2.src, name: "check2", title: "check2" },
-    // { image: cookin.src, name: "cookin", title: "cookin" },
-    // { image: crescentbros.src, name: "crescentbros", title: "crescentbros" },
-    // { image: deltamerch.src, name: "deltamerch", title: "deltamerch" },
-    // { image: empathics.src, name: "empathics", title: "empathics" },
-    // { image: grouppic.src, name: "grouppic", title: "grouppic" },
-    // { image: hike.src, name: "hike", title: "hike" },
-    // { image: mhfinals.src, name: "mhfinals", title: "mhfinals" },
-    // { image: prezpitch.src, name: "prezpitch", title: "prezpitch" },
-    // { image: shake.src, name: "shake", title: "shake" },
-    // { image: table.src, name: "table", title: "table" },
-    // { image: vnmoderators.src, name: "vnmoderators", title: "vnmoderators" },
-    // { image: web3mixer.src, name: "web3mixer", title: "web3mixer" },
+    { image: idefy.src, name: "idefy", title: "idefy" },
+    { image: lendopoly.src, name: "lendopoly", title: "lendopoly" },
+    { image: lighthouse.src, name: "lighthouse", title: "lighthouse" },
+    { image: puerta.src, name: "puerta", title: "puerta" },
+    { image: recreate.src, name: "recreate", title: "recreate" },
+    { image: redfordstartup.src, name: "redfordstartup", title: "redfordstartup" },
+    { image: soundsense.src, name: "soundsense", title: "soundsense" },
+    { image: student.src, name: "student", title: "student" },
+    { image: surplus.src, name: "surplus", title: "surplus" },
+    { image: thrust.src, name: "thrust", title: "thrust" },
+    { image: vango.src, name: "vango", title: "vango" },
+    { image: wastewise.src, name: "wastewise", title: "wastewise" },
   ];
 
   return (
@@ -50,7 +49,7 @@ export default function ScrollStartups() {
       <h1 className="text-center md:text-7xl sm:text-6xl text-5xl font-bold md:py-8 sm:py-6 py-6 text-white">
         Startups we've built
       </h1>
-      <StartupsInfiniteMovingCards items={images} direction="right" speed="fast" />
+      <StartupsInfiniteMovingCards items={images} direction="right" speed="slow" />
     </div>
   );
 }
