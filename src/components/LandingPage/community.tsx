@@ -1,29 +1,27 @@
 "use client";
 import React from "react";
-import { InfiniteMovingCards } from "../components/ui/infinite-moving-cards";
-import { FlipWords } from "./ui/flip-words";
+import { InfiniteMovingCards } from "../ui/infinite-moving-cards";
+import { FlipWords } from "../ui/flip-words";
 
-
-
-import aifinals from "../assets/community/compressed/aifinals Large.jpeg";
-import alphaog from "../assets/community/compressed/alphaog Large.jpeg";
-import ball from "../assets/community/compressed/ball Large.jpeg";
-import banner from "../assets/community/compressed/banner Large.jpeg";
-import boys from "../assets/community/compressed/boys Large.jpeg";
-import check from "../assets/community/compressed/check Large.jpeg";
-import check2 from "../assets/community/compressed/check2 Large.jpeg";
-import cookin from "../assets/community/compressed/cookin Large.jpeg";
-import crescentbros from "../assets/community/compressed/crescentbros Large.jpeg";
-import deltamerch from "../assets/community/compressed/deltamerch Large.jpeg";
-import empathics from "../assets/community/compressed/empathics Large.jpeg";
-import grouppic from "../assets/community/compressed/grouppic Large.jpeg";
-import hike from "../assets/community/compressed/hike Large.jpeg";
-import mhfinals from "../assets/community/compressed/mhfinals Large.jpeg";
-import prezpitch from "../assets/community/compressed/prezpitch Large.jpeg";
-import shake from "../assets/community/compressed/shake Large.jpeg";
-import table from "../assets/community/compressed/table Large.jpeg";
-import vnmoderators from "../assets/community/compressed/vnmoderators Large.jpeg";
-import web3mixer from "../assets/community/compressed/web3mixer Large.jpeg";
+import aifinals from "@/assets/community/compressed/aifinals Large.jpeg";
+import alphaog from "@/assets/community/compressed/alphaog Large.jpeg";
+import ball from "@/assets/community/compressed/ball Large.jpeg";
+import banner from "@/assets/community/compressed/banner Large.jpeg";
+import boys from "@/assets/community/compressed/boys Large.jpeg";
+import check from "@/assets/community/compressed/check Large.jpeg";
+import check2 from "@/assets/community/compressed/check2 Large.jpeg";
+import cookin from "@/assets/community/compressed/cookin Large.jpeg";
+import crescentbros from "@/assets/community/compressed/crescentbros Large.jpeg";
+import deltamerch from "@/assets/community/compressed/deltamerch Large.jpeg";
+import empathics from "@/assets/community/compressed/empathics Large.jpeg";
+import grouppic from "@/assets/community/compressed/grouppic Large.jpeg";
+import hike from "@/assets/community/compressed/hike Large.jpeg";
+import mhfinals from "@/assets/community/compressed/mhfinals Large.jpeg";
+import prezpitch from "@/assets/community/compressed/prezpitch Large.jpeg";
+import shake from "@/assets/community/compressed/shake Large.jpeg";
+import table from "@/assets/community/compressed/table Large.jpeg";
+import vnmoderators from "@/assets/community/compressed/vnmoderators Large.jpeg";
+import web3mixer from "@/assets/community/compressed/web3mixer Large.jpeg";
 
 export default function Community() {
   // Convert StaticImageData to string by accessing the `src` property
