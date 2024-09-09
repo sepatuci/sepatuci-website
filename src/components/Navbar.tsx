@@ -34,16 +34,16 @@ const Navbar: React.FC = () => {
               Founder's Education
             </Link>
             <Link
-              href="/community"
+              href="/actives"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               Community
             </Link>
             <Link
-              href="/recruitment"
+              href="/rush"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              Recruitment
+              Rush
             </Link>
 
             {/* Call to Action Button */}
@@ -111,22 +111,22 @@ const Navbar: React.FC = () => {
   <div className="md:hidden" id="mobile-menu">
     <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
       <Link
-        href="/about"
+        href="/founderseducation"
         className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
       >
-        About
+        Founder's Education
       </Link>
       <Link
-        href="/projects"
+        href="/actives"
         className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
       >
-        Projects
+        Community
       </Link>
       <Link
-        href="/contact"
+        href="/rush"
         className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
       >
-        Contact
+        Rush
       </Link>
 
       {/* Mobile Call to Action Button */}
