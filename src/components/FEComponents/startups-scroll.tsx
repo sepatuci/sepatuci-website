@@ -44,12 +44,15 @@ export default function ScrollStartups() {
   ];
 
   return (
-    
     <div className="h-screen flex flex-col antialiased bg-white dark:bg-black dark:bg-grid-white/[0.05] items-center justify-center relative overflow-hidden">
       <h1 className="text-center md:text-7xl sm:text-6xl text-5xl font-bold md:py-8 sm:py-6 py-6 text-white">
-        Startups we've built
+        Startups we&apos;ve built
       </h1>
-      <StartupsInfiniteMovingCards items={images} direction="right" speed="slow" />
+      <StartupsInfiniteMovingCards
+        items={images}
+        direction="right"
+        speed="slow"
+      />
     </div>
   );
 }
