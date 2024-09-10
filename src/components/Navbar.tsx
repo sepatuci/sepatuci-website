@@ -11,27 +11,28 @@ const Navbar: React.FC = () => {
   return (
     <nav className="bg-transparent fixed w-full z-10 backdrop-blur-lg">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16 py-2"> {/* Added py-2 to move content down */}
+        <div className="flex items-center justify-between h-16 py-2">
+          {" "}
+          {/* Added py-2 to move content down */}
           <div className="flex items-center">
             <Link href="/">
               {/* Adding the logo and adjusting its size */}
-              <Image 
-                src={sepLogo} 
-                alt="SEP Logo" 
-                width={100} 
-                height={40} 
-                className="h-10 w-auto" 
+              <Image
+                src={sepLogo}
+                alt="SEP Logo"
+                width={100}
+                height={40}
+                className="h-10 w-auto"
               />
             </Link>
           </div>
-
           {/* Desktop Menu */}
           <div className="hidden md:flex items-center space-x-4">
             <Link
               href="/founderseducation"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              Founder's Education
+              Founder&apos;s Education
             </Link>
             <Link
               href="/community"
@@ -58,14 +59,11 @@ const Navbar: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <button
-                className="bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
-              >
+              <button className="bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
                 Apply
               </button>
-          </Link>
+            </Link>
           </div>
-
           {/* Mobile Menu Button */}
           <div className="mr-2 flex md:hidden">
             <button
@@ -114,46 +112,40 @@ const Navbar: React.FC = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-  <div className="md:hidden" id="mobile-menu">
-    <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-      <Link
-        href="/founderseducation"
-        className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-      >
-        Founder's Education
-      </Link>
-      <Link
-        href="/community"
-        className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-      >
-        Community
-      </Link>
-      <Link
-        href="/rush"
-        className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-      >
-        Rush
-      </Link>
+        <div className="md:hidden" id="mobile-menu">
+          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+            <Link
+              href="/founderseducation"
+              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              Founder's Education
+            </Link>
+            <Link
+              href="/community"
+              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              Community
+            </Link>
+            <Link
+              href="/rush"
+              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              Rush
+            </Link>
 
-      {/* Mobile Call to Action Button */}
-      <Link
+            {/* Mobile Call to Action Button */}
+            <Link
               href="https://google.com" // google form here
               target="_blank"
               rel="noopener noreferrer"
             >
-        <button
-          className="w-full bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200"
-        >
-          Apply
-        </button>
-        </Link>
-    </div>
-  </div>
-)}
-
-
-
-
+              <button className="w-full bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+                Apply
+              </button>
+            </Link>
+          </div>
+        </div>
+      )}
     </nav>
   );
 };
