@@ -1,4 +1,4 @@
-import TeamSection from '@/components/CommunityPage/actives'
+import TeamSection from '@/components/CommunityComponents/actives'
 // import { Suspense } from 'react';
 
 export default function ItemPage({ params }: { params: { item: string } }) {

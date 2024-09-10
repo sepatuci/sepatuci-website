@@ -1,6 +1,6 @@
 
-import MainFE from '@/components/FEPage/main-founders';
-import ScrollStartups from '@/components/FEPage/startups-scroll';
+import MainFE from '@/components/FEComponents/main-founders';
+import ScrollStartups from '@/components/FEComponents/startups-scroll';
 // import TestimonialSection from '@/components/FEPage/testimonial-founders';
 import { Suspense } from 'react';
 

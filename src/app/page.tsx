@@ -1,8 +1,8 @@
-import Community from '@/components/LandingPage/community'
-import { AuroraBackgroundDemo } from '@/components/LandingPage/aurora'
+import Community from '@/components/LandingComponents/community'
+import { AuroraBackgroundDemo } from '@/components/LandingComponents/aurora'
 import FoundersEducation from '@/components/founders'
-import { StickyScrollRevealDemo } from '../components/LandingPage/main-page-scroll';
-import TestimonialSection from '@/components/LandingPage/fe-testemonial';
+import { StickyScrollRevealDemo } from '../components/LandingComponents/main-page-scroll';
+import TestimonialSection from '@/components/LandingComponents/fe-testemonial';
 
 
 
