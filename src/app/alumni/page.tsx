@@ -1,6 +1,6 @@
 import React from "react";
 import banner from "@/assets/community/banner.jpg"
-import check from "@/assets/community/check.jpg"
+import check from "@/assets/community/check.JPG"
 import check2 from "@/assets/community/check2.jpeg"
 import table from "@/assets/community/table.jpg"
 import mhfinals from "@/assets/community/mhfinals.jpeg"

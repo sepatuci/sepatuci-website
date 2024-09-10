@@ -4,8 +4,8 @@ import { StickyScroll } from "../ui/sticky-scroll-reveal";
 import Image from "next/image";
 
 import sittingOnRock from "@/assets/community/utahSittingOnRock.jpeg";
-import grouppic from "@/assets/community/grouppic.jpg"
-import aifinals from "@/assets/community/aifinals.jpg"
+import grouppic from "@/assets/community/grouppic.JPG"
+import aifinals from "@/assets/community/aifinals.JPG"
 
 const content = [
     {
