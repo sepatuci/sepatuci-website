@@ -1,6 +1,6 @@
 "use client";
 
-import ZetaDemoDay from "@/assets/updated-website/ZetaDemoDay.JPG";
+// import ZetaDemoDay from "../../assets/updated-website/ZetaDemoDay.JPG";
 import MeetTheChapter from "@/assets/rush-fall-2024/Meet The Chapter Deck.png";
 import PitchNight from "@/assets/rush-fall-2024/Pitch Night Slide Deck.png";
 
@@ -49,7 +49,7 @@ export function RushTimeline() {
         <div>
           <div className="grid grid-cols-2 gap-4">
             <Image
-              src={ZetaDemoDay.src}
+              src={require("../../assets/updated-website/ZetaDemoDay.JPG")}
               alt="hero template"
               width={500}
               height={500}

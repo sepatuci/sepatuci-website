@@ -4,26 +4,10 @@ import { StickyScroll } from "../ui/sticky-scroll-reveal";
 import Image from "next/image";
 
 import sittingOnRock from "@/assets/community/utahSittingOnRock.jpeg";
-import grouppic from "@/assets/community/grouppic.JPG"
-import aifinals from "@/assets/community/aifinals.JPG"
+// import grouppic from "../../assets/community/grouppic.JPG";
+// import aifinals from "../../assets/community/aifinals.JPG";
 
 const content = [
-    {
-        title: "Real time changes",
-        description:
-            "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
-        content: (
-            <div className="h-full w-full  flex items-center justify-center text-white">
-            <Image
-                src ={grouppic}
-                width={300}
-                height={300}
-                className="h-full w-full object-cover"
-                alt="linear board demo"
-            />
-            </div>
-        ),
-    },
   {
     title: "Real time changes",
     description:
@@ -31,7 +15,7 @@ const content = [
     content: (
       <div className="h-full w-full  flex items-center justify-center text-white">
         <Image
-          src ={aifinals}
+          src={require("../../assets/community/grouppic.JPG")}
           width={300}
           height={300}
           className="h-full w-full object-cover"
@@ -47,7 +31,23 @@ const content = [
     content: (
       <div className="h-full w-full  flex items-center justify-center text-white">
         <Image
-          src ={sittingOnRock}
+          src={require("../../assets/community/aifinals.JPG")}
+          width={300}
+          height={300}
+          className="h-full w-full object-cover"
+          alt="linear board demo"
+        />
+      </div>
+    ),
+  },
+  {
+    title: "Real time changes",
+    description:
+      "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
+    content: (
+      <div className="h-full w-full  flex items-center justify-center text-white">
+        <Image
+          src={sittingOnRock}
           width={300}
           height={300}
           className="h-full w-full object-cover"
