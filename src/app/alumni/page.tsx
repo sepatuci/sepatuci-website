@@ -1,10 +1,10 @@
-import React from 'react';
-import banner from '@/assets/community/banner.jpg'
-import check from '@/assets/community/check.jpg'
-import check2 from '@/assets/community/check2.jpeg'
-import table from '@/assets/community/table.jpg'
-import mhfinals from '@/assets/community/mhfinals.jpeg'
-import crescentbros from '@/assets/community/crescentbros.jpg'
+import React from "react";
+import banner from "@/assets/community/banner.jpg"
+import check from "@/assets/community/check.jpg"
+import check2 from "@/assets/community/check2.jpeg"
+import table from "@/assets/community/table.jpg"
+import mhfinals from "@/assets/community/mhfinals.jpeg"
+import crescentbros from "@/assets/community/crescentbros.jpg"
 
 
 

@@ -1,8 +1,8 @@
 "use client";
 
-import ZetaDemoDay from '@/assets/updated-website/ZetaDemoDay.jpg';
-import MeetTheChapter from '@/assets/rush-fall-2024/Meet The Chapter Deck.png';
-import PitchNight from '@/assets/rush-fall-2024/Pitch Night Slide Deck.png';
+import ZetaDemoDay from "@/assets/updated-website/ZetaDemoDay.jpg";
+import MeetTheChapter from "@/assets/rush-fall-2024/Meet The Chapter Deck.png";
+import PitchNight from "@/assets/rush-fall-2024/Pitch Night Slide Deck.png";
 
 
 import Image from "next/image";

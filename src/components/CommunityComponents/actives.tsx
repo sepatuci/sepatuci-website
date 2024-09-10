@@ -1,8 +1,8 @@
 "use client";
 
 import React, { Suspense, lazy, useState, useEffect } from 'react';
-import teamMembers from './TeamMembers';
-import { Linkedin } from 'lucide-react';
+import teamMembers from "./TeamMembers";
+import { Linkedin } from "lucide-react";
 
 const Skeleton = () => {
   return (

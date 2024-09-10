@@ -20,7 +20,7 @@ function FoundersEducation() {
     <div className="overflow-y-auto h-auto">
       <div className="flex flex-col mx-auto text-center justify-center items-center min-h-screen py-10">
         <h1 className="md:text-7xl sm:text-6xl text-5xl font-bold md:py-6 sm:py-4 py-2 text-white">
-          Founder's Education
+          Founder&aposs Education
         </h1>
         <p className="md:text-4xl sm:text-3xl text-2xl font-bold text-slate-300">
           Our 8-week startup accelerator program focused on

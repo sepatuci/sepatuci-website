@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from 'react';
-import Link from 'next/link';
-import Image from 'next/image';
-import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your logo
+import { useState } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import sepLogo from "../assets/logos/sep_logos/sep_white.png"; // Import your logo
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -73,7 +73,7 @@ const Navbar: React.FC = () => {
               type="button"
               className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
               aria-controls="mobile-menu"
-              aria-expanded={isOpen ? 'true' : 'false'}
+              aria-expanded={isOpen ? "true" : "false"}
             >
               <span className="sr-only">Open main menu</span>
               {isOpen ? (

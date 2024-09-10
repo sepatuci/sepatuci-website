@@ -1,5 +1,5 @@
-import FocusCards from '@/components/startups'
-import { BackgroundLinesDemo } from '@/components/startups_top';
+import FocusCards from "@/components/startups"
+import { BackgroundLinesDemo } from "@/components/startups_top";
 
 export default function ItemPage({ params }: { params: { item: string } }) {
     return (
