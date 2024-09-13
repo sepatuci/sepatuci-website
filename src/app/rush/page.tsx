@@ -5,8 +5,8 @@ import { Suspense } from "react";
 
 export default function ItemPage({ params }: { params: { item: string } }) {
     return (
-      <div>
+      <main className="dark">
         <RushTimeline/>
-      </div>
+      </main>
     );
   }

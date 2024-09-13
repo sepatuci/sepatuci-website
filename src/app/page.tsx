@@ -8,7 +8,7 @@ import TestimonialSection from "@/components/LandingComponents/fe-testemonial";
 
 export default function Home() {
   return (
-    <main>
+    <main className="dark">
       <div>
         <AuroraBackgroundDemo />
         <StickyScrollRevealDemo/>
