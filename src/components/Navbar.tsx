@@ -50,13 +50,13 @@ const Navbar: React.FC = () => {
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
             </Link>
-            <Link
+            {/* <Link
               href="/alumni"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               <FaGraduationCap className="inline-block mr-2" /> {/* Icon for Alumni */}
-              Alumni
-            </Link>
+              {/* Alumni */}
+            {/* </Link> */}
 
             {/* Call to Action Button */}
             <Link

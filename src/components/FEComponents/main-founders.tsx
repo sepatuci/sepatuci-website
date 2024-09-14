@@ -5,6 +5,9 @@ import { GiConversation } from "react-icons/gi";
 import { AiFillProduct } from "react-icons/ai";
 import { MdOutlineAttachMoney } from "react-icons/md";
 import { IoExtensionPuzzle } from "react-icons/io5";
+import { RiPresentationFill } from "react-icons/ri";
+import { CiGlobe } from "react-icons/ci";
+
 
 
 const MainFE: React.FC = () => {
@@ -12,10 +15,10 @@ const MainFE: React.FC = () => {
     <section className="text-white body-font bg-black">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col text-center w-full mb-20">
-          <h1 className="sm:text-3xl text-2xl font-medium title-font mb-4 text-white">
+        <h1 className="text-5xl font-bold title-font text-white mb-4">
             The Program
           </h1>
-          <p className="lg:w-2/3 mx-auto leading-relaxed text-base">
+          <p className="text-lg mx-auto leading-relaxed text-base">
             Founder&apos;s Education is our 8-week startup incubator program focused on helping you think and build like an entrepreneur.
           </p>
         </div>
@@ -52,7 +55,7 @@ const MainFE: React.FC = () => {
           </div>
           <div className="p-4 md:w-1/4 sm:w-1/2 w-full">
             <div className="border-2 border-gray-200 px-4 py-6 rounded-lg">
-              <FaLightbulb className="text-indigo-500 w-12 h-12 mb-3 inline-block" />
+              <CiGlobe className="text-indigo-500 w-12 h-12 mb-3 inline-block" />
               <p className="leading-relaxed text-white">Branding</p>
             </div>
           </div>
@@ -64,7 +67,7 @@ const MainFE: React.FC = () => {
           </div>
           <div className="p-4 md:w-1/4 sm:w-1/2 w-full">
             <div className="border-2 border-gray-200 px-4 py-6 rounded-lg">
-              <FaRocket className="text-indigo-500 w-12 h-12 mb-3 inline-block" />
+              <RiPresentationFill  className="text-indigo-500 w-12 h-12 mb-3 inline-block" />
               <p className="leading-relaxed text-white">Pitching</p>
             </div>
           </div>

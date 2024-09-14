@@ -5,7 +5,9 @@ import check2 from "../../assets/community/check2.jpeg";
 // import table from "../../assets/community/table.JPG";
 import mhfinals from "../../assets/community/mhfinals.jpeg";
 // import crescentbros from "../../assets/community/crescentbros.JPG";
-
+import hike from "../../assets/community/hike.jpeg"
+import restaurant from "../../assets/community/atRestraunt.jpeg"
+import alphaog from "../../assets/community/1alphaogEdited.jpeg"
 
 
 
@@ -24,7 +26,7 @@ const GallerySection: React.FC = () => {
               <img
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/banner.JPG")}
+                src={alphaog.src}
               />
             </div>
             <div className="md:p-2 p-1 w-1/2">
@@ -38,7 +40,7 @@ const GallerySection: React.FC = () => {
               <img
                 alt="gallery"
                 className="w-full h-full object-cover object-center block"
-                src={require("../../assets/community/check.JPG")}
+                src={alphaog.src}
               />
             </div>
           </div>
@@ -54,7 +56,7 @@ const GallerySection: React.FC = () => {
               <img
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/crescentbros.JPG")}
+                src={restaurant.src}
               />
             </div>
             <div className="md:p-2 p-1 w-1/2">
@@ -70,7 +72,7 @@ const GallerySection: React.FC = () => {
               <img
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/banner.JPG")}
+                src={alphaog.src}
               />
             </div>
             <div className="md:p-2 p-1 w-1/2">
@@ -93,7 +95,7 @@ const GallerySection: React.FC = () => {
               <img
                 alt="gallery"
                 className="w-full h-full object-cover object-center block"
-                src={mhfinals.src}
+                src={hike.src}
               />
             </div>
             <div className="md:p-2 p-1 w-1/2">
