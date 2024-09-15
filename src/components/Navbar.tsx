@@ -60,7 +60,7 @@ const Navbar: React.FC = () => {
 
             {/* Call to Action Button */}
             <Link
-              href="https://google.com" // google form here
+              href="https://forms.gle/SKoNTihoanod8SVa7" // google form here
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -143,7 +143,7 @@ const Navbar: React.FC = () => {
 
             {/* Mobile Call to Action Button */}
             <Link
-              href="https://google.com" // google form here
+              href="https://forms.gle/SKoNTihoanod8SVa7" // google form here
               target="_blank"
               rel="noopener noreferrer"
             >

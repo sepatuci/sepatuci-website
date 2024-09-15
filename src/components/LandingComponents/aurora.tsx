@@ -23,7 +23,7 @@ export function AuroraBackgroundDemo() {
             UCI&apos;s Premier Entrepreneurship Fraternity
           </div>
           <a
-            href="https://google.com" // Add google form
+            href="https://forms.gle/SKoNTihoanod8SVa7" // Add google form
             target="_blank"
             rel="noopener noreferrer"
           >

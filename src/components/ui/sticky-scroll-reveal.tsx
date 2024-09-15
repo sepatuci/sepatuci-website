@@ -24,7 +24,7 @@ export const StickyScroll = ({
   const cardLength = content.length;
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const biasFactorStart = 0.3;  // Bias factor for the first card (larger value = more scroll time)
+    const biasFactorStart = 0.28;  // Bias factor for the first card (larger value = more scroll time)
     const biasFactorEnd = 0.55;    // Bias factor for the last card
     const cardLength = content.length;
   
@@ -63,9 +63,9 @@ export const StickyScroll = ({
     "var(--black)",
   ];
   const linearGradients = [
-    "linear-gradient(to bottom right, var(--cyan-500), var(--emerald-500))",
-    "linear-gradient(to bottom right, var(--pink-500), var(--indigo-500))",
-    "linear-gradient(to bottom right, var(--orange-500), var(--yellow-500))",
+    "var(--black)",
+    "var(--black)",
+    "var(--black)",
   ];
 
   const [backgroundGradient, setBackgroundGradient] = useState(
@@ -118,15 +118,16 @@ export const StickyScroll = ({
       <div
         style={{
           background: backgroundGradient,
-          transform: "translateY(10%)",  // Adjust this value as needed to move the image down
+          transform: "translateY(10%)",
         }}
         className={cn(
-          "hidden lg:block h-60 w-80 rounded-md bg-white sticky top-40 overflow-hidden", // Changed top to top-40 for a lower initial position
+          "hidden lg:block h-[600px] w-[800px] rounded-md bg-white sticky top-40 overflow-hidden", // Increased size here
           contentClassName
         )}
       >
         {content[activeCard].content ?? null}
       </div>
+
     </motion.div>
   );
 };
