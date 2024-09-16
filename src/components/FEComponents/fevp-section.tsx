@@ -13,12 +13,10 @@ const Section: React.FC = () => {
             Founder&apos;s Education
           </h1>
           <p className="text-lg text-slate-300">
-            "Our program is focused on collaboration and community as you get to
-            build alongside your cohort. We have had members come in with no
-            experience who later go on to pursue entrepreneurship full-time and
-            we also have members who have started ventures before joining who go
-            on to build their next startup. FE is the place where innovators at
-            UCI come to build!"{" "}
+          FE is focused on developing our newest members personally, professionally, 
+          and as a community of entrepreneurs. Designed for all experience levels, FE is 
+          the go-to program for those of you at UCI looking to innovate, learn about the 
+          startup world, and meet some dynamic people!{" "}
           </p>
         </div>
         <div className="lg:max-w-lg lg:w-full md:w-1/2 w-5/6">

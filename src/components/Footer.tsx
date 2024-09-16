@@ -10,12 +10,12 @@ const Footer: React.FC = () => {
           <img 
             src={sepLogo.src} 
             alt="SEP @ UCI Logo" 
-            className="w-20 h-20 bg-indigo-500 rounded-full p-2"
+            className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full p-2"
           />
           <span className="ml-4 text-2xl">SEP @ UCI</span>
         </a>
         <p className="text-lg text-gray-400 sm:ml-6 sm:pl-6 sm:border-l-2 sm:border-gray-600 sm:py-2 sm:mt-0 mt-4">
-          © 2024 SEP @ UCI —
+          © 2024
           <a
             href="https://www.instagram.com/sepatuci/"
             className="text-gray-400 ml-2"
