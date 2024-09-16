@@ -3,7 +3,7 @@ import React from "react";
 const TestimonialSection: React.FC = () => {
   return (
     <section className="text-white body-font bg-black">
-      <div className=" px-5 py-24 mx-auto h-[80vh] items-center justify-center flex">
+      <div className=" px-5 py-24 mx-auto h-screen items-center justify-center flex">
         <div className="xl:w-2/3 lg:w-2/3 md:w-5/6 w-full mx-auto text-center">
           <svg
             xmlns="http://www.w3.org/2000/svg"

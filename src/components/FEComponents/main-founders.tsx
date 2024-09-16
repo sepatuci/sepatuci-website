@@ -13,7 +13,7 @@ import { CiGlobe } from "react-icons/ci";
 const MainFE: React.FC = () => {
   return (
     <section className="text-white body-font bg-black">
-      <div className="container px-5 py-24 mx-auto">
+      <div className="h-screen container px-5 py-24 mx-auto items-center justify-center flex flex-col">
         <div className="flex flex-col text-center w-full mb-20">
         <h1 className="text-5xl font-bold title-font text-white mb-4">
             The Program
