@@ -1,22 +1,17 @@
 import React from 'react';
+import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your logo image
 
 const Footer: React.FC = () => {
   return (
     <footer className="text-white body-font bg-black">
       <div className="container px-8 py-12 mx-auto flex items-center sm:flex-row flex-col">
         <a className="flex title-font font-medium items-center md:justify-start justify-center text-white">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            fill="none"
-            stroke="currentColor"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth="2"
-            className="w-14 h-14 text-white p-3 bg-indigo-500 rounded-full"
-            viewBox="0 0 24 24"
-          >
-            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
-          </svg>
+          {/* Replace SVG with the image */}
+          <img 
+            src={sepLogo.src} 
+            alt="SEP @ UCI Logo" 
+            className="w-20 h-20 bg-indigo-500 rounded-full p-2"
+          />
           <span className="ml-4 text-2xl">SEP @ UCI</span>
         </a>
         <p className="text-lg text-gray-400 sm:ml-6 sm:pl-6 sm:border-l-2 sm:border-gray-600 sm:py-2 sm:mt-0 mt-4">
@@ -31,37 +26,13 @@ const Footer: React.FC = () => {
           </a>
         </p>
         <span className="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start">
-          {/* FACEBOOK */}
-          {/* <a className="text-gray-400">
-            <svg
-              fill="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-              <path d="M18 2h-3a5 5 0 00-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 011-1h3z"></path>
-            </svg>
-          </a> */}
-
-          {/* TWITTER */}
-          {/* <a className="ml-5 text-gray-400">
-            <svg
-              fill="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-              <path d="M23 3a10.9 10.9 0 01-3.14 1.53 4.48 4.48 0 00-7.86 3v1A10.66 10.66 0 013 4s-4 9 5 13a11.64 11.64 0 01-7 2c9 5 20 0 20-11.5a4.5 4.5 0 00-.08-.83A7.72 7.72 0 0023 3z"></path>
-            </svg>
-          </a> */}
-
           {/* INSTAGRAM */}
-          <a href="https://www.instagram.com/sepatuci/" rel="noopener noreferrer"
-            target="_blank" className="ml-5 text-gray-400">
+          <a
+            href="https://www.instagram.com/sepatuci/"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="ml-5 text-gray-400"
+          >
             <svg
               fill="none"
               stroke="currentColor"
@@ -76,9 +47,13 @@ const Footer: React.FC = () => {
             </svg>
           </a>
 
-            {/* LINKEDIN */}
-          <a href="https://www.linkedin.com/company/sepatuci/mycompany/" rel="noopener noreferrer"
-            target="_blank" className="ml-5 text-gray-400">
+          {/* LINKEDIN */}
+          <a
+            href="https://www.linkedin.com/company/sepatuci/mycompany/"
+            rel="noopener noreferrer"
+            target="_blank"
+            className="ml-5 text-gray-400"
+          >
             <svg
               fill="currentColor"
               stroke="currentColor"
@@ -88,7 +63,10 @@ const Footer: React.FC = () => {
               className="w-7 h-7"
               viewBox="0 0 24 24"
             >
-              <path stroke="none" d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"></path>
+              <path
+                stroke="none"
+                d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"
+              ></path>
               <circle cx="4" cy="4" r="2" stroke="none"></circle>
             </svg>
           </a>
