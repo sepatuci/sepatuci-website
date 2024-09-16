@@ -1,28 +1,31 @@
+// "use client" at the top allows React hooks in the component
 "use client";
 
 import React, { Suspense, useState } from 'react';
-import Image from 'next/image';  // Use Next.js Image component without legacy props
+import Image from 'next/image';  // Correct Next.js Image component import
 import teamMembers from "./Members";
 import { Linkedin } from "lucide-react";
 
-// Low-quality image preview (LQIP) as a placeholder
 const Skeleton = () => {
   return (
-    <div className="p-4 lg:w-1/5 md:w-1/2">
+    <div className="p-4 lg:w-1/5 md:w-1/2 flex justify-center items-center h-screen ml-16"> {/* Add ml-4 to shift right by 4px */}
       <div className="h-full flex flex-col items-center text-center">
         {/* Image Skeleton */}
-        <div className="flex-shrink-0 w-full h-56 bg-gray-300 rounded-lg mb-4 animate-pulse"></div>
+        <div className="flex-shrink-0 w-56 h-56 bg-gray-300 rounded-lg mb-4 animate-pulse"></div>
         {/* Text Skeleton */}
         <div className="w-full">
           {/* Title Skeleton */}
-          <div className="bg-gray-400 h-6 w-32 mb-2 rounded animate-pulse"></div>  {/* Adjust the height and width to match the title text */}
+          <div className="bg-gray-400 h-6 w-32 mb-2 rounded animate-pulse"></div>
           {/* Description Skeleton */}
-          <div className="bg-gray-400 h-4 w-24 mb-4 rounded animate-pulse"></div>  {/* Adjust the height and width to match the description text */}
+          <div className="bg-gray-400 h-4 w-24 mb-4 rounded animate-pulse"></div>
         </div>
       </div>
     </div>
   );
 };
+
+
+
 
 
 // Custom ImageLoader component to load image with fade-in effect onLoad
@@ -41,11 +44,11 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
       <Image
         src={src}
         alt={alt}
-        fill  // Replaces layout="fill"
+        fill  // Proper usage of Next.js fill prop
         className={`rounded-lg transition-opacity duration-1000 ease-in-out ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
-        onLoad={() => setIsLoaded(true)}  // Replaces onLoadingComplete
+        onLoadingComplete={() => setIsLoaded(true)}  // Correct Next.js Image event
         style={{ objectFit: 'cover' }}  // CSS for objectFit
       />
     </div>
