@@ -7,9 +7,9 @@ import sittingOnRock from "@/assets/community/utahSittingOnRock.jpeg";
 
 const content = [
   {
-    title: "Real time changes",
+    title: "Innovators",
     description:
-      "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
+      "We build startups every quarter through our Founder's Education program to solve problems in our communities. Innovation is at the core of our mission as we work towards launching UCI's next unicorn.",
     content: (
       <div className="flex items-center justify-center text-white">
         <Image
@@ -23,9 +23,9 @@ const content = [
     ),
   },
   {
-    title: "Real time changes",
+    title: "Creators",
     description:
-      "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
+      "Our startups have raised over 1M+ in VC funding, accelerator programs, competitions. We want to build startups with a real impact together and we aren't afraid to show it.",
     content: (
       <div className="flex items-center justify-center text-white">
         <Image
@@ -39,9 +39,9 @@ const content = [
     ),
   },
   {
-    title: "Real time changes",
+    title: "Community",
     description:
-      "See changes as they happen. With our platform, you can track every modification in real time. No more confusion about the latest version of your project. Say goodbye to the chaos of version control and embrace the simplicity of real-time updates.",
+      "At the core of our organization, we are a big family. We build startups together, we go on adventures together, and we push each other to new heights. At Sigma Eta Pi, it's the people that make it special.",
     content: (
       <div className="flex items-center justify-center text-white">
         <Image
