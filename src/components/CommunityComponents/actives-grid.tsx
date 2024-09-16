@@ -1,47 +1,53 @@
 "use client";
 
-import React, { Suspense, lazy, useState, useEffect } from 'react';
+import React, { Suspense, useState } from 'react';
+import Image from 'next/image';  // Use Next.js Image component without legacy props
 import teamMembers from "./Members";
 import { Linkedin } from "lucide-react";
 
+// Low-quality image preview (LQIP) as a placeholder
 const Skeleton = () => {
   return (
     <div className="p-4 lg:w-1/5 md:w-1/2">
       <div className="h-full flex flex-col items-center text-center">
-        <div className="flex-shrink-0 w-full h-56 bg-gray-300 rounded-lg mb-4 animate-pulse"></div> {/* Modified Skeleton */}
+        {/* Image Skeleton */}
+        <div className="flex-shrink-0 w-full h-56 bg-gray-300 rounded-lg mb-4 animate-pulse"></div>
+        {/* Text Skeleton */}
         <div className="w-full">
-          <div className="bg-gray-400 h-4 w-24 mb-2 rounded animate-pulse"></div>
-          <div className="bg-gray-400 h-4 w-16 mb-4 rounded animate-pulse"></div>
+          {/* Title Skeleton */}
+          <div className="bg-gray-400 h-6 w-32 mb-2 rounded animate-pulse"></div>  {/* Adjust the height and width to match the title text */}
+          {/* Description Skeleton */}
+          <div className="bg-gray-400 h-4 w-24 mb-4 rounded animate-pulse"></div>  {/* Adjust the height and width to match the description text */}
         </div>
       </div>
     </div>
   );
 };
 
-// Custom ImageLoader component to delay image rendering for 2 seconds and apply smooth fade-in
+
+// Custom ImageLoader component to load image with fade-in effect onLoad
 interface ImageLoaderProps {
   src: string;
   alt: string;
 }
 
 const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
-  const [showImage, setShowImage] = useState(false);
-
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      setShowImage(true);
-    }, 2000); // 2 second delay
-
-    return () => clearTimeout(timeout);
-  }, []);
+  const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <div className={`relative w-full h-56 ${showImage ? 'opacity-100' : 'opacity-0'} transition-opacity duration-1000`}>
-      {showImage ? (
-        <img src={src} alt={alt} className="rounded-lg w-full h-full object-cover" />
-      ) : (
-        <Skeleton />
-      )}
+    <div className="relative w-full h-56">
+      {/* Placeholder (Skeleton or low-quality placeholder) */}
+      {!isLoaded && <Skeleton />}
+      <Image
+        src={src}
+        alt={alt}
+        fill  // Replaces layout="fill"
+        className={`rounded-lg transition-opacity duration-1000 ease-in-out ${
+          isLoaded ? 'opacity-100' : 'opacity-0'
+        }`}
+        onLoad={() => setIsLoaded(true)}  // Replaces onLoadingComplete
+        style={{ objectFit: 'cover' }}  // CSS for objectFit
+      />
     </div>
   );
 };
@@ -51,7 +57,7 @@ const TeamSection: React.FC = () => {
     <section className="text-white body-font bg-black">
       <div className="container px-5 py-24 mx-auto">
         <div className="flex flex-col text-center w-full mb-20">
-        <h1 className="text-5xl font-bold title-font text-white mb-4">
+          <h1 className="text-5xl font-bold title-font text-white mb-4">
             One Family
           </h1>
         </div>
