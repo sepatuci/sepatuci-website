@@ -22,27 +22,28 @@ import shake from "@/assets/community/compressed/shake Large.jpeg";
 import table from "@/assets/community/compressed/table Large.jpeg";
 import vnmoderators from "@/assets/community/compressed/vnmoderators Large.jpeg";
 import web3mixer from "@/assets/community/compressed/web3mixer Large.jpeg";
+import utahJoseJoeGabyKai from "@/assets/community/utahJoseJoeGabyKai.jpeg"
 
 export default function Community() {
   // Convert StaticImageData to string by accessing the `src` property
   const images = [
     { image: aifinals.src, name: "aifinals", title: "aifinals" },
     { image: alphaog.src, name: "alphaog", title: "alphaog" },
-    { image: ball.src, name: "ball", title: "ball" },
-    { image: banner.src, name: "banner", title: "banner" },
-    { image: boys.src, name: "boys", title: "boys" },
-    { image: check.src, name: "check", title: "check" },
-    { image: check2.src, name: "check2", title: "check2" },
-    { image: cookin.src, name: "cookin", title: "cookin" },
-    { image: crescentbros.src, name: "crescentbros", title: "crescentbros" },
-    { image: deltamerch.src, name: "deltamerch", title: "deltamerch" },
-    { image: empathics.src, name: "empathics", title: "empathics" },
-    { image: grouppic.src, name: "grouppic", title: "grouppic" },
-    { image: hike.src, name: "hike", title: "hike" },
-    { image: mhfinals.src, name: "mhfinals", title: "mhfinals" },
-    { image: prezpitch.src, name: "prezpitch", title: "prezpitch" },
-    { image: shake.src, name: "shake", title: "shake" },
-    { image: table.src, name: "table", title: "table" },
+    // { image: ball.src, name: "ball", title: "ball" },
+    // { image: banner.src, name: "banner", title: "banner" },
+    // { image: boys.src, name: "boys", title: "boys" },
+    // { image: check.src, name: "check", title: "check" },
+    // { image: check2.src, name: "check2", title: "check2" },
+    // { image: cookin.src, name: "cookin", title: "cookin" },
+    // { image: crescentbros.src, name: "crescentbros", title: "crescentbros" },
+    // { image: deltamerch.src, name: "deltamerch", title: "deltamerch" },
+    // { image: empathics.src, name: "empathics", title: "empathics" },
+    // { image: grouppic.src, name: "grouppic", title: "grouppic" },
+    // { image: hike.src, name: "hike", title: "hike" },
+    // { image: mhfinals.src, name: "mhfinals", title: "mhfinals" },
+    { image: utahJoseJoeGabyKai.src, name: "utahJoseJoeGabyKai", title: "utahJoseJoeGabyKai" },
+    // { image: shake.src, name: "shake", title: "shake" },
+    // { image: table.src, name: "table", title: "table" },
     { image: vnmoderators.src, name: "vnmoderators", title: "vnmoderators" },
     { image: web3mixer.src, name: "web3mixer", title: "web3mixer" },
   ];
@@ -57,7 +58,7 @@ export default function Community() {
       <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
         <FlipWords words={words} /> <br />
       </div>
-      <InfiniteMovingCards items={images} direction="right" speed="slow" />
+      <InfiniteMovingCards items={images} direction="right" speed="normal" />
     </div>
   );
 }

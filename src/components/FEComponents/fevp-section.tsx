@@ -21,7 +21,7 @@ const Section: React.FC = () => {
             UCI come to build!          </p>
         </div>
         <div className="lg:max-w-lg lg:w-full md:w-1/2 w-5/6">
-          <img className="object-cover object-center rounded" alt="hero" src={shreya2.src} />
+          <img className="object-cover object-center rounded-md" alt="hero" src={shreya2.src} />
         </div>
       </div>
     </section>
