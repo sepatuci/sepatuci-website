@@ -13,6 +13,15 @@ export default function Home() {
         <title>SEP at UCI</title>
         <AuroraBackgroundDemo />
         <StickyScrollRevealDemo/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        {/* for mobile display  */}
+        <br/>
+        <br/>
+        <br/>
+        <br/>
         <TestimonialSection/>
         <Community />
       </div>

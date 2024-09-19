@@ -38,6 +38,7 @@ const Navbar: React.FC = () => {
               <FaBook className="inline-block mr-2" /> {/* Icon for Founder's Education */}
               Founder&apos;s Education
             </Link>
+
             <Link
               href="/people"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -45,6 +46,7 @@ const Navbar: React.FC = () => {
               <FaUsers className="inline-block mr-2" /> {/* Icon for Community */}
               People
             </Link>
+
             <Link
               href="/brotherhood"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -52,6 +54,7 @@ const Navbar: React.FC = () => {
               <FaHandshakeSimple className="inline-block mr-2" /> {/* Icon for Community */}
               Brotherhood
             </Link>
+
             <Link
               href="/rush"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
@@ -59,13 +62,6 @@ const Navbar: React.FC = () => {
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
             </Link>
-            {/* <Link
-              href="/alumni"
-              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaGraduationCap className="inline-block mr-2" /> {/* Icon for Alumni */}
-              {/* Alumni */}
-            {/* </Link> */}
 
             {/* Call to Action Button */}
             <Link
@@ -135,13 +131,23 @@ const Navbar: React.FC = () => {
               <FaBook className="inline-block mr-2" /> {/* Icon for Founder's Education */}
               Founder&apos;s Education
             </Link>
+
             <Link
               href="/community"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               <FaUsers className="inline-block mr-2" /> {/* Icon for Community */}
-              Community
+              People
             </Link>
+
+            <Link
+              href="/brotherhood"
+              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              <FaHandshakeSimple className="inline-block mr-2" /> {/* Icon for Rush */}
+              Brotherhood
+            </Link>
+
             <Link
               href="/rush"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
