@@ -3,7 +3,7 @@ import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your lo
 
 const Footer: React.FC = () => {
   return (
-    <footer className="text-white body-font bg-black">
+    <footer className="text-white body-font bg-transparent backdrop-blur-lg">
       <div className="container px-8 py-12 mx-auto flex items-center sm:flex-row flex-col">
         <a className="flex title-font font-medium items-center md:justify-start justify-center text-white">
           {/* Replace SVG with the image */}

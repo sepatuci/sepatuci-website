@@ -1,4 +1,4 @@
-import ZetaDemoDay from "@/assets/updated-website/ZetaDemoDay.jpg";
+import ZetaDemoDay from "@/assets/ZetaDemoDay.jpg";
 import jessicatam from "@/assets/members/epsilon/jessicatam.jpg";
 
 import React from "react";

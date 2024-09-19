@@ -4,7 +4,9 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import sepLogo from "../assets/logos/sep_logos/sep_white.png";
-import { FaBook, FaUsers, FaRocket, FaGraduationCap } from 'react-icons/fa'; // Import icons
+import { FaBook, FaUsers, FaRocket, FaGraduationCap } from 'react-icons/fa';
+import { FaHandshakeSimple } from "react-icons/fa6";
+
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
@@ -37,11 +39,18 @@ const Navbar: React.FC = () => {
               Founder&apos;s Education
             </Link>
             <Link
-              href="/community"
+              href="/people"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               <FaUsers className="inline-block mr-2" /> {/* Icon for Community */}
-              Community
+              People
+            </Link>
+            <Link
+              href="/brotherhood"
+              className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
+            >
+              <FaHandshakeSimple className="inline-block mr-2" /> {/* Icon for Community */}
+              Brotherhood
             </Link>
             <Link
               href="/rush"

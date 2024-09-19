@@ -13,7 +13,7 @@ const content = [
     content: (
       <div className="flex items-center justify-center text-white">
         <Image
-          src={require("../../assets/community/grouppic.JPG")}
+          src={require("../../assets/community/grouppic.jpeg")}
           width={800} // Increase width
           height={600} // Increase height
           className="object-cover rounded-lg" // Optional: Adjust or remove
@@ -29,7 +29,7 @@ const content = [
     content: (
       <div className="flex items-center justify-center text-white">
         <Image
-          src={require("../../assets/community/aifinals.JPG")}
+          src={require("../../assets/community/aifinals.jpeg")}
           width={800} // Increase width
           height={600} // Increase height
           className="object-cover rounded-lg" // Optional: Adjust or remove
