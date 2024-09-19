@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import Image from 'next/image';
-import teamMembers from './Members'; // Import the members data
+import teamMembers from './Members';
 import { Linkedin } from 'lucide-react';
 
 interface ImageLoaderProps {
@@ -53,7 +53,7 @@ const TeamSection: React.FC = () => {
           {Object.keys(tabs).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as 'Active' | 'Alumni'  | 'Executive Board')} // Cast to correct type
+              onClick={() => setActiveTab(tab as 'Active' | 'Alumni' | 'Executive Board')} // Cast to correct type
               className={`px-6 py-2 rounded-md mx-2 text-white ${
                 activeTab === tab ? 'bg-gray-800' : 'bg-gray-600'
               }`}
@@ -66,7 +66,7 @@ const TeamSection: React.FC = () => {
         {/* Tab Content */}
         <div className="flex flex-wrap -m-4">
           {tabs[activeTab].map((member, index) => (
-            <div className="p-4 lg:w-1/5 md:w-1/2" key={index}>
+            <div className="p-4 w-full md:w-1/2 lg:w-1/5" key={index}> {/* Responsive column settings */}
               <div className="h-full flex flex-col items-center text-center">
                 <ImageLoader src={member.src} alt={member.title} />
                 <div className="w-full">
