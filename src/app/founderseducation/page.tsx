@@ -10,6 +10,15 @@ export default function ItemPage({ params }: { params: { item: string } }) {
       <main className="dark">
         <title>Founder&apos;s Education</title>
         <MainFE/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
+        <br/>
         <Section/>
         <ScrollStartups/>
       </main>

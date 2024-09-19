@@ -119,21 +119,6 @@ const teamMembers = [
     category: "Executive Board",
   },
 
-  {
-    description: "Director of Internal Affairs",
-    title: "Joseph Marquez",
-    src: joseph.src,
-    ctaLink: "https://www.linkedin.com/in/joseph-marquez-6009a2262/",
-    category: "Executive Board",
-  },
-  {
-    description: "Director of Internal Affairs",
-    title: "Junghoon Kim",
-    src: hoon.src,
-    ctaLink: "www.linkedin.com/in/hoononthemoon",
-    category: "Executive Board",
-  },
-
 
   // ACTIVES
   // Alpha Class
