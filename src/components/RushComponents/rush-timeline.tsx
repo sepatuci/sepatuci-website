@@ -77,7 +77,7 @@ export function RushTimeline() {
         <div>
           <div className="grid grid-cols-2 gap-4">
             <Image
-              src={require("../../assets/community/ZetaDemoDay.jpeg")}
+              src={BeachBonfire.src}
               alt="hero template"
               width={500}
               height={500}
