@@ -81,7 +81,7 @@ const ContactSection: React.FC = () => {
             <p className="mt-2 text-gray-200">Connect with us on LinkedIn.</p>
             <p className="mt-2 text-white">
               <a href="https://www.linkedin.com/company/sepatuci/mycompany/" target="_blank" rel="noopener noreferrer">
-                @sepatuci
+                Sigma Eta Pi at UCI
               </a>
             </p> {/* LinkedIn link */}
           </div>
