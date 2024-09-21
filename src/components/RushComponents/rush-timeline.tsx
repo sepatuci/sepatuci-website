@@ -13,6 +13,11 @@ import Image from "next/image";
 import React from "react";
 import { Timeline } from "@/components/ui/timeline";
 
+interface TimelineEntry {
+  title: React.JSX.Element;
+  content: React.JSX.Element;
+}
+
 export function RushTimeline() {
   const data = [
     {

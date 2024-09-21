@@ -8,8 +8,8 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 
 interface TimelineEntry {
-  title: string;
-  content: React.ReactNode;
+  title: React.JSX.Element;
+  content: React.JSX.Element;
 }
 
 export const Timeline = ({ data }: { data: TimelineEntry[] }) => {
