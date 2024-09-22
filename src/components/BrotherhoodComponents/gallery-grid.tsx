@@ -17,44 +17,11 @@ export default function FocusCardsDemo() {
   const cards = [
     {
       title: "Forest Adventure",    
-      src: check2.src,
+      src: alphaog.src,
     },
     {
         title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
-      },    {
-        title: "Forest Adventure",    
-        src: check2.src,
+        src: restaurant.src,
       },
   ];
 

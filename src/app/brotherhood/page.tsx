@@ -1,6 +1,7 @@
 // import GallerySection from '@/components/BrotherhoodComponents/gallery';
+import GallerySection from '@/components/BrotherhoodComponents/brotherhood-gallery';
 import utahSquad from '../../assets/community/utahSquad.jpeg';
-import FocusCardsDemo from '@/components/BrotherhoodComponents/gallery-grid';
+// import FocusCardsDemo from '@/components/BrotherhoodComponents/gallery-grid';
 
 export default function ItemPage({ params }: { params: { item: string } }) {
     return (
@@ -24,8 +25,7 @@ export default function ItemPage({ params }: { params: { item: string } }) {
 
             {/* Scrollable content */}
             <section className="min-h-screen">
-            <FocusCardsDemo/>
-                {/* <GallerySection /> */}
+            <GallerySection/>
             </section>
         </main>
     );
