@@ -8,7 +8,7 @@ export default function ItemPage({ params }: { params: { item: string } }) {
         <main
             className="dark min-h-screen"
             style={{
-                backgroundImage: `url(${utahSquad.src})`, // Correct usage
+                backgroundImage: `url(${utahSquad.src})`,
                 backgroundSize: 'cover',
                 backgroundPosition: 'center',
                 backgroundAttachment: 'fixed',
@@ -18,14 +18,16 @@ export default function ItemPage({ params }: { params: { item: string } }) {
 
             {/* Centered title */}
             <section className="h-screen flex items-center justify-center">
-                <div className="bg-black text-5xl font-bold title-font text-white rounded-full px-6 py-3 mb-4">
-                    SEP throughout the years
+                <div className="bg-black text-white rounded-full px-6 py-3 mb-4 text-center">
+                    <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold title-font">
+                        SEP throughout the years
+                    </h1>
                 </div>
             </section>
 
             {/* Scrollable content */}
             <section className="min-h-screen">
-            <GallerySection/>
+                <GallerySection />
             </section>
         </main>
     );
