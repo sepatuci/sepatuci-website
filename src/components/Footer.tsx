@@ -8,11 +8,11 @@ const Footer: React.FC = () => {
         <a className="flex title-font font-medium items-center md:justify-start justify-center text-white">
           {/* Replace SVG with the image */}
           <img 
-            src={sepLogo.src} 
+            src={sepLogo.src}
             alt="SEP @ UCI Logo" 
             className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full p-2"
           />
-          <span className="ml-4 text-2xl">SEP @ UCI</span>
+          <span className="ml-4 text-2xl">Sigma Eta Pi @ UC Irvine</span>
         </a>
         <p className="text-lg text-gray-400 sm:ml-6 sm:pl-6 sm:border-l-2 sm:border-gray-600 sm:py-2 sm:mt-0 mt-4">
           © 2024

@@ -35,7 +35,8 @@ const Navbar: React.FC = () => {
               href="/founderseducation"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaBook className="inline-block mr-2" /> {/* Icon for Founder's Education */}
+              <FaBook className="inline-block mr-2" />{" "}
+              {/* Icon for Founder's Education */}
               Founder&apos;s Education
             </Link>
 
@@ -43,7 +44,8 @@ const Navbar: React.FC = () => {
               href="/people"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaUsers className="inline-block mr-2" /> {/* Icon for Community */}
+              <FaUsers className="inline-block mr-2" />{" "}
+              {/* Icon for Community */}
               People
             </Link>
 
@@ -51,7 +53,8 @@ const Navbar: React.FC = () => {
               href="/brotherhood"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaHandshakeSimple className="inline-block mr-2" /> {/* Icon for Community */}
+              <FaHandshakeSimple className="inline-block mr-2" />{" "}
+              {/* Icon for Community */}
               Brotherhood
             </Link>
 
@@ -69,7 +72,7 @@ const Navbar: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <button className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-lg font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+              <button className="bg-[#ae201b] hover:bg-[#8a2521] text-white text-lg font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
                 Apply
               </button>
             </Link>
@@ -128,7 +131,8 @@ const Navbar: React.FC = () => {
               href="/founderseducation"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaBook className="inline-block mr-2" /> {/* Icon for Founder's Education */}
+              <FaBook className="inline-block mr-2" />{" "}
+              {/* Icon for Founder's Education */}
               Founder&apos;s Education
             </Link>
 
@@ -136,7 +140,8 @@ const Navbar: React.FC = () => {
               href="/people"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaUsers className="inline-block mr-2" /> {/* Icon for Community */}
+              <FaUsers className="inline-block mr-2" />{" "}
+              {/* Icon for Community */}
               People
             </Link>
 
@@ -144,7 +149,8 @@ const Navbar: React.FC = () => {
               href="/brotherhood"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
-              <FaHandshakeSimple className="inline-block mr-2" /> {/* Icon for Rush */}
+              <FaHandshakeSimple className="inline-block mr-2" />{" "}
+              {/* Icon for Rush */}
               Brotherhood
             </Link>
 

@@ -58,7 +58,7 @@ export default function Community() {
       <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
         <FlipWords words={words} /> <br />
       </div>
-      <InfiniteMovingCards items={images} direction="right" speed="normal" />
+      <InfiniteMovingCards items={images} direction="right" speed="slow" />
     </div>
   );
 }
