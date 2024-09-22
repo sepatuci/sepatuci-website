@@ -26,7 +26,7 @@ export function AuroraBackgroundDemo() {
             UCI&apos;s Premier Entrepreneurship Fraternity
           </div>
           <a
-            href="https://forms.gle/SKoNTihoanod8SVa7" // Add google form
+            href="https://forms.gle/2k9vvXA2Gxh3J46UA" // Add google form
             target="_blank"
             rel="noopener noreferrer"
           >
