@@ -38,10 +38,10 @@ const GallerySection: React.FC = () => {
 
   return (
     <section className="text-gray-600 body-font">
-      <div className="container px-5 py-24 mx-auto">
-        <div className="flex flex-wrap -m-4">
+      <div className="container px-2 sm:px-5 py-12 sm:py-24 mx-auto">
+        <div className="flex flex-wrap -mx-2 sm:-mx-4">
           {items.map((item) => (
-            <div key={item.id} className="lg:w-1/3 sm:w-1/2 p-4">
+            <div key={item.id} className="w-full sm:w-1/2 lg:w-1/3 px-2 sm:px-4 mb-6">
               <div className="relative" style={{ paddingBottom: '66.67%' }}>
                 <img
                   alt="gallery"
