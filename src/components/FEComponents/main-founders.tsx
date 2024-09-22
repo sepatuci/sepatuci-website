@@ -9,12 +9,13 @@ import { CiGlobe } from 'react-icons/ci';
 const MainFE: React.FC = () => {
   return (
     <section className="text-white body-font bg-black">
-      {/* Removed h-screen to avoid screen height issues */}
       <div className="container px-5 pt-24 pb-24 mx-auto items-center justify-center flex flex-col">
         <div className="flex flex-col text-center w-full mb-10">
-          <h1 className="text-4xl md:text-5xl font-bold title-font text-white mb-4">
-            The Program
+          <h1 className="text-5xl font-bold title-font text-white mb-4">
+          The Program
           </h1>
+          {/* <h1 className="text-4xl md:text-5xl font-bold title-font text-white mb-4">
+          </h1> */}
           <p className="text-base md:text-lg mx-auto leading-relaxed">
             Founder&apos;s Education is our 8-week startup incubator program focused on helping you think and build like an entrepreneur.
           </p>
