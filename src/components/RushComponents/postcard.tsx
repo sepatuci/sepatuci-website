@@ -1,6 +1,6 @@
 import React from 'react';
 
-import Postcard from '@/assets/rush-fall-2024/FallRushPostcards.png';
+import Postcard from '@/assets/rush-fall-2024/updated-schedule.png';
 
 const SectionComponent: React.FC = () => {
   return (
