@@ -24,8 +24,8 @@ export const StickyScroll = ({
   const cardLength = content.length;
 
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const biasFactorStart = 0.28;  // Bias factor for the first card (larger value = more scroll time)
-    const biasFactorEnd = 0.55;    // Bias factor for the last card
+    const biasFactorStart = 0.15;  // Bias factor for the first card (larger value = more scroll time)
+    const biasFactorEnd = 0.45;    // Bias factor for the last card
     const cardLength = content.length;
   
     // Define custom breakpoints to allocate more scroll time for the first and last cards
@@ -88,7 +88,7 @@ export const StickyScroll = ({
       <div className="div relative flex items-start px-4">
         <div className="max-w-2xl">
           {content.map((item, index) => (
-            <div key={item.title + index} className="my-20">
+            <div key={item.title + index} className="my-20 pt-[175px]">
               <motion.h2
                 initial={{
                   opacity: 0,
