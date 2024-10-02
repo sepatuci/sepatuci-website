@@ -25,11 +25,11 @@ import becca from "../../assets/members/zeta/becca.jpg";
 
 // ALUMNI
 // Alpha
-// import alexia from "../../assets/members/alpha/alexia.JPG";
-// import isaac from "../../assets/members/alpha/isaac.JPG";
+import alexia from "../../assets/members/alpha/alexia.jpeg";
+import isaac from "../../assets/members/alpha/isaac.jpeg";
 import michael from "../../assets/members/alpha/michael.jpg";
 import rosario from "../../assets/members/alpha/rosario.jpg";
-// import ruby from "../../assets/members/alpha/ruby.JPG";
+import ruby from "../../assets/members/alpha/ruby.jpeg";
 
 // Beta
 import chris from "../../assets/members/beta/chris.jpg";
@@ -44,20 +44,20 @@ import ashley from "../../assets/members/gamma/ashley.jpg";
 import kanu from "../../assets/members/gamma/kanu.jpg";
 import kyletran from "../../assets/members/gamma/kyletran.jpg";
 import kylettran from "../../assets/members/gamma/kylettran.png";
-// import redford from "../../assets/members/gamma/redford.JPG";
+import redford from "../../assets/members/gamma/redford.jpeg";
 import rithwik from "../../assets/members/gamma/rithwik.jpg";
 import rod from "../../assets/members/gamma/rod.png";
 import zak from "../../assets/members/gamma/zak.jpg";
 
 // Delta
-// import clare from "../../assets/members/delta/clare.JPG";
-// import jai from "../../assets/members/delta/jai.JPG";
+import clare from "../../assets/members/delta/clare.jpg";
+import jai from "../../assets/members/delta/jai.jpg";
 import michelle from "../../assets/members/delta/michelle.jpg";
-// import vishwa from "../../assets/members/delta/vishwa.JPG";
+import vishwa from "../../assets/members/delta/vishwa.jpg";
 
 // Epsilon
-// import elisa from "../../assets/members/epsilon/elisa.JPG";
-// import ariel from "../../assets/members/epsilon/ariel.JPG";
+import elisa from "../../assets/members/epsilon/elisa.jpg";
+import ariel from "../../assets/members/epsilon/ariel.jpg";
 
 
 const teamMembers = [
@@ -298,20 +298,20 @@ const teamMembers = [
 
   // ALUMNI
     // ALPHA
-  // {
-  //   description: "Alpha Class",
-  //   title: "Alexia Rudh",
-  //   src: alexia.src,
-  //   ctaLink: "https://www.linkedin.com/in/alexia-p-rudh/",
-  //   category: "Alumni",
-  // },
-  // {
-  //   description: "Alpha Class",
-  //   title: "Isaac Larroque",
-  //   src: isaac.src,
-  //   ctaLink: "https://www.linkedin.com/in/isaac-larroque-86821920a/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Alpha Class",
+    title: "Alexia Rudh",
+    src: alexia.src,
+    ctaLink: "https://www.linkedin.com/in/alexia-p-rudh/",
+    category: "Alumni",
+  },
+  {
+    description: "Alpha Class",
+    title: "Isaac Larroque",
+    src: isaac.src,
+    ctaLink: "https://www.linkedin.com/in/isaac-larroque-86821920a/",
+    category: "Alumni",
+  },
   {
     description: "Alpha Class",
     title: "Michael Ross",
@@ -326,13 +326,13 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/rosario-pozos-077956202/",
     category: "Alumni",
   },
-  // {
-  //   description: "Alpha Class",
-  //   title: "Ruby Mejia-Perez",
-  //   src: ruby.src,
-  //   ctaLink: "https://www.linkedin.com/in/ruby-mejia-perez/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Alpha Class",
+    title: "Ruby Mejia-Perez",
+    src: ruby.src,
+    ctaLink: "https://www.linkedin.com/in/ruby-mejia-perez/",
+    category: "Alumni",
+  },
 
   // BETA
   {
@@ -407,13 +407,13 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/kyle-tran-3395b2161/",
     category: "Alumni",
   },
-  // {
-  //   description: "Gamma Class",
-  //   title: "Redford Hudson",
-  //   src: redford.src,
-  //   ctaLink: "https://www.linkedin.com/in/redfordfoxhudson/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Gamma Class",
+    title: "Redford Hudson",
+    src: redford.src,
+    ctaLink: "https://www.linkedin.com/in/redfordfoxhudson/",
+    category: "Alumni",
+  },
   {
     description: "Gamma Class",
     title: "Rithwik Kerur",
@@ -437,20 +437,20 @@ const teamMembers = [
   },
 
   // DELTA
-  // {
-  //   description: "Delta Class",
-  //   title: "Clare Wu",
-  //   src: clare.src,
-  //   ctaLink: "https://www.linkedin.com/in/claremwu/",
-  //   category: "Alumni",
-  // },
-  // {
-  //   description: "Delta Class",
-  //   title: "Jai Hathiramani",
-  //   src: jai.src,
-  //   ctaLink: "https://www.linkedin.com/in/jai-h-1b7a96a3/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Delta Class",
+    title: "Clare Wu",
+    src: clare.src,
+    ctaLink: "https://www.linkedin.com/in/claremwu/",
+    category: "Alumni",
+  },
+  {
+    description: "Delta Class",
+    title: "Jai Hathiramani",
+    src: jai.src,
+    ctaLink: "https://www.linkedin.com/in/jai-h-1b7a96a3/",
+    category: "Alumni",
+  },
   {
     description: "Delta Class",
     title: "Michelle Lei",
@@ -458,29 +458,29 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/ymlei/",
     category: "Alumni",
   },
-  // {
-  //   description: "Delta Class",
-  //   title: "Vishwa Shah",
-  //   src: vishwa.src,
-  //   ctaLink: "https://www.linkedin.com/in/vishwa-shah-b82a70161/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Delta Class",
+    title: "Vishwa Shah",
+    src: vishwa.src,
+    ctaLink: "https://www.linkedin.com/in/vishwa-shah-b82a70161/",
+    category: "Alumni",
+  },
 
   // EPSILON
-  // {
-  //   description: "Epsilon Class",
-  //   title: "Ariel Serrano",
-  //   src: ariel.src,
-  //   ctaLink: "https://www.linkedin.com/in/arielserrano/",
-  //   category: "Alumni",
-  // },
-  // {
-  //   description: "Epsilon Class",
-  //   title: "Elisa Lee",
-  //   src: elisa.src,
-  //   ctaLink: "https://www.linkedin.com/in/elisa-lee/",
-  //   category: "Alumni",
-  // },
+  {
+    description: "Epsilon Class",
+    title: "Ariel Serrano",
+    src: ariel.src,
+    ctaLink: "https://www.linkedin.com/in/arielserrano/",
+    category: "Alumni",
+  },
+  {
+    description: "Epsilon Class",
+    title: "Elisa Lee",
+    src: elisa.src,
+    ctaLink: "https://www.linkedin.com/in/elisa-lee/",
+    category: "Alumni",
+  },
 
 
 ];
