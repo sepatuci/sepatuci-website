@@ -9,7 +9,7 @@ import { CiGlobe } from 'react-icons/ci';
 const MainFE: React.FC = () => {
   return (
     <section className="text-white body-font bg-black">
-      <div className="container px-5 pt-24 pb-24 mx-auto items-center justify-center flex flex-col">
+      <div className="md:h-screen container px-5 pt-24 pb-24 mx-auto items-center justify-center flex flex-col">
         <div className="flex flex-col text-center w-full mb-10">
           <h1 className="text-5xl font-bold title-font text-white mb-4">
           The Program
