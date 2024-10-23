@@ -94,7 +94,8 @@ const teamMembers = [
     description: "VP of External Affairs",
     title: "Jose Callejas",
     src: jose.src,
-    ctaLink: "https://www.linkedin.com/in/jose-mizraim-callejas-gonzalez-371987212/",
+    ctaLink:
+      "https://www.linkedin.com/in/jose-mizraim-callejas-gonzalez-371987212/",
     category: "Executive Board",
   },
   {
@@ -113,12 +114,11 @@ const teamMembers = [
   },
   {
     description: "VP of Internal Affairs",
-    title: "Caleb Chung",
-    src: caleb.src,
-    ctaLink: "https://www.linkedin.com/in/caleb-chung-7796941a0/",
+    title: "Joseph Marquez",
+    src: joseph.src,
+    ctaLink: "https://www.linkedin.com/in/joseph-marquez-6009a2262/",
     category: "Executive Board",
   },
-
 
   // ACTIVES
   // Alpha Class
@@ -127,7 +127,7 @@ const teamMembers = [
     title: "Ayaan Dhir",
     src: ayaan.src,
     ctaLink: "https://www.linkedin.com/in/ayaandhir/",
-    category: "Active"
+    category: "Active",
   },
   // Beta Class
   {
@@ -263,7 +263,8 @@ const teamMembers = [
     description: "Zeta Class",
     title: "Jose Callejas",
     src: jose.src,
-    ctaLink: "https://www.linkedin.com/in/jose-mizraim-callejas-gonzalez-371987212/",
+    ctaLink:
+      "https://www.linkedin.com/in/jose-mizraim-callejas-gonzalez-371987212/",
     category: "Active",
   },
   {
@@ -295,9 +296,8 @@ const teamMembers = [
     category: "Active",
   },
 
-
   // ALUMNI
-    // ALPHA
+  // ALPHA
   {
     description: "Alpha Class",
     title: "Alexia Rudh",
@@ -481,8 +481,6 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/elisa-lee/",
     category: "Alumni",
   },
-
-
 ];
 
 export default teamMembers;
