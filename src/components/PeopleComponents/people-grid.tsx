@@ -30,13 +30,13 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
 };
 
 const TeamSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Active' | 'Alumni' | 'Executive Board'>('Active'); // Type the state
+  const [activeTab, setActiveTab] = useState<'Active' | 'Classes' | 'Executive Board'>('Active'); // Type the state
 
   // Adjust filtering to check if the category array contains the active tab
   const tabs = {
     Active: teamMembers.filter((member) => member.category.includes('Active')),
     'Executive Board': teamMembers.filter((member) => member.category.includes('Executive Board')),
-    Alumni: teamMembers.filter((member) => member.category.includes('Alumni')),
+    Classes: teamMembers.filter((member) => member.category.includes('Classes')), // Filter by original "Classes" category in data
   };
 
   return (
@@ -53,7 +53,7 @@ const TeamSection: React.FC = () => {
           {Object.keys(tabs).map((tab) => (
             <button
               key={tab}
-              onClick={() => setActiveTab(tab as 'Active' | 'Alumni' | 'Executive Board')} // Cast to correct type
+              onClick={() => setActiveTab(tab as 'Active' | 'Classes' | 'Executive Board')} // Cast to correct type
               className={`px-6 py-2 rounded-md mx-2 text-white ${
                 activeTab === tab ? 'bg-gray-800' : 'bg-gray-600'
               }`}
