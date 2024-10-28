@@ -469,16 +469,16 @@ const teamMembers = [
   // EPSILON
   {
     description: "Epsilon Class",
-    title: "Ariel Serrano",
+    title: "Ariel Tjandra",
     src: ariel.src,
-    ctaLink: "https://www.linkedin.com/in/arielserrano/",
+    ctaLink: "https://www.linkedin.com/in/ariel-tjandra/",
     category: "Alumni",
   },
   {
     description: "Epsilon Class",
-    title: "Elisa Lee",
+    title: "Elisa Yan",
     src: elisa.src,
-    ctaLink: "https://www.linkedin.com/in/elisa-lee/",
+    ctaLink: "https://www.linkedin.com/in/elisa-yan/",
     category: "Alumni",
   },
 
