@@ -64,7 +64,7 @@ const Navbar: React.FC = () => {
             >
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
-            {/* </Link> */} */}
+            {/* </Link> */}
 
             {/* Call to Action Button */}
             <Link
@@ -160,7 +160,7 @@ const Navbar: React.FC = () => {
             >
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
-            {/* </Link> */} */}
+            {/* </Link> */}
 
             {/* Mobile Call to Action Button */}
             <Link
