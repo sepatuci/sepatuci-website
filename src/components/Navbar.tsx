@@ -58,17 +58,17 @@ const Navbar: React.FC = () => {
               Brotherhood
             </Link>
 
-            <Link
+            {/* <Link
               href="/rush"
               className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
-            </Link>
+            {/* </Link> */} */}
 
             {/* Call to Action Button */}
             <Link
-              href="https://forms.gle/2k9vvXA2Gxh3J46UA" // google form here
+              href="https://forms.gle/jD2pGM4QUmZ6p8Fq9" // google form here
               target="_blank"
               rel="noopener noreferrer"
             >
@@ -154,17 +154,17 @@ const Navbar: React.FC = () => {
               Brotherhood
             </Link>
 
-            <Link
+            {/* <Link
               href="/rush"
               className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
             >
               <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
               Rush
-            </Link>
+            {/* </Link> */} */}
 
             {/* Mobile Call to Action Button */}
             <Link
-              href="https://forms.gle/2k9vvXA2Gxh3J46UA" // google form here
+              href="https://forms.gle/jD2pGM4QUmZ6p8Fq9" // google form here
               target="_blank"
               rel="noopener noreferrer"
             >
