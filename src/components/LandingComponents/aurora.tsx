@@ -30,7 +30,7 @@ export function AuroraBackgroundDemo() {
             target="_blank"
             rel="noopener noreferrer"
           >
-            <button className="bg-[#ae201b] text-white text-lg font-medium px-6 py-5 rounded-lg shadow-md hover:bg-[#8a2521] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+            <button className="bg-[#3E51E7] text-white text-lg font-medium px-6 py-5 rounded-lg shadow-md hover:bg-[#8a2521] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
               Interested?
             </button>
           </a>

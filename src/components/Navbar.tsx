@@ -72,7 +72,7 @@ const Navbar: React.FC = () => {
               target="_blank"
               rel="noopener noreferrer"
             >
-              <button className="bg-[#ae201b] hover:bg-[#8a2521] text-white text-lg font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
+              <button className="bg-[#3E51E7] hover:bg-[#3E51E7] text-white text-lg font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
                 Apply
               </button>
             </Link>
