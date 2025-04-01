@@ -1,6 +1,6 @@
 import React from 'react';
 import Image from 'next/image'; // Importing Image from next/image
-import shreya2 from "../../assets/members/delta/shreya2.jpg";
+import pahel2 from "../../assets/members/epsilon/pahel.jpg";
 
 const Section: React.FC = () => {
   return (
@@ -24,7 +24,7 @@ const Section: React.FC = () => {
           <Image
             className="object-cover object-center rounded-md"
             alt="hero"
-            src={shreya2.src}
+            src={pahel2.src}
             width={500} // Provide appropriate width for the image
             height={500} // Provide appropriate height for the image
             priority={true} // Optional: to prioritize this image for faster LCP

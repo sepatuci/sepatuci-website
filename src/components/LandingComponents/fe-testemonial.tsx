@@ -39,7 +39,7 @@ const TestimonialSection: React.FC = () => {
           <p className="text-gray-400 text-2xl italic">
             {" "}
             {/* Increased font size */}
-            President
+            Alpha Class
           </p>
         </div>
       </div>
