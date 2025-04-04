@@ -26,7 +26,7 @@ export function AuroraBackgroundDemo() {
             UCI&apos;s Premier Entrepreneurship Fraternity
           </div>
           <a
-            href="https://forms.gle/jD2pGM4QUmZ6p8Fq9" // Add google form
+            href="https://forms.gle/GSFD6MBbsgbJ8sAC6" // Add google form
             target="_blank"
             rel="noopener noreferrer"
           >
@@ -63,7 +63,7 @@ export const projects = [
         "Countries",
     },
     {
-      title: "$1M+",
+      title: "$2M+",
       description:
         "In Funding",
     },
