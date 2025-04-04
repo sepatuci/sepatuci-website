@@ -110,13 +110,13 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/hannah-mccarthy-6101a22ba/",
     category: "Executive Board",
   },  
-  {
-    description: "Co-VP of Marketing",
-    title: "Meaghan Gouws",
-    src: hannah.src,
-    ctaLink: "http://www.linkedin.com/in/meaghangouws",
-    category: "Executive Board",
-  },
+  // {
+  //   description: "Co-VP of Marketing",
+  //   title: "Meaghan Gouws",
+  //   src: hannah.src,
+  //   ctaLink: "http://www.linkedin.com/in/meaghangouws",
+  //   category: "Executive Board",
+  // },
 
   // ACTIVES
   // Alpha Class
