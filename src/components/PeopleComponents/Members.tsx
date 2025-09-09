@@ -647,7 +647,7 @@ const teamMembers = [
 {
   description: "Eta Class",
   title: "Adithi Gudipati",
-  src: "", // Missing Image
+  src: adithi.src,
   ctaLink: "https://www.linkedin.com/in/adithileela/",
   category: "Classes",
 },
