@@ -125,41 +125,11 @@ const teamMembers = [
   },
 
   // ACTIVES
-  // Alpha Class
-  {
-    description: "Alpha Class",
-    title: "Ayaan Dhir",
-    src: ayaan.src,
-    ctaLink: "https://www.linkedin.com/in/ayaandhir/",
-    category: "Actives",
-  },
-  // Beta Class
-  {
-    description: "Beta Class",
-    title: "Nima Movahedi",
-    src: nima.src,
-    ctaLink: "https://www.linkedin.com/in/nima-movahedi/",
-    category: "Actives",
-  },
   {
     description: "Epsilon Class",
     title: "Caleb Chung",
     src: caleb.src,
     ctaLink: "https://www.linkedin.com/in/caleb-chung-7796941a0/",
-    category: "Actives",
-  },
-  {
-    description: "Epsilon Class",
-    title: "Felix Toffaneto Werner",
-    src: felix.src,
-    ctaLink: "https://www.linkedin.com/in/felixtwerner/",
-    category: "Actives",
-  },
-  {
-    description: "Epsilon Class",
-    title: "Jessica Tam",
-    src: jessicatam.src,
-    ctaLink: "https://www.linkedin.com/in/jessica-tam-704240281/",
     category: "Actives",
   },
   {
@@ -170,13 +140,6 @@ const teamMembers = [
     category: "Actives",
   },
   // Zeta Class
-  {
-    description: "Zeta Class",
-    title: "Gabrielle Palar",
-    src: gabrielle.src,
-    ctaLink: "https://www.linkedin.com/in/gabrielle-palar/",
-    category: "Actives",
-  },
   {
     description: "Zeta Class",
     title: "Jose Callejas",
