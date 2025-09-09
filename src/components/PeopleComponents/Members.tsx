@@ -66,6 +66,19 @@ import vishwa from "../../assets/members/delta/vishwa.jpg";
 import elisa from "../../assets/members/epsilon/elisa.jpg";
 import ariel from "../../assets/members/epsilon/ariel.jpg";
 
+// Eta
+import aarushi from "../../assets/members/eta/aarushi.jpg";
+import meaghan from "../../assets/members/eta/meaghan.jpeg";
+import adithi from "../../assets/members/eta/adithi.jpg";
+import sergio from "../../assets/members/eta/sergio.jpg";
+import tristan from "../../assets/members/eta/tristan.jpg";
+
+// Theta
+import kyle from "../../assets/members/theta/kyle.jpeg";
+import michelle_makhija from "../../assets/members/theta/michelle.jpeg";
+import trisha from "../../assets/members/theta/trisha.jpeg";
+import victoria from "../../assets/members/theta/victoria.jpeg";
+
 const teamMembers = [
   // EBOARD
   {
@@ -236,6 +249,58 @@ const teamMembers = [
     ctaLink: "http://www.linkedin.com/in/yurina-tamura",
     category: "Actives",
   },
+    // Eta Class
+    {
+      description: "Eta Class",
+      title: "Adithi Gudipati",
+      src: adithi.src,
+      ctaLink: "https://www.linkedin.com/in/adithileela/",
+      category: "Actives",
+    },
+    {
+      description: "Eta Class",
+      title: "Aarushi Manikandan",
+      src: aarushi.src,
+      ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
+      category: "Actives",
+    },
+    {
+      description: "Eta Class",
+      title: "Meaghan Gouws",
+      src: meaghan.src,
+      ctaLink: "https://www.linkedin.com/in/meaghangouws",
+      category: "Actives",
+    },
+    // Theta Class
+    {
+      description: "Theta Class",
+      title: "Trisha Satyavrat",
+      src: trisha.src,
+      ctaLink: "https://www.linkedin.com/in/trishasatyavrat/",
+      category: "Actives",
+    },
+    {
+      description: "Theta Class",
+      title: "Victoria Hoang",
+      src: victoria.src,
+      ctaLink: "https://www.linkedin.com/in/vhoang9/",
+      category: "Actives",
+    },
+    {
+      description: "Theta Class",
+      title: "Michelle Makhija",
+      src: michelle_makhija.src,
+      ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237",
+      category: "Actives",
+    },
+    {
+      description: "Theta Class",
+      title: "Kyle Spink",
+      src: kyle.src,
+      ctaLink: "https://www.linkedin.com/in/kyle-spink/",
+      category: "Actives",
+    },
+
 // CLASSES
 // FOUNDERS
 {
@@ -630,6 +695,71 @@ const teamMembers = [
 
 
 // ETA
+{
+  description: "Eta Class",
+  title: "Adithi Gudipati",
+  src: "", // Missing Image
+  ctaLink: "https://www.linkedin.com/in/adithileela/",
+  category: "Classes",
+},
+{
+  description: "Eta Class",
+  title: "Aarushi Manikandan",
+  src: aarushi.src,
+  ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
+  category: "Classes",
+},
+{
+  description: "Eta Class",
+  title: "Meaghan Gouws",
+  src: meaghan.src,
+  ctaLink: "https://www.linkedin.com/in/meaghangouws",
+  category: "Classes",
+},
+{
+  description: "Eta Class",
+  title: "Sergio Rivas",
+  src: sergio.src,
+  ctaLink: "https://www.linkedin.com/in/sergio-rivas-a46705289/",
+  category: "Classes",
+},
+{
+  description: "Eta Class",
+  title: "Tristan Szilagi",
+  src: tristan.src,
+  ctaLink: "https://www.linkedin.com/in/tszilagi",
+  category: "Classes",
+},
+
+// THETA
+{
+  description: "Theta Class",
+  title: "Trisha Satyavrat",
+  src: trisha.src,
+  ctaLink: "https://www.linkedin.com/in/trishasatyavrat/",
+  category: "Classes",
+},
+{
+  description: "Theta Class",
+  title: "Victoria Hoang",
+  src: victoria.src,
+  ctaLink: "https://www.linkedin.com/in/vhoang9/",
+  category: "Classes",
+},
+{
+  description: "Theta Class",
+  title: "Michelle Makhija",
+  src: michelle_makhija.src,
+  ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237",
+  category: "Classes",
+},
+{
+  description: "Theta Class",
+  title: "Kyle Spink",
+  src: kyle.src,
+  ctaLink: "https://www.linkedin.com/in/kyle-spink/",
+  category: "Classes",
+},
 
 ];
 

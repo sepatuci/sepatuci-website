@@ -68,7 +68,13 @@ const TeamSection: React.FC = () => {
           {tabs[activeTab].map((member, index) => (
             <div className="p-4 w-full md:w-1/2 lg:w-1/5" key={index}> {/* Responsive column settings */}
               <div className="h-full flex flex-col items-center text-center">
-                <ImageLoader src={member.src} alt={member.title} />
+                {member.src ? (
+                  <ImageLoader src={member.src} alt={member.title} />
+                ) : (
+                  <div className="relative w-full h-56 bg-gray-800 rounded-lg flex items-center justify-center">
+                    <span className="text-gray-500">No Image</span>
+                  </div>
+                )}
                 <div className="w-full">
                   <h2 className="title-font font-small text-lg text-white">{member.title}</h2>
                   <h3 className="text-gray-400 mb-3">{member.description}</h3>
