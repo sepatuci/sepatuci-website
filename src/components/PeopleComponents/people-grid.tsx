@@ -22,7 +22,7 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
         className={`rounded-lg transition-opacity duration-1000 ease-in-out ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}
-        onLoadingComplete={() => setIsLoaded(true)}
+        onLoad={() => setIsLoaded(true)}
         style={{ objectFit: 'cover' }}
       />
     </div>
