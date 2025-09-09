@@ -27,7 +27,7 @@ export const Card = React.memo(
         src={card.src}
         alt={card.title}
         fill
-        className="object-contain absolute inset-0 transition-opacity opacity-0 duration-[2s]"
+        className="object-contain absolute inset-0 transition-opacity opacity-0 duration-[2000ms]"
         onLoad={(image) => image.classList.remove("opacity-0")}
       />
       <div
