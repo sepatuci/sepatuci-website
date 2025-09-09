@@ -1,9 +1,45 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Sigma Eta Pi @ UC Irvine Website
 
-## Getting Started
+The official website for Sigma Eta Pi (ΣΗΠ) at UC Irvine - America's First Entrepreneurship Fraternity.
 
-First, run the development server:
+## 🚀 About
 
+This website showcases our fraternity's mission to foster entrepreneurial spirit, innovation, and brotherhood among UC Irvine students. Built with modern web technologies to provide an engaging experience for prospective members, current brothers, and the broader community.
+
+## 🛠 Tech Stack
+
+- **Framework**: Next.js 14 with TypeScript
+- **Styling**: Tailwind CSS with custom animations
+- **UI Components**: Radix UI, shadcn/ui
+- **Animations**: Framer Motion
+- **Image Optimization**: Next.js Image component
+- **Icons**: Lucide React, FontAwesome
+- **Deployment**: Vercel
+
+## 🏗 Getting Started
+
+### Prerequisites
+- Node.js 18+ 
+- npm, yarn, pnpm, or bun
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/sepatuci/sepatuci-website.git
+cd sepatuci-website
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+```
+
+3. Run the development server:
 ```bash
 npm run dev
 # or
@@ -14,23 +50,72 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+4. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📁 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```
+src/
+├── app/                    # Next.js app router pages
+│   ├── brotherhood/        # Brotherhood page
+│   ├── founderseducation/  # Founder's Education page
+│   ├── people/             # Members page
+│   └── rush/               # Rush information page
+├── components/             # React components
+│   ├── BrotherhoodComponents/
+│   ├── FEComponents/
+│   ├── LandingComponents/
+│   ├── PeopleComponents/
+│   ├── RushComponents/
+│   └── ui/                 # Reusable UI components
+├── assets/                 # Images and static files
+└── lib/                    # Utility functions
+```
 
-## Learn More
+## 🎨 Features
 
-To learn more about Next.js, take a look at the following resources:
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## 🚀 Deployment
 
-## Deploy on Vercel
+The site is automatically deployed to Vercel on every push to the main branch.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### Manual Deployment
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+```bash
+npm run build
+npm run start
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'feat: add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+### Commit Convention
+We use [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:` - New features
+- `fix:` - Bug fixes
+- `docs:` - Documentation changes
+- `style:` - Code style changes
+- `refactor:` - Code refactoring
+- `perf:` - Performance improvements
+- `test:` - Test changes
+- `chore:` - Build process or auxiliary tool changes
+
+## 📞 Contact
+
+- **Website**: [sepatuci.com](https://sepatuci.com)
+- **Instagram**: [@sepatuci](https://instagram.com/sepatuci)
+- **LinkedIn**: [Sigma Eta Pi @ UCI](https://www.linkedin.com/company/sepatuci/)
+
+## 📄 License
+
+This project is private and proprietary to Sigma Eta Pi @ UC Irvine.
+
+---
+
+Built with ❤️ by the Sigma Eta Pi @ UCI Tech Team

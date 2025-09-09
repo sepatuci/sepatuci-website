@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your logo image
 
 const Footer: React.FC = () => {
@@ -7,10 +8,12 @@ const Footer: React.FC = () => {
       <div className="container px-8 py-12 mx-auto flex items-center sm:flex-row flex-col">
         <a className="flex title-font font-medium items-center md:justify-start justify-center text-white">
           {/* Replace SVG with the image */}
-          <img 
+          <Image 
             src={sepLogo.src}
             alt="SEP @ UCI Logo" 
             className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full p-2"
+            width={80}
+            height={80}
           />
           <span className="ml-4 text-2xl">Sigma Eta Pi @ UC Irvine</span>
         </a>

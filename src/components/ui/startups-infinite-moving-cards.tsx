@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import Image from "next/image";
 
 export const StartupsInfiniteMovingCards = ({
   items,
@@ -19,14 +20,26 @@ export const StartupsInfiniteMovingCards = ({
 }) => {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const scrollerRef = React.useRef<HTMLUListElement>(null);
-
-  useEffect(() => {
-    addAnimation();
-  }, []);
-
   const [start, setStart] = useState(false);
 
-  function addAnimation() {
+  const getDirection = useCallback(() => {
+    containerRef.current?.style.setProperty(
+      "--animation-direction",
+      direction === "left" ? "forwards" : "reverse"
+    );
+  }, [direction]);
+
+  const getSpeed = useCallback(() => {
+    let duration = "40s"; // Default to "normal"
+    if (speed === "fast") {
+      duration = "20s";
+    } else if (speed === "slow") {
+      duration = "500s";
+    }
+    containerRef.current?.style.setProperty("--animation-duration", duration);
+  }, [speed]);
+
+  const addAnimation = useCallback(() => {
     if (containerRef.current && scrollerRef.current) {
       const scrollerContent = Array.from(scrollerRef.current.children);
 
@@ -39,24 +52,11 @@ export const StartupsInfiniteMovingCards = ({
       getSpeed();
       setStart(true);
     }
-  }
+  }, [getDirection, getSpeed]);
 
-  const getDirection = () => {
-    containerRef.current?.style.setProperty(
-      "--animation-direction",
-      direction === "left" ? "forwards" : "reverse"
-    );
-  };
-
-  const getSpeed = () => {
-    let duration = "40s"; // Default to "normal"
-    if (speed === "fast") {
-      duration = "20s";
-    } else if (speed === "slow") {
-      duration = "500s";
-    }
-    containerRef.current?.style.setProperty("--animation-duration", duration);
-  };
+  useEffect(() => {
+    addAnimation();
+  }, [addAnimation]);
 
   return (
     <div
@@ -75,10 +75,12 @@ export const StartupsInfiniteMovingCards = ({
             className="w-[200px] h-[350px] sm:w-[450px] sm:h-[500px] flex flex-col items-center justify-center max-w-full relative rounded-2xl flex-shrink-0 bg-gray-900"
           >
             {/* Image */}
-            <img
+            <Image
               src={item.image}
               alt={item.name || item.title || `Item ${idx}`}
               className="w-full h-[80%] object-contain rounded-t-2xl"
+              width={450}
+              height={400}
               loading="lazy"
             />
             {/* Text Box below the image */}

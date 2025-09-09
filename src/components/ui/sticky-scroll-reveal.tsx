@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useMemo } from "react";
 import { useMotionValueEvent, useScroll } from "framer-motion";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -62,11 +62,11 @@ export const StickyScroll = ({
     "var(--black)",
     "var(--black)",
   ];
-  const linearGradients = [
+  const linearGradients = useMemo(() => [
     "var(--black)",
     "var(--black)",
     "var(--black)",
-  ];
+  ], []);
 
   const [backgroundGradient, setBackgroundGradient] = useState(
     linearGradients[0]
@@ -74,7 +74,7 @@ export const StickyScroll = ({
 
   useEffect(() => {
     setBackgroundGradient(linearGradients[activeCard % linearGradients.length]);
-  }, [activeCard, linearGradients]); // Include linearGradients in the dependency array
+  }, [activeCard, linearGradients]);
   
 
   return (

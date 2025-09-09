@@ -2,6 +2,7 @@ import ZetaDemoDay from "@/assets/ZetaDemoDay.jpg";
 import jessicatam from "@/assets/members/epsilon/jessicatam.jpg";
 
 import React from "react";
+import Image from "next/image";
 
 const TestimonialSection: React.FC = () => {
   return (
@@ -41,10 +42,12 @@ const TestimonialSection: React.FC = () => {
                 </div>
                 <div className="flex-shrink-0 w-10 h-10 rounded-full inline-flex items-center justify-center relative z-10">
                   {item.imagePath ? (
-                    <img
+                    <Image
                       src={item.imagePath}
                       alt={`testimonial-image-${index}`}
                       className="w-10 h-10 rounded-full object-cover"
+                      width={40}
+                      height={40}
                     />
                   ) : (
                     <svg
@@ -66,10 +69,12 @@ const TestimonialSection: React.FC = () => {
               </div>
             ))}
           </div>
-          <img
+          <Image
             className="lg:w-3/5 md:w-1/2 object-cover object-center rounded-lg md:mt-0 mt-12"
             src={ZetaDemoDay.src}
             alt="step"
+            width={600}
+            height={400}
           />
         </div>
       </div>

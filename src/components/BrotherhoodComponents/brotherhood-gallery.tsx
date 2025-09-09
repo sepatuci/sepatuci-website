@@ -1,4 +1,5 @@
 import React from 'react';
+import Image from 'next/image';
 
 import banner from "../../assets/community/banner.jpeg";
 import check2 from "../../assets/community/check2.jpeg";
@@ -43,10 +44,11 @@ const GallerySection: React.FC = () => {
           {items.map((item) => (
             <div key={item.id} className="w-full sm:w-1/2 lg:w-1/3 px-2 sm:px-4 mb-6">
               <div className="relative" style={{ paddingBottom: '66.67%' }}>
-                <img
+                <Image
                   alt="gallery"
                   className="absolute inset-0 w-full h-full object-cover object-center"
                   src={item.imageUrl}
+                  fill
                 />
               </div>
             </div>
