@@ -80,33 +80,12 @@ import trisha from "../../assets/members/theta/trisha.jpeg";
 import victoria from "../../assets/members/theta/victoria.jpeg";
 
 const teamMembers = [
-  // EBOARD
+  // EBOARD 2025-2026
   {
     description: "President",
-    title: "Rohit De",
-    src: rohit.src,
-    ctaLink: "https://www.linkedin.com/in/rohitde/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Finance",
-    title: "Richard Hunt",
-    src: richard.src,
-    ctaLink: "https://www.linkedin.com/in/richardcarlhunt/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Technology",
     title: "Ariya Gowda",
     src: ariya.src,
     ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Founder's Education",
-    title: "Pahel Srivastava",
-    src: pahel.src,
-    ctaLink: "https://www.linkedin.com/in/pahel-srivastava/",
     category: "Executive Board",
   },
   {
@@ -117,19 +96,33 @@ const teamMembers = [
     category: "Executive Board",
   },
   {
-    description: "Co-VP of Marketing",
+    description: "VP of Founder's Education",
+    title: "Shreya Mawandia",
+    src: shreya.src,
+    ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
+    category: "Executive Board",
+  },
+  {
+    description: "VP of Finance",
+    title: "Byren Cheema",
+    src: byren.src,
+    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
+    category: "Executive Board",
+  },
+  {
+    description: "VP of Marketing",
     title: "Hannah McCarthy",
     src: hannah.src,
     ctaLink: "https://www.linkedin.com/in/hannah-mccarthy-6101a22ba/",
     category: "Executive Board",
-  },  
-  // {
-  //   description: "Co-VP of Marketing",
-  //   title: "Meaghan Gouws",
-  //   src: hannah.src,
-  //   ctaLink: "http://www.linkedin.com/in/meaghangouws",
-  //   category: "Executive Board",
-  // },
+  },
+  {
+    description: "VP of Tech/Communication",
+    title: "Aarushi Manikandan",
+    src: aarushi.src,
+    ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
+    category: "Executive Board",
+  },
 
   // ACTIVES
   // Alpha Class
@@ -148,29 +141,6 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/nima-movahedi/",
     category: "Actives",
   },
-  // Delta Class
-  {
-    description: "Delta Class",
-    title: "Byren Cheema",
-    src: byren.src,
-    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
-    category: "Actives",
-  },
-  {
-    description: "Delta Class",
-    title: "Shreya Mawandia",
-    src: shreya.src,
-    ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
-    category: "Actives",
-  },
-  // Epsilon Class
-  {
-    description: "Epsilon Class",
-    title: "Ariya Gowda",
-    src: ariya.src,
-    ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
-    category: "Actives",
-  },
   {
     description: "Epsilon Class",
     title: "Caleb Chung",
@@ -183,13 +153,6 @@ const teamMembers = [
     title: "Felix Toffaneto Werner",
     src: felix.src,
     ctaLink: "https://www.linkedin.com/in/felixtwerner/",
-    category: "Actives",
-  },
-  {
-    description: "Epsilon Class",
-    title: "Jessica Hu",
-    src: jessicahu.src,
-    ctaLink: "https://www.linkedin.com/in/jessica-hu-a85557276/",
     category: "Actives",
   },
   {
@@ -230,13 +193,6 @@ const teamMembers = [
   },
   {
     description: "Zeta Class",
-    title: "Richard Hunt",
-    src: richard.src,
-    ctaLink: "https://www.linkedin.com/in/richardcarlhunt/",
-    category: "Actives",
-  },
-  {
-    description: "Zeta Class",
     title: "Rohit De",
     src: rohit.src,
     ctaLink: "https://www.linkedin.com/in/rohitde/",
@@ -255,13 +211,6 @@ const teamMembers = [
       title: "Adithi Gudipati",
       src: adithi.src,
       ctaLink: "https://www.linkedin.com/in/adithileela/",
-      category: "Actives",
-    },
-    {
-      description: "Eta Class",
-      title: "Aarushi Manikandan",
-      src: aarushi.src,
-      ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
       category: "Actives",
     },
     {
