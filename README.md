@@ -1,6 +1,6 @@
 # Sigma Eta Pi @ UC Irvine Website
 
-The official website for Sigma Eta Pi (ΣΗΠ) at UC Irvine - America's First Entrepreneurship Fraternity.
+The official website for Sigma Eta Pi (ΣΗΠ) at UC Irvine 
 
 ## 🚀 About
 
