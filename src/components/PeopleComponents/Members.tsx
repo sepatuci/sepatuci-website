@@ -123,6 +123,13 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
     category: "Executive Board",
   },
+  {
+    description: "VP of External Affairs",
+    title: "Meaghan Gouws",
+    src: meaghan.src,
+    ctaLink: "https://www.linkedin.com/in/meaghangouws",
+    category: "Executive Board",
+  },
 
   // ACTIVES
   {
@@ -174,13 +181,6 @@ const teamMembers = [
       title: "Adithi Gudipati",
       src: adithi.src,
       ctaLink: "https://www.linkedin.com/in/adithileela/",
-      category: "Actives",
-    },
-    {
-      description: "Eta Class",
-      title: "Meaghan Gouws",
-      src: meaghan.src,
-      ctaLink: "https://www.linkedin.com/in/meaghangouws",
       category: "Actives",
     },
     // Theta Class
