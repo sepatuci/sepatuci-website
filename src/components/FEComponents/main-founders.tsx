@@ -53,7 +53,7 @@ const MainFE: React.FC = () => {
             The Program
           </h1>
           <p className="body-large max-w-3xl mx-auto">
-            Founder's Education is our 8-week startup incubator program focused on helping you think and build like an entrepreneur.
+            Founder&apos;s Education is our 8-week startup incubator program focused on helping you think and build like an entrepreneur.
           </p>
         </div>
         
