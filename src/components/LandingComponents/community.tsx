@@ -55,6 +55,7 @@ export default function Community() {
       {/* <h1 className="text-center md:text-7xl sm:text-6xl text-5xl font-bold md:py-8 sm:py-6 py-6 text-white">
         Our Community
       </h1> */}
+      {/* THIS IS THE SECTION WITH ANIMATED "Builders" TEXT - text appears too close to images below */}
       <div className="text-4xl md:text-7xl font-normal text-neutral-600 dark:text-neutral-400">
         <FlipWords words={words} /> <br />
       </div>

@@ -1,89 +1,107 @@
 import React from 'react';
+import { Mail, Instagram, Linkedin, Calendar, Users } from 'lucide-react';
 
 const ContactSection: React.FC = () => {
+  const contactMethods = [
+    {
+      icon: Mail,
+      title: "Email",
+      description: "Have questions? Reach out to us",
+      value: "ucisep@gmail.com",
+      href: "mailto:ucisep@gmail.com"
+    },
+    {
+      icon: Instagram,
+      title: "Instagram",
+      description: "Follow us for updates and behind-the-scenes",
+      value: "@sepatuci",
+      href: "https://www.instagram.com/sepatuci/"
+    },
+    {
+      icon: Linkedin,
+      title: "LinkedIn",
+      description: "Connect with our professional network",
+      value: "Sigma Eta Pi at UCI",
+      href: "https://www.linkedin.com/company/sepatuci/mycompany/"
+    }
+  ];
+
   return (
-    <section className="bg-black pt-16">
-      <div className="container px-6 py-12 mx-auto">
-        <div className="text-center">
-          <h1 className="mt-2 text-2xl font-semibold text-white md:text-3xl">Stay updated with recruitments and events! </h1>
+    <section className="bg-background section-margin">
+      <div className="content-max-width section-padding">
+        <div className="text-center mb-16 lg:mb-20">
+          <h1 className="heading-1 mb-6">
+            Join Our Next Rush
+          </h1>
+          <p className="body-large max-w-2xl mx-auto">
+            Ready to start your entrepreneurial journey? Connect with us and stay updated on recruitment events and opportunities.
+          </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-12 mt-10 md:grid-cols-2 lg:grid-cols-3">
-          {/* Email Section */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <span className="p-3 text-white rounded-full bg-gradient-to-r from-blue-600 to-indigo-600">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75"
-                />
-              </svg>
-            </span>
+        {/* Contact Methods */}
+        <div className="grid-premium grid-cols-1 md:grid-cols-3 mb-16">
+          {contactMethods.map((method, index) => {
+            const Icon = method.icon;
+            return (
+              <div key={index} className="group h-full">
+                <div className="card-premium card-hover text-center h-full flex flex-col">
+                  <div className="flex justify-center mb-6">
+                    <div className="p-4 rounded-2xl bg-accent/10 group-hover:bg-accent/20 transition-colors duration-200">
+                      <Icon className="w-8 h-8 text-accent transition-transform duration-200 group-hover:scale-110" />
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl font-medium text-foreground mb-2">
+                    {method.title}
+                  </h3>
+                  <p className="text-muted-foreground mb-4 flex-1">
+                    {method.description}
+                  </p>
+                  
+                  <div className="mt-auto">
+                    <a 
+                      href={method.href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-block text-accent hover:text-accent-foreground hover:bg-accent px-4 py-2 rounded-lg transition-all duration-200 font-medium"
+                    >
+                      {method.value}
+                    </a>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
 
-            <h2 className="mt-4 text-lg font-medium text-white">Email</h2>
-            <p className="mt-2 text-gray-200">Questions?</p>
-            <p className="mt-2 text-white">ucisep@gmail.com</p> {/* New email */}
-          </div>
-
-          {/* Instagram Section */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <span className="p-3 text-white rounded-full bg-gradient-to-r from-blue-600 to-indigo-600">
-            <svg
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-                <rect width="22" height="22" x="1" y="1" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01"></path> {/* Instagram logo */}
-              </svg>
-            </span>
-
-            <h2 className="mt-4 text-lg font-medium text-white">Instagram</h2>
-            <p className="mt-2 text-gray-200">Follow us on Instagram.</p>
-            <p className="mt-2 text-white">
-              <a href="https://www.instagram.com/sepatuci/" target="_blank" rel="noopener noreferrer">
-                @sepatuci
+        {/* Call to Action */}
+        <div className="text-center">
+          <div className="card-premium max-w-2xl mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="p-4 rounded-2xl bg-accent/10">
+                <Users className="w-8 h-8 text-accent" />
+              </div>
+            </div>
+            
+            <h2 className="heading-3 mb-4">
+              Ready to Get Started?
+            </h2>
+            <p className="body-base mb-6">
+              Applications for our next recruitment cycle will be opening soon. Follow us on social media to be the first to know!
+            </p>
+            
+            <div className="flex justify-center">
+              <a
+                href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <button className="btn-primary flex items-center">
+                  <Calendar className="w-5 h-5 mr-2" />
+                  Get Notified
+                </button>
               </a>
-            </p> {/* Instagram link */}
-          </div>
-
-          {/* LinkedIn Section */}
-          <div className="flex flex-col items-center justify-center text-center">
-            <span className="p-3 text-white rounded-full bg-gradient-to-r from-blue-600 to-indigo-600">
-            <svg
-              fill="currentColor"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="0"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-                <path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"></path> {/* LinkedIn logo */}
-                <circle cx="4" cy="4" r="2" stroke="none"></circle>
-              </svg>
-            </span>
-
-            <h2 className="mt-4 text-lg font-medium text-white">LinkedIn</h2>
-            <p className="mt-2 text-gray-200">Connect with us on LinkedIn.</p>
-            <p className="mt-2 text-white">
-              <a href="https://www.linkedin.com/company/sepatuci/mycompany/" target="_blank" rel="noopener noreferrer">
-                Sigma Eta Pi at UCI
-              </a>
-            </p> {/* LinkedIn link */}
+            </div>
           </div>
         </div>
       </div>

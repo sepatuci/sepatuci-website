@@ -1,79 +1,65 @@
 import React from 'react';
 import Image from 'next/image';
-import sepLogo from '../assets/logos/sep_logos/sep_white.png'; // Import your logo image
+import Link from 'next/link';
+import sepLogo from '../assets/logos/sep_logos/sep_white.png';
+import { Instagram, Linkedin } from 'lucide-react';
 
 const Footer: React.FC = () => {
   return (
-    <footer className="text-white body-font bg-transparent backdrop-blur-lg">
-      <div className="container px-8 py-12 mx-auto flex items-center sm:flex-row flex-col">
-        <a className="flex title-font font-medium items-center md:justify-start justify-center text-white">
-          {/* Replace SVG with the image */}
-          <Image 
-            src={sepLogo.src}
-            alt="SEP @ UCI Logo" 
-            className="w-20 h-20 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full p-2"
-            width={80}
-            height={80}
-          />
-          <span className="ml-4 text-2xl">Sigma Eta Pi @ UC Irvine</span>
-        </a>
-        <p className="text-lg text-gray-400 sm:ml-6 sm:pl-6 sm:border-l-2 sm:border-gray-600 sm:py-2 sm:mt-0 mt-4">
-          © 2024
-          <a
-            href="https://www.instagram.com/sepatuci/"
-            className="text-gray-400 ml-2"
-            rel="noopener noreferrer"
-            target="_blank"
-          >
-            @sepatuci
-          </a>
-        </p>
-        <span className="inline-flex sm:ml-auto sm:mt-0 mt-4 justify-center sm:justify-start">
-          {/* INSTAGRAM */}
-          <a
-            href="https://www.instagram.com/sepatuci/"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="ml-5 text-gray-400"
-          >
-            <svg
-              fill="none"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="2"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
-            >
-              <rect width="22" height="22" x="1" y="1" rx="5" ry="5"></rect>
-              <path d="M16 11.37A4 4 0 1112.63 8 4 4 0 0116 11.37zm1.5-4.87h.01"></path>
-            </svg>
-          </a>
+    <footer className="border-t border-border/50 bg-background/50 backdrop-blur-xl">
+      <div className="content-max-width section-padding py-12">
+        <div className="flex flex-col lg:flex-row items-center justify-between gap-8">
+          {/* Logo and Brand */}
+          <Link href="/" className="flex items-center gap-4 group">
+            <div className="relative">
+              <Image 
+                src={sepLogo}
+                alt="SEP @ UCI Logo" 
+                className="w-16 h-16 transition-transform duration-200 group-hover:scale-105"
+                width={64}
+                height={64}
+              />
+            </div>
+            <div>
+              <h3 className="text-xl font-medium text-foreground">
+                Sigma Eta Pi
+              </h3>
+              <p className="text-muted-foreground">
+                @ UC Irvine
+              </p>
+            </div>
+          </Link>
 
-          {/* LINKEDIN */}
-          <a
-            href="https://www.linkedin.com/company/sepatuci/mycompany/"
-            rel="noopener noreferrer"
-            target="_blank"
-            className="ml-5 text-gray-400"
-          >
-            <svg
-              fill="currentColor"
-              stroke="currentColor"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth="0"
-              className="w-7 h-7"
-              viewBox="0 0 24 24"
+          {/* Copyright */}
+          <div className="text-center lg:text-left">
+            <p className="text-muted-foreground">
+              © 2025 SEP at UCI. All rights reserved.
+            </p>
+          </div>
+
+          {/* Social Links */}
+          <div className="flex items-center gap-4">
+            <a
+              href="https://www.instagram.com/sepatuci/"
+              rel="noopener noreferrer"
+              target="_blank"
+              className="group p-3 rounded-xl bg-muted/30 hover:bg-accent hover:text-accent-foreground transition-all duration-200"
+              aria-label="Follow us on Instagram"
             >
-              <path
-                stroke="none"
-                d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"
-              ></path>
-              <circle cx="4" cy="4" r="2" stroke="none"></circle>
-            </svg>
-          </a>
-        </span>
+              <Instagram className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+            </a>
+
+            <a
+              href="https://www.linkedin.com/company/sepatuci/mycompany/"
+              rel="noopener noreferrer"
+              target="_blank"
+              className="group p-3 rounded-xl bg-muted/30 hover:bg-accent hover:text-accent-foreground transition-all duration-200"
+              aria-label="Connect with us on LinkedIn"
+            >
+              <Linkedin className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+            </a>
+          </div>
+        </div>
       </div>
     </footer>
   );

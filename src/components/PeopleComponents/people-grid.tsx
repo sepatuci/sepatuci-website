@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import teamMembers from './Members';
-import { Linkedin } from 'lucide-react';
+import { Linkedin, Crown, Users, GraduationCap } from 'lucide-react';
 
 interface ImageLoaderProps {
   src: string;
@@ -14,80 +14,149 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
   return (
-    <div className="relative w-full h-56">
+    <div className="relative w-full aspect-square overflow-hidden rounded-2xl bg-muted/20">
       <Image
         src={src}
         alt={alt}
         fill
-        className={`rounded-lg transition-opacity duration-1000 ease-in-out ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
+        className={`object-cover transition-all duration-700 ease-out ${
+          isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
         }`}
         onLoad={() => setIsLoaded(true)}
-        style={{ objectFit: 'cover' }}
       />
+      {!isLoaded && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-accent rounded-full animate-spin" />
+        </div>
+      )}
     </div>
   );
 };
 
 const TeamSection: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<'Actives' | 'Classes' | 'Executive Board'>('Actives'); // Type the state
+  const [activeTab, setActiveTab] = useState<'Executive Board' | 'Actives' | 'Classes'>('Executive Board');
 
-  // Adjust filtering to check if the category array contains the active tab
   const tabs = {
-    Actives: teamMembers.filter((member) => member.category.includes('Actives')),
-    'Executive Board': teamMembers.filter((member) => member.category.includes('Executive Board')),
-    Classes: teamMembers.filter((member) => member.category.includes('Classes')), // Filter by original "Classes" category in data
+    'Executive Board': {
+      members: teamMembers.filter((member) => member.category.includes('Executive Board')),
+      icon: Crown,
+      description: 'Leadership team driving our vision forward'
+    },
+    Actives: {
+      members: teamMembers.filter((member) => member.category.includes('Actives')),
+      icon: Users,
+      description: 'Current active members building the future'
+    },
+    Classes: {
+      members: teamMembers.filter((member) => member.category.includes('Classes')),
+      icon: GraduationCap,
+      description: 'Alumni who paved the way for excellence'
+    }
   };
 
   return (
-    <section className="text-white body-font bg-black">
-      <div className="container px-5 py-24 mx-auto">
-        <div className="flex flex-col text-center w-full mb-20">
-          <h1 className="text-5xl font-bold title-font text-white mb-4">
+    <section className="bg-background section-margin">
+      <div className="content-max-width section-padding">
+        {/* Header */}
+        <div className="text-center mb-16 lg:mb-20">
+          <h1 className="heading-1 mb-6">
             One Family
           </h1>
+          <p className="body-large max-w-2xl mx-auto">
+            Meet the exceptional individuals who make up our entrepreneurial community
+          </p>
         </div>
 
         {/* Tab Navigation */}
-        <div className="flex justify-center mb-8">
-          {Object.keys(tabs).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as 'Actives' | 'Classes' | 'Executive Board')} // Cast to correct type
-              className={`px-6 py-2 rounded-md mx-2 text-white ${
-                activeTab === tab ? 'bg-gray-800' : 'bg-gray-600'
-              }`}
-            >
-              {tab}
-            </button>
-          ))}
+        <div className="flex justify-center mb-12 lg:mb-16">
+          <div className="flex bg-muted/30 rounded-2xl p-2 backdrop-blur-sm border border-border/50">
+            {Object.entries(tabs).map(([tab, { icon: Icon, description }]) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab as keyof typeof tabs)}
+                className={`group relative flex items-center gap-3 px-6 py-4 rounded-xl font-medium transition-all duration-300 ${
+                  activeTab === tab 
+                    ? 'bg-accent text-accent-foreground shadow-lg shadow-accent/20' 
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                <Icon className={`w-5 h-5 transition-all duration-300 ${
+                  activeTab === tab ? 'scale-110' : 'group-hover:scale-105'
+                }`} />
+                <span className="hidden sm:inline">{tab}</span>
+                
+                {/* Tooltip for mobile */}
+                <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 bg-card border border-border rounded-lg px-3 py-2 text-sm text-card-foreground opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none sm:hidden">
+                  {tab}
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* Tab Content */}
-        <div className="flex flex-wrap -m-4">
-          {tabs[activeTab].map((member, index) => (
-            <div className="p-4 w-full md:w-1/2 lg:w-1/5" key={index}> {/* Responsive column settings */}
-              <div className="h-full flex flex-col items-center text-center">
-                {member.src ? (
-                  <ImageLoader src={member.src} alt={member.title} />
-                ) : (
-                  <div className="relative w-full h-56 bg-gray-800 rounded-lg flex items-center justify-center">
-                    <span className="text-gray-500">No Image</span>
+        {/* Tab Description */}
+        <div className="text-center mb-12">
+          <p className="body-base text-muted-foreground max-w-xl mx-auto">
+            {tabs[activeTab].description}
+          </p>
+        </div>
+
+        {/* Members Grid */}
+        <div className="grid-premium grid-people">
+          {tabs[activeTab].members.map((member, index) => (
+            <div 
+              key={`${member.title}-${index}`}
+              className="group"
+            >
+              <div className="card-premium card-hover h-full flex flex-col">
+                <div className="mb-6">
+                  {member.src ? (
+                    <ImageLoader src={member.src} alt={member.title} />
+                  ) : (
+                    <div className="relative w-full aspect-square bg-muted/20 rounded-2xl flex items-center justify-center">
+                      <Users className="w-12 h-12 text-muted-foreground/40" />
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex-1 flex flex-col justify-between space-y-4">
+                  <div className="flex-1">
+                    <h3 className="font-medium text-lg text-foreground line-clamp-2">
+                      {member.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                      {member.description}
+                    </p>
                   </div>
-                )}
-                <div className="w-full">
-                  <h2 className="title-font font-small text-lg text-white">{member.title}</h2>
-                  <h3 className="text-gray-400 mb-3">{member.description}</h3>
-                  <span className="inline-flex">
-                    <a href={member.ctaLink} className="text-gray-500" target="_blank" rel="noopener noreferrer">
-                      <Linkedin className="w-5 h-5" />
-                    </a>
-                  </span>
+                  
+                  <div className="flex justify-center pt-2">
+                    {member.ctaLink && (
+                      <a 
+                        href={member.ctaLink} 
+                        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        aria-label={`View ${member.title}'s LinkedIn profile`}
+                      >
+                        <Linkedin className="w-5 h-5 transition-transform duration-200 group-hover/link:scale-110" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
           ))}
         </div>
+
+        {/* Empty State */}
+        {tabs[activeTab].members.length === 0 && (
+          <div className="text-center py-16">
+            <Users className="w-16 h-16 text-muted-foreground/40 mx-auto mb-4" />
+            <p className="body-base text-muted-foreground">
+              No members found in this category.
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

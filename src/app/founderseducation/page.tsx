@@ -2,16 +2,19 @@
 import Section from "@/components/FEComponents/fevp-section";
 import MainFE from "@/components/FEComponents/main-founders";
 import ScrollStartups from "@/components/FEComponents/startups-scroll";
-// import TestimonialSection from "@/components/FEPage/testimonial-founders";
-import { Suspense } from "react";
+import { Metadata } from "next"
 
-export default function ItemPage({ params }: { params: { item: string } }) {
-    return (
-      <main className="dark">
-        <title>Founder&apos;s Education</title>
-        <MainFE/>
-        <Section/>
-        <ScrollStartups/>
-      </main>
-    );
-  }
+export const metadata: Metadata = {
+  title: "Founder's Education | SEP at UCI",
+  description: "Join our 8-week startup incubator program. Learn to think and build like an entrepreneur through hands-on experience.",
+}
+
+export default function FoundersEducationPage() {
+  return (
+    <main className="dark min-h-screen pt-20">
+      <MainFE/>
+      <Section/>
+      <ScrollStartups/>
+    </main>
+  );
+}

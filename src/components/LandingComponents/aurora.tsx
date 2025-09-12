@@ -19,21 +19,12 @@ export function AuroraBackgroundDemo() {
           }}
           className="relative flex flex-col gap-4 items-center justify-center px-4"
         >
-          <div className="text-5xl md:text-8xl font-bold dark:text-white text-center">
+          <h1 className="text-6xl sm:text-7xl lg:text-9xl font-light tracking-tight dark:text-white text-center">
             Sigma Eta Pi
-          </div>
-          <div className="text-xl md:text-3xl italic dark:text-white text-center">
+          </h1>
+          <p className="body-large dark:text-white text-center">
             UCI&apos;s Premier Entrepreneurship Fraternity
-          </div>
-          <a
-            href="https://forms.gle/GSFD6MBbsgbJ8sAC6" // Add google form
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <button className="bg-[#3E51E7] text-white text-lg font-medium px-6 py-5 rounded-lg shadow-md hover:bg-[#8a2521] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
-              Interested?
-            </button>
-          </a>
+          </p>
         </motion.div>
       </AuroraBackground>
     </div>

@@ -1,12 +1,15 @@
 import TeamSection from "@/components/PeopleComponents/people-grid"
-// import { Suspense } from "react";
+import { Metadata } from "next"
 
-export default function ItemPage({ params }: { params: { item: string } }) {
-    return (
-      <div>
-        <h1 className='text-3xl font-semibold capitalize'>{params.item} Page</h1>
-        <title>Our Community</title>
-          <TeamSection />
-      </div>
-    );
-  }
+export const metadata: Metadata = {
+  title: "Our Community | SEP at UCI",
+  description: "Meet the exceptional individuals who make up our entrepreneurial community",
+}
+
+export default function PeoplePage() {
+  return (
+    <div className="dark min-h-screen pt-20">
+      <TeamSection />
+    </div>
+  );
+}

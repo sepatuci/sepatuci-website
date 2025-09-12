@@ -1,28 +1,25 @@
 import Community from "@/components/LandingComponents/community"
 import { AuroraBackgroundDemo } from "@/components/LandingComponents/aurora"
-// import FoundersEducation from "@/components/founders"
 import { StickyScrollRevealDemo } from "../components/LandingComponents/main-page-scroll";
 import TestimonialSection from "@/components/LandingComponents/fe-testemonial";
+import { Metadata } from "next"
 
-
+export const metadata: Metadata = {
+  title: "SEP at UCI | Premier Entrepreneurship Fraternity",
+  description: "Join UCI's premier entrepreneurship fraternity. Build startups, connect with founders, and transform your ideas into reality.",
+}
 
 export default function Home() {
   return (
-    <main className="dark">
-      <div>
-        <title>SEP at UCI</title>
-        <AuroraBackgroundDemo />
+    <main className="dark min-h-screen">
+      <AuroraBackgroundDemo />
+      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
         <StickyScrollRevealDemo/>
-        <br/>
-        <br/>
-        <br/>
-        <br/>
-        {/* for mobile display  */}
-        <br/>
-        <br/>
-        <br/>
-        <br/>
+      </div>
+      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
         <TestimonialSection/>
+      </div>
+      <div className="section-margin">
         <Community />
       </div>
     </main>

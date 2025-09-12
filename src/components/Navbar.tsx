@@ -4,174 +4,121 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import sepLogo from "../assets/logos/sep_logos/sep_white.png";
-import { FaBook, FaUsers, FaRocket, FaGraduationCap } from 'react-icons/fa';
-import { FaHandshakeSimple } from "react-icons/fa6";
+import { BookOpen, Users, Rocket, HandHeart, Menu, X, ExternalLink } from 'lucide-react';
 
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
+  const navItems = [
+    {
+      href: "/founderseducation",
+      label: "Founder's Education",
+      icon: BookOpen,
+    },
+    {
+      href: "/people",
+      label: "People",
+      icon: Users,
+    },
+    {
+      href: "/brotherhood",
+      label: "Brotherhood",
+      icon: HandHeart,
+    },
+    {
+      href: "/rush",
+      label: "Rush",
+      icon: Rocket,
+    },
+  ];
+
   return (
-    <nav className="bg-transparent fixed w-full z-10 backdrop-blur-lg">
-      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-20 py-4">
-          {" "}
-          {/* Added py-2 to move content down */}
-          <div className="flex items-center">
-            <Link href="/">
-              {/* Adding the logo and adjusting its size */}
-              <Image
-                src={sepLogo}
-                alt="SEP Logo"
-                width={100}
-                height={40}
-                className="h-10 w-auto"
-              />
-            </Link>
-          </div>
+    <nav className="fixed w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+      <div className="content-max-width section-padding">
+        <div className="flex items-center justify-between h-20">
+          {/* Logo */}
+          <Link href="/" className="flex items-center group">
+            <Image
+              src={sepLogo}
+              alt="SEP Logo"
+              width={120}
+              height={48}
+              className="h-12 w-auto transition-transform duration-200 group-hover:scale-105"
+            />
+          </Link>
+
           {/* Desktop Menu */}
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden lg:flex items-center space-x-2">
+            {navItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="group flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+              >
+                <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
+                <span>{label}</span>
+              </Link>
+            ))}
+            
+            {/* CTA Button */}
             <Link
-              href="/founderseducation"
-              className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaBook className="inline-block mr-2" />{" "}
-              {/* Icon for Founder's Education */}
-              Founder&apos;s Education
-            </Link>
-
-            <Link
-              href="/people"
-              className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaUsers className="inline-block mr-2" />{" "}
-              {/* Icon for Community */}
-              People
-            </Link>
-
-            <Link
-              href="/brotherhood"
-              className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaHandshakeSimple className="inline-block mr-2" />{" "}
-              {/* Icon for Community */}
-              Brotherhood
-            </Link>
-
-            <Link
-              href="/rush"
-              className="text-white text-lg font-medium hover:bg-gray-200 hover:text-gray-800 px-3 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaRocket className="inline-block mr-2" />
-              Rush
-            </Link>
-
-            {/* Call to Action Button */}
-            <Link
-              href="https://forms.gle/GSFD6MBbsgbJ8sAC6" // google form here
+              href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
               target="_blank"
               rel="noopener noreferrer"
+              className="ml-6"
             >
-              <button className="bg-[#3E51E7] hover:bg-[#3E51E7] text-white text-lg font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
-                Apply
+              <button className="btn-primary group flex items-center">
+                <span>Apply</span>
+                <ExternalLink className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:scale-110" />
               </button>
             </Link>
           </div>
+
           {/* Mobile Menu Button */}
-          <div className="mr-2 flex md:hidden">
-            <button
-              onClick={() => setIsOpen(!isOpen)}
-              type="button"
-              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-200"
-              aria-controls="mobile-menu"
-              aria-expanded={isOpen ? "true" : "false"}
-            >
-              <span className="sr-only">Open main menu</span>
-              {isOpen ? (
-                <svg
-                  className="block h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
-              ) : (
-                <svg
-                  className="block h-6 w-6"
-                  xmlns="http://www.w3.org/2000/svg"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M4 6h16M4 12h16m-7 6h7"
-                  />
-                </svg>
-              )}
-            </button>
-          </div>
+          <button
+            onClick={() => setIsOpen(!isOpen)}
+            className="lg:hidden p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+            aria-label="Toggle menu"
+          >
+            {isOpen ? (
+              <X className="w-6 h-6" />
+            ) : (
+              <Menu className="w-6 h-6" />
+            )}
+          </button>
         </div>
       </div>
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="md:hidden" id="mobile-menu">
-          <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            <Link
-              href="/founderseducation"
-              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaBook className="inline-block mr-2" />{" "}
-              {/* Icon for Founder's Education */}
-              Founder&apos;s Education
-            </Link>
-
-            <Link
-              href="/people"
-              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaUsers className="inline-block mr-2" />{" "}
-              {/* Icon for Community */}
-              People
-            </Link>
-
-            <Link
-              href="/brotherhood"
-              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaHandshakeSimple className="inline-block mr-2" />{" "}
-              {/* Icon for Rush */}
-              Brotherhood
-            </Link>
-
-            <Link
-              href="/rush"
-              className="text-white text-sm font-medium hover:bg-gray-200 hover:text-gray-800 block text-center px-6 py-2 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-200"
-            >
-              <FaRocket className="inline-block mr-2" /> {/* Icon for Rush */}
-              Rush
-            </Link>
-
-            {/* Mobile Call to Action Button */}
-            <Link
-              href="https://forms.gle/GSFD6MBbsgbJ8sAC6" // google form here
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <button className="w-full bg-gradient-to-r from-blue-900 to-purple-600 text-white text-sm font-medium px-6 py-2 rounded-lg shadow-md hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-200">
-                Apply
-              </button>
-            </Link>
+        <div className="lg:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl">
+          <div className="section-padding py-6 space-y-2">
+            {navItems.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setIsOpen(false)}
+                className="group flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+              >
+                <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
+                <span>{label}</span>
+              </Link>
+            ))}
+            
+            <div className="pt-4">
+              <Link
+                href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={() => setIsOpen(false)}
+              >
+                <button className="w-full btn-primary group flex items-center justify-center">
+                  <span>Apply</span>
+                  <ExternalLink className="w-4 h-4 ml-2 transition-transform duration-200 group-hover:scale-110" />
+                </button>
+              </Link>
+            </div>
           </div>
         </div>
       )}

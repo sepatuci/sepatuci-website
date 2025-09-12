@@ -1,14 +1,16 @@
 
-
 import ContactSection from "@/components/RushComponents/contact";
-// import {RushTimeline} from "@/components/RushComponents/rush-timeline";
+import { Metadata } from "next"
 
-export default function ItemPage({ params }: { params: { item: string } }) {
-    return (
-      <main className="dark">
-        <title>Fall &apos;25 Rush</title>
-        <ContactSection />
-        {/* <RushTimeline/> */}
-      </main>
-    );
-  }
+export const metadata: Metadata = {
+  title: "Rush | SEP at UCI",
+  description: "Join our next recruitment cycle. Connect with fellow entrepreneurs and start your journey with SEP at UCI.",
+}
+
+export default function RushPage() {
+  return (
+    <main className="dark min-h-screen pt-20">
+      <ContactSection />
+    </main>
+  );
+}
