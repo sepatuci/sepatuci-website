@@ -62,18 +62,20 @@ const MainFE: React.FC = () => {
             const Icon = module.icon;
             return (
               <div key={index} className="group">
-                <div className="card-premium card-hover text-center">
-                  <div className="flex justify-center mb-4">
+                <div className="card-premium card-hover text-center h-full flex flex-col">
+                  <div className="flex justify-center mb-6">
                     <div className="p-4 rounded-2xl bg-accent/10 group-hover:bg-accent/20 transition-colors duration-200">
-                      <Icon className="w-8 h-8 text-accent transition-transform duration-200 group-hover:scale-110" />
+                      <Icon className="w-10 h-10 text-accent transition-transform duration-200 group-hover:scale-110" />
                     </div>
                   </div>
-                  <h3 className="text-lg font-medium text-foreground mb-2">
-                    {module.title}
-                  </h3>
-                  <p className="text-sm text-muted-foreground">
-                    {module.description}
-                  </p>
+                  <div className="flex-1 flex flex-col justify-center">
+                    <h3 className="text-lg font-medium text-foreground mb-3 leading-tight">
+                      {module.title}
+                    </h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">
+                      {module.description}
+                    </p>
+                  </div>
                 </div>
               </div>
             );
