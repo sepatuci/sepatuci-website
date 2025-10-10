@@ -27,6 +27,7 @@ export const Card = React.memo(
         src={card.src}
         alt={card.title}
         fill
+        sizes="(max-width: 768px) 100vw, 50vw"
         className="object-contain absolute inset-0 transition-opacity opacity-0 duration-1000"
         onLoad={(e) => e.currentTarget.classList.remove("opacity-0")}
       />

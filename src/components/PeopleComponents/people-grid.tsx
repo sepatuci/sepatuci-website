@@ -19,6 +19,7 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt }) => {
         src={src}
         alt={alt}
         fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, (max-width: 1280px) 33vw, (max-width: 1536px) 25vw, 20vw"
         className={`object-cover transition-all duration-700 ease-out ${
           isLoaded ? 'opacity-100 scale-100' : 'opacity-0 scale-105'
         }`}
