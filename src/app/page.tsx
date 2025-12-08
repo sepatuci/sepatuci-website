@@ -1,5 +1,6 @@
 import Community from "@/components/LandingComponents/community"
-import { AuroraBackgroundDemo } from "@/components/LandingComponents/aurora"
+import LandingHero from "@/components/LandingComponents/landing-hero"
+import LandingPillars from "@/components/LandingComponents/landing-pillars"
 import { StickyScrollRevealDemo } from "../components/LandingComponents/main-page-scroll";
 import TestimonialSection from "@/components/LandingComponents/fe-testemonial";
 import { Metadata } from "next"
@@ -12,7 +13,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <main className="dark min-h-screen">
-      <AuroraBackgroundDemo />
+      <LandingHero />
       <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
         <StickyScrollRevealDemo/>
       </div>
