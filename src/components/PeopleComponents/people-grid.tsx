@@ -110,7 +110,7 @@ const TeamSection: React.FC = () => {
               className="group"
             >
               <div className="card-premium card-hover h-full flex flex-col">
-                <div className="mb-6">
+                <div className="mb-2 sm:mb-4 lg:mb-6">
                   {member.src ? (
                     <ImageLoader src={member.src} alt={member.title} />
                   ) : (
@@ -120,26 +120,26 @@ const TeamSection: React.FC = () => {
                   )}
                 </div>
                 
-                <div className="flex-1 flex flex-col justify-between space-y-4">
+                <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
                   <div className="flex-1">
-                    <h3 className="font-medium text-lg text-foreground line-clamp-2">
+                    <h3 className="font-medium text-xs sm:text-sm lg:text-lg text-foreground line-clamp-2">
                       {member.title}
                     </h3>
-                    <p className="text-sm text-muted-foreground mt-1 line-clamp-2">
+                    <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
                       {member.description}
                     </p>
                   </div>
                   
-                  <div className="flex justify-center pt-2">
+                  <div className="flex justify-center pt-1 sm:pt-2">
                     {member.ctaLink && (
-                      <a 
-                        href={member.ctaLink} 
-                        className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
-                        target="_blank" 
+                      <a
+                        href={member.ctaLink}
+                        className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
+                        target="_blank"
                         rel="noopener noreferrer"
                         aria-label={`View ${member.title}'s LinkedIn profile`}
                       >
-                        <Linkedin className="w-5 h-5 transition-transform duration-200 group-hover/link:scale-110" />
+                        <Linkedin className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform duration-200 group-hover/link:scale-110" />
                       </a>
                     )}
                   </div>

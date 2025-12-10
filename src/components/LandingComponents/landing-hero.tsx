@@ -22,7 +22,7 @@ export default function LandingHero() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-20">
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden pt-28 sm:pt-24 lg:pt-20">
       {/* Aurora Background */}
       <div className="absolute inset-0 opacity-30">
         <AuroraBackground showRadialGradient={true}>
