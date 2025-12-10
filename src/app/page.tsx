@@ -8,6 +8,17 @@ import { Metadata } from "next"
 export const metadata: Metadata = {
   title: "SEP at UCI | Premier Entrepreneurship Fraternity",
   description: "Join UCI's premier entrepreneurship fraternity. Build startups, connect with founders, and transform your ideas into reality.",
+  openGraph: {
+    title: "SEP at UCI | Premier Entrepreneurship Fraternity",
+    description: "UCI's Home for Builders. Build startups, connect with founders, and transform your ideas into reality.",
+    type: "website",
+    siteName: "Sigma Eta Pi at UCI",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "SEP at UCI | Premier Entrepreneurship Fraternity",
+    description: "UCI's Home for Builders. Build startups, connect with founders, and transform your ideas into reality.",
+  },
 }
 
 export default function Home() {
