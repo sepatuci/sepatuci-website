@@ -77,7 +77,7 @@ export default function LandingHero() {
             transition={{ duration: 0.6, delay: 0.3 }}
             className="flex flex-wrap justify-center gap-4 mb-20"
           >
-            <Link href="https://www.instagram.com/sepuci" target="_blank" rel="noopener noreferrer">
+            <Link href="https://www.instagram.com/sepatuci/" target="_blank" rel="noopener noreferrer">
               <button className="btn-primary group flex items-center gap-2 relative overflow-hidden">
                 <span className="relative z-10">Learn More</span>
                 <ArrowRight className="w-5 h-5 transition-transform duration-200 group-hover:translate-x-1 relative z-10" />
