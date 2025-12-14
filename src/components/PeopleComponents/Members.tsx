@@ -94,10 +94,17 @@ const teamMembers = [
     category: "Executive Board",
   },
   {
-    description: "VP of Founder's Education",
+    description: "VP of Startup Growth",
     title: "Shreya Mawandia",
     src: shreya.src,
     ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
+    category: "Executive Board",
+  },
+  {
+    description: "VP of Internal Affairs",
+    title: "Victoria Hoang",
+    src: victoria.src,
+    ctaLink: "https://www.linkedin.com/in/vhoang9/",
     category: "Executive Board",
   },
   {
