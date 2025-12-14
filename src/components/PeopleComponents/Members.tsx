@@ -79,6 +79,11 @@ import michelle_makhija from "../../assets/members/theta/michelle.jpeg";
 import trisha from "../../assets/members/theta/trisha.jpeg";
 import victoria from "../../assets/members/theta/victoria.jpeg";
 
+// Iota
+import vasudev from "../../assets/members/iota/vasudev.jpg";
+import vineel from "../../assets/members/iota/vineel.jpg";
+import selina from "../../assets/members/iota/selina.jpg";
+
 const teamMembers = [
   // EBOARD 2025-2026
   {
@@ -86,13 +91,6 @@ const teamMembers = [
     title: "Ariya Gowda",
     src: ariya.src,
     ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Internal Affairs",
-    title: "Jessica Hu",
-    src: jessicahu.src,
-    ctaLink: "https://www.linkedin.com/in/jessica-hu-a85557276/",
     category: "Executive Board",
   },
   {
@@ -110,13 +108,6 @@ const teamMembers = [
     category: "Executive Board",
   },
   {
-    description: "VP of Marketing",
-    title: "Hannah McCarthy",
-    src: hannah.src,
-    ctaLink: "https://www.linkedin.com/in/hannah-mccarthy-6101a22ba/",
-    category: "Executive Board",
-  },
-  {
     description: "VP of Tech/Communication",
     title: "Aarushi Manikandan",
     src: aarushi.src,
@@ -125,13 +116,38 @@ const teamMembers = [
   },
   {
     description: "VP of External Affairs",
-    title: "Meaghan Gouws",
-    src: meaghan.src,
-    ctaLink: "https://www.linkedin.com/in/meaghangouws",
+    title: "Kyle Spink",
+    src: kyle.src,
+    ctaLink: "https://www.linkedin.com/in/kyle-spink/",
     category: "Executive Board",
   },
 
-  // ACTIVES
+  // ACTIVES (Ordered by Class: Oldest to Newest)
+  
+  // Delta Class
+  {
+    description: "Delta Class",
+    title: "Shreya Mawandia",
+    src: shreya.src,
+    ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
+    category: "Actives",
+  },
+  {
+    description: "Delta Class",
+    title: "Byren Cheema",
+    src: byren.src,
+    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
+    category: "Actives",
+  },
+  
+  // Epsilon Class
+  {
+    description: "Epsilon Class",
+    title: "Ariya Gowda",
+    src: ariya.src,
+    ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
+    category: "Actives",
+  },
   {
     description: "Epsilon Class",
     title: "Caleb Chung",
@@ -141,11 +157,19 @@ const teamMembers = [
   },
   {
     description: "Epsilon Class",
+    title: "Jessica Hu",
+    src: jessicahu.src,
+    ctaLink: "https://www.linkedin.com/in/jessica-hu-a85557276/",
+    category: "Actives",
+  },
+  {
+    description: "Epsilon Class",
     title: "Pahel Srivastava",
     src: pahel.src,
     ctaLink: "https://www.linkedin.com/in/pahel-srivastava/",
     category: "Actives",
   },
+  
   // Zeta Class
   {
     description: "Zeta Class",
@@ -175,43 +199,82 @@ const teamMembers = [
     ctaLink: "http://www.linkedin.com/in/yurina-tamura",
     category: "Actives",
   },
-    // Eta Class
-    {
-      description: "Eta Class",
-      title: "Adithi Gudipati",
-      src: adithi.src,
-      ctaLink: "https://www.linkedin.com/in/adithileela/",
-      category: "Actives",
-    },
-    // Theta Class
-    {
-      description: "Theta Class",
-      title: "Trisha Satyavrat",
-      src: trisha.src,
-      ctaLink: "https://www.linkedin.com/in/trishasatyavrat/",
-      category: "Actives",
-    },
-    {
-      description: "Theta Class",
-      title: "Victoria Hoang",
-      src: victoria.src,
-      ctaLink: "https://www.linkedin.com/in/vhoang9/",
-      category: "Actives",
-    },
-    {
-      description: "Theta Class",
-      title: "Michelle Makhija",
-      src: michelle_makhija.src,
-      ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237",
-      category: "Actives",
-    },
-    {
-      description: "Theta Class",
-      title: "Kyle Spink",
-      src: kyle.src,
-      ctaLink: "https://www.linkedin.com/in/kyle-spink/",
-      category: "Actives",
-    },
+  
+  // Eta Class
+  {
+    description: "Eta Class",
+    title: "Aarushi Manikandan",
+    src: aarushi.src,
+    ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
+    category: "Actives",
+  },
+  {
+    description: "Eta Class",
+    title: "Adithi Gudipati",
+    src: adithi.src,
+    ctaLink: "https://www.linkedin.com/in/adithileela/",
+    category: "Actives",
+  },
+  {
+    description: "Eta Class",
+    title: "Meaghan Gouws",
+    src: meaghan.src,
+    ctaLink: "https://www.linkedin.com/in/meaghangouws",
+    category: "Actives",
+  },
+  
+  // Theta Class
+  {
+    description: "Theta Class",
+    title: "Kyle Spink",
+    src: kyle.src,
+    ctaLink: "https://www.linkedin.com/in/kyle-spink/",
+    category: "Actives",
+  },
+  {
+    description: "Theta Class",
+    title: "Trisha Satyavrat",
+    src: trisha.src,
+    ctaLink: "https://www.linkedin.com/in/trishasatyavrat/",
+    category: "Actives",
+  },
+  {
+    description: "Theta Class",
+    title: "Victoria Hoang",
+    src: victoria.src,
+    ctaLink: "https://www.linkedin.com/in/vhoang9/",
+    category: "Actives",
+  },
+  {
+    description: "Theta Class",
+    title: "Michelle Makhija",
+    src: michelle_makhija.src,
+    ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237/",
+    category: "Actives",
+  },
+  
+  // Iota Class
+  {
+    description: "Iota Class",
+    title: "Vasudev Vinod",
+    src: vasudev.src,
+    ctaLink: "https://www.linkedin.com/in/vasudevvinod/",
+    category: "Actives",
+  },
+  {
+    description: "Iota Class",
+    title: "Vineel Bhattiprolu",
+    src: vineel.src,
+    ctaLink: "https://www.linkedin.com/in/vineelbhattiprolu/",
+    category: "Actives",
+  },
+  {
+    description: "Iota Class",
+    title: "Selina Mai Nguyen",
+    src: selina.src,
+    ctaLink: "https://www.linkedin.com/in/selina-mai-nguyen/",
+    category: "Actives",
+  },
 
 // CLASSES
 // FOUNDERS
@@ -658,18 +721,41 @@ const teamMembers = [
   ctaLink: "https://www.linkedin.com/in/vhoang9/",
   category: "Classes",
 },
-{
-  description: "Theta Class",
-  title: "Michelle Makhija",
-  src: michelle_makhija.src,
-  ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237",
-  category: "Classes",
-},
+  {
+    description: "Theta Class",
+    title: "Michelle Makhija",
+    src: michelle_makhija.src,
+    ctaLink: "https://www.linkedin.com/in/michelle-makhija-851996237/",
+    category: "Classes",
+  },
 {
   description: "Theta Class",
   title: "Kyle Spink",
   src: kyle.src,
   ctaLink: "https://www.linkedin.com/in/kyle-spink/",
+  category: "Classes",
+},
+
+// IOTA
+{
+  description: "Iota Class",
+  title: "Vasudev Vinod",
+  src: vasudev.src,
+  ctaLink: "https://www.linkedin.com/in/vasudevvinod/",
+  category: "Classes",
+},
+{
+  description: "Iota Class",
+  title: "Vineel Bhattiprolu",
+  src: vineel.src,
+  ctaLink: "https://www.linkedin.com/in/vineelbhattiprolu/",
+  category: "Classes",
+},
+{
+  description: "Iota Class",
+  title: "Selina Mai Nguyen",
+  src: selina.src,
+  ctaLink: "https://www.linkedin.com/in/selina-mai-nguyen/",
   category: "Classes",
 },
 
