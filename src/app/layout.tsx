@@ -12,8 +12,8 @@ export const metadata: Metadata = {
     default: "SEP at UCI | Premier Entrepreneurship Fraternity",
     template: "%s | SEP at UCI"
   },
-  description: "Join UCI's premier entrepreneurship fraternity. Build startups, connect with founders, and transform your ideas into reality.",
-  keywords: ["UCI entrepreneurship", "entrepreneurship fraternity", "startup incubator UCI", "UCI founders", "Sigma Eta Pi", "SEP UCI", "UCI business fraternity", "student entrepreneurs UCI"],
+  description: "UCI's startup community for student founders. Launch your startup at UC Irvine with 40+ entrepreneurs. 20+ startups launched, $1M+ funding raised. Open to all majors.",
+  keywords: ["UCI startups", "startup clubs UCI", "UCI entrepreneurship", "student founders UCI", "Irvine startup incubator", "UCI founder community", "Sigma Eta Pi", "SEP UCI", "how to start a startup at UCI", "UCI business fraternity"],
   authors: [{ name: "SEP at UCI" }],
   creator: "SEP at UCI",
   publisher: "SEP at UCI",

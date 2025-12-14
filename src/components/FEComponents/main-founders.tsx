@@ -6,42 +6,42 @@ const MainFE: React.FC = () => {
     {
       icon: Search,
       title: "Problem Discovery",
-      description: "Identify real problems worth solving"
+      description: "Learn to identify real problems worth solving in your community"
     },
     {
       icon: Users,
       title: "Customer Discovery",
-      description: "Understand your target audience"
+      description: "Conduct user interviews and understand your target market"
     },
     {
       icon: Puzzle,
       title: "Minimum Viable Product",
-      description: "Build and validate your solution"
+      description: "Build and ship your first MVP to real users"
     },
     {
       icon: TrendingUp,
       title: "Market Analysis",
-      description: "Research competitive landscape"
+      description: "Research competitors and find your market opportunity"
     },
     {
       icon: DollarSign,
-      title: "Finance",
-      description: "Master startup financial planning"
+      title: "Startup Finance",
+      description: "Learn fundraising, unit economics, and financial planning"
     },
     {
       icon: Globe,
-      title: "Branding",
-      description: "Create compelling brand identity"
+      title: "Branding & Marketing",
+      description: "Create a compelling brand and go-to-market strategy"
     },
     {
       icon: MessageCircle,
-      title: "Networking",
-      description: "Build meaningful connections"
+      title: "Founder Networking",
+      description: "Connect with VCs, mentors, and UCI alumni founders"
     },
     {
       icon: Presentation,
-      title: "Pitching",
-      description: "Present your vision effectively"
+      title: "Pitch Training",
+      description: "Master your pitch deck and present to real investors"
     }
   ];
 
@@ -50,10 +50,13 @@ const MainFE: React.FC = () => {
       <div className="content-max-width section-padding">
         <div className="text-center mb-16 lg:mb-20">
           <h1 className="heading-1 mb-6">
-            The Program
+            UCI&apos;s Student-Run Startup Incubator
           </h1>
-          <p className="body-large max-w-3xl mx-auto">
-            Founder&apos;s Education is our 8-week startup incubator program focused on helping you think and build like an entrepreneur.
+          <p className="body-large max-w-3xl mx-auto mb-6">
+            Founder&apos;s Education is our 8-week startup incubator program at UC Irvine. Learn to think and build like an entrepreneur through hands-on experience—no business background required.
+          </p>
+          <p className="text-muted-foreground max-w-2xl mx-auto">
+            Our program has helped launch 20+ startups and raised over $1M in funding. Whether you&apos;re a CS major with a product idea or a designer wanting to start a company, FE gives you the framework to build.
           </p>
         </div>
         
