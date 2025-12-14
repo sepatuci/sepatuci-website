@@ -3,8 +3,23 @@ import utahSquad from '../../assets/community/utahSquad.jpeg';
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Brotherhood | SEP at UCI",
-  description: "Experience the bonds that unite our entrepreneurial community through shared experiences and lifelong connections.",
+  title: "Brotherhood",
+  description: "Explore SEP at UCI's brotherhood through retreats, socials, and networking events. Our entrepreneurial family creates lifelong connections and memories that extend beyond graduation.",
+  keywords: ["SEP brotherhood", "UCI fraternity events", "entrepreneurship community", "SEP retreats", "startup networking UCI"],
+  alternates: {
+    canonical: "https://sepatuci.com/brotherhood",
+  },
+  openGraph: {
+    title: "Brotherhood | SEP at UCI",
+    description: "Explore SEP at UCI's brotherhood through retreats, socials, and networking events. Our entrepreneurial family creates lifelong connections.",
+    url: "https://sepatuci.com/brotherhood",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Brotherhood | SEP at UCI",
+    description: "Explore SEP at UCI's brotherhood through retreats, socials, and networking events.",
+  },
 }
 
 export default function BrotherhoodPage() {

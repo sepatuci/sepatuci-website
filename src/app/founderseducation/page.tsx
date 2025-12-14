@@ -1,12 +1,26 @@
-
 import Section from "@/components/FEComponents/fevp-section";
 import MainFE from "@/components/FEComponents/main-founders";
 import ScrollStartups from "@/components/FEComponents/startups-scroll";
 import { Metadata } from "next"
 
 export const metadata: Metadata = {
-  title: "Founder's Education | SEP at UCI",
-  description: "Join our 8-week startup incubator program. Learn to think and build like an entrepreneur through hands-on experience.",
+  title: "Founder's Education",
+  description: "Join SEP's 8-week startup incubator program at UCI. Learn ideation, validation, pitching, and fundraising from experienced founders. Build your first startup with hands-on mentorship.",
+  keywords: ["UCI startup incubator", "founder's education program", "entrepreneurship course UCI", "startup bootcamp", "learn to build startups"],
+  alternates: {
+    canonical: "https://sepatuci.com/founderseducation",
+  },
+  openGraph: {
+    title: "Founder's Education | SEP at UCI",
+    description: "Join SEP's 8-week startup incubator program at UCI. Learn ideation, validation, pitching, and fundraising from experienced founders.",
+    url: "https://sepatuci.com/founderseducation",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Founder's Education | SEP at UCI",
+    description: "Join SEP's 8-week startup incubator program. Build your first startup with hands-on mentorship.",
+  },
 }
 
 export default function FoundersEducationPage() {
