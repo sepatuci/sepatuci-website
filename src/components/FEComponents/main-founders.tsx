@@ -52,11 +52,8 @@ const MainFE: React.FC = () => {
           <h1 className="heading-1 mb-6">
             UCI&apos;s Student-Run Startup Incubator
           </h1>
-          <p className="body-large max-w-3xl mx-auto mb-6">
-            Founder&apos;s Education is our 8-week startup incubator program at UC Irvine. Learn to think and build like an entrepreneur through hands-on experience—no business background required.
-          </p>
-          <p className="text-muted-foreground max-w-2xl mx-auto">
-            Our program has helped launch 20+ startups and raised over $1M in funding. Whether you&apos;re a CS major with a product idea or a designer wanting to start a company, FE gives you the framework to build.
+          <p className="body-large max-w-3xl mx-auto">
+            Founder&apos;s Education is our 8-week startup incubator program at UC Irvine. Learn to think and build like an entrepreneur through hands-on experience. FE gives you the framework to build.
           </p>
         </div>
         
