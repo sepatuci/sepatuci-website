@@ -130,8 +130,8 @@ const TeamSection: React.FC = () => {
             {groupMembersByClass().map((classGroup, groupIndex) => (
               <div key={classGroup.className}>
                 {/* Class Header */}
-                <div className="mb-6">
-                  <h2 className="text-sm font-medium text-muted-foreground">
+                <div className="mb-8">
+                  <h2 className="text-xl sm:text-2xl font-light tracking-wide text-foreground/80">
                     {classGroup.className}
                   </h2>
                 </div>
