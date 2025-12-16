@@ -1,34 +1,32 @@
 import React from 'react';
-import Image from 'next/image'; // Importing Image from next/image
-import pahel2 from "../../assets/members/epsilon/pahel.jpg";
 
 const Section: React.FC = () => {
   return (
     <section className="text-white body-font bg-black">
-      <div className="container mx-auto flex px-5 py-24 md:flex-row flex-col items-center">
-        <div className="lg:flex-grow md:w-1/2 lg:pr-24 md:pr-16 flex flex-col md:items-center md:text-left mb-16 md:mb-0 items-center text-center">
-          <h1 className="text-center title-font sm:text-5xl text-3xl mb-4 font-medium text-white">
-            From Our VP of
-            <br></br>
-            Founder&apos;s Education
-          </h1>
-          <p className="text-center md:text-2xl text-lg text-slate-300">
+      <div className=" px-5 py-24 mx-auto h-screen items-center justify-center flex">
+        <div className="xl:w-2/3 lg:w-2/3 md:w-5/6 w-full mx-auto text-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            fill="currentColor"
+            className="inline-block w-10 h-10 text-white mb-8"
+            viewBox="0 0 975.036 975.036"
+          >
+            <path d="M925.036 57.197h-304c-27.6 0-50 22.4-50 50v304c0 27.601 22.4 50 50 50h145.5c-1.9 79.601-20.4 143.3-55.4 191.2-27.6 37.8-69.399 69.1-125.3 93.8-25.7 11.3-36.8 41.7-24.8 67.101l36 76c11.6 24.399 40.3 35.1 65.1 24.399 66.2-28.6 122.101-64.8 167.7-108.8 55.601-53.7 93.7-114.3 114.3-181.9 20.601-67.6 30.9-159.8 30.9-276.8v-239c0-27.599-22.401-50-50-50zM106.036 913.497c65.4-28.5 121-64.699 166.9-108.6 56.1-53.7 94.4-114.1 115-181.2 20.6-67.1 30.899-159.6 30.899-277.5v-239c0-27.6-22.399-50-50-50h-304c-27.6 0-50 22.4-50 50v304c0 27.601 22.4 50 50 50h145.5c-1.9 79.601-20.4 143.3-55.4 191.2-27.6 37.8-69.4 69.1-125.3 93.8-25.7 11.3-36.8 41.7-24.8 67.101l35.9 75.8c11.601 24.399 40.501 35.2 65.301 24.399z" />
+          </svg>
+          <p className="leading-relaxed text-xl md:text-3xl text-white">
             Founder&apos;s Education is focused on developing our newest members
             personally and professionally, by fostering a tight-knit community.
             Designed for all experience levels, FE is the go-to program for
             those of you at UCI looking to innovate, learn about the startup
-            world, and meet some dynamic people!{" "}
+            world, and meet some dynamic people!
           </p>
-        </div>
-        <div className="lg:max-w-lg lg:w-full md:w-1/2 w-5/6">
-          <Image
-            className="object-cover object-center rounded-md"
-            alt="hero"
-            src={pahel2.src}
-            width={500} // Provide appropriate width for the image
-            height={500} // Provide appropriate height for the image
-            priority={true} // Optional: to prioritize this image for faster LCP
-          />
+          <span className="inline-block h-1 w-10 rounded bg-indigo-500 mt-8 mb-6"></span>
+          <h2 className="text-white font-medium title-font tracking-wider text-4xl">
+            Pahel
+          </h2>
+          <p className="text-gray-400 text-2xl italic">
+            Former VP of Founder&apos;s Education
+          </p>
         </div>
       </div>
     </section>

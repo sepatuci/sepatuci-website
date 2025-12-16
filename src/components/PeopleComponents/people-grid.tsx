@@ -55,6 +55,27 @@ const TeamSection: React.FC = () => {
     }
   };
 
+  // Group members by class for the Classes tab
+  const groupMembersByClass = () => {
+    const classOrder = ['Founder Class', 'Alpha Class', 'Beta Class', 'Gamma Class', 'Delta Class', 'Epsilon Class', 'Zeta Class', 'Eta Class', 'Theta Class', 'Iota Class'];
+    const grouped: { [key: string]: typeof teamMembers } = {};
+
+    tabs.Classes.members.forEach((member) => {
+      if (!grouped[member.description]) {
+        grouped[member.description] = [];
+      }
+      grouped[member.description].push(member);
+    });
+
+    // Return classes in order
+    return classOrder
+      .filter(className => grouped[className])
+      .map(className => ({
+        className,
+        members: grouped[className]
+      }));
+  };
+
   return (
     <section className="bg-background section-margin">
       <div className="content-max-width section-padding">
@@ -103,51 +124,115 @@ const TeamSection: React.FC = () => {
         </div>
 
         {/* Members Grid */}
-        <div className="grid-premium grid-people">
-          {tabs[activeTab].members.map((member, index) => (
-            <div 
-              key={`${member.title}-${index}`}
-              className="group"
-            >
-              <div className="card-premium card-hover h-full flex flex-col">
-                <div className="mb-2 sm:mb-4 lg:mb-6">
-                  {member.src ? (
-                    <ImageLoader src={member.src} alt={member.title} />
-                  ) : (
-                    <div className="relative w-full aspect-square bg-muted/20 rounded-2xl flex items-center justify-center">
-                      <Users className="w-12 h-12 text-muted-foreground/40" />
-                    </div>
-                  )}
+        {activeTab === 'Classes' ? (
+          // Grouped by class for Classes tab
+          <div className="space-y-16">
+            {groupMembersByClass().map((classGroup, groupIndex) => (
+              <div key={classGroup.className}>
+                {/* Class Header */}
+                <div className="mb-6">
+                  <h2 className="text-sm font-medium text-muted-foreground">
+                    {classGroup.className}
+                  </h2>
                 </div>
-                
-                <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
-                  <div className="flex-1">
-                    <h3 className="font-medium text-xs sm:text-sm lg:text-lg text-foreground line-clamp-2">
-                      {member.title}
-                    </h3>
-                    <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
-                      {member.description}
-                    </p>
-                  </div>
-                  
-                  <div className="flex justify-center pt-1 sm:pt-2">
-                    {member.ctaLink && (
-                      <a
-                        href={member.ctaLink}
-                        className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        aria-label={`View ${member.title}'s LinkedIn profile`}
-                      >
-                        <Linkedin className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform duration-200 group-hover/link:scale-110" />
-                      </a>
+
+                {/* Class Members Grid */}
+                <div className="grid-premium grid-people">
+                  {classGroup.members.map((member, index) => (
+                    <div
+                      key={`${member.title}-${index}`}
+                      className="group"
+                    >
+                      <div className="card-premium card-hover h-full flex flex-col">
+                        <div className="mb-2 sm:mb-4 lg:mb-6">
+                          {member.src ? (
+                            <ImageLoader src={member.src} alt={member.title} />
+                          ) : (
+                            <div className="relative w-full aspect-square bg-muted/20 rounded-2xl flex items-center justify-center">
+                              <Users className="w-12 h-12 text-muted-foreground/40" />
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
+                          <div className="flex-1">
+                            <h3 className="font-medium text-xs sm:text-sm lg:text-lg text-foreground line-clamp-2">
+                              {member.title}
+                            </h3>
+                            <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
+                              {member.description}
+                            </p>
+                          </div>
+
+                          <div className="flex justify-center pt-1 sm:pt-2">
+                            {member.ctaLink && (
+                              <a
+                                href={member.ctaLink}
+                                className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                aria-label={`View ${member.title}'s LinkedIn profile`}
+                              >
+                                <Linkedin className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform duration-200 group-hover/link:scale-110" />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          // Regular grid for Executive Board and Actives
+          <div className="grid-premium grid-people">
+            {tabs[activeTab].members.map((member, index) => (
+              <div
+                key={`${member.title}-${index}`}
+                className="group"
+              >
+                <div className="card-premium card-hover h-full flex flex-col">
+                  <div className="mb-2 sm:mb-4 lg:mb-6">
+                    {member.src ? (
+                      <ImageLoader src={member.src} alt={member.title} />
+                    ) : (
+                      <div className="relative w-full aspect-square bg-muted/20 rounded-2xl flex items-center justify-center">
+                        <Users className="w-12 h-12 text-muted-foreground/40" />
+                      </div>
                     )}
+                  </div>
+
+                  <div className="flex-1 flex flex-col justify-between space-y-2 sm:space-y-4">
+                    <div className="flex-1">
+                      <h3 className="font-medium text-xs sm:text-sm lg:text-lg text-foreground line-clamp-2">
+                        {member.title}
+                      </h3>
+                      <p className="text-[10px] sm:text-xs lg:text-sm text-muted-foreground mt-0.5 sm:mt-1 line-clamp-2">
+                        {member.description}
+                      </p>
+                    </div>
+
+                    <div className="flex justify-center pt-1 sm:pt-2">
+                      {member.ctaLink && (
+                        <a
+                          href={member.ctaLink}
+                          className="inline-flex items-center justify-center w-6 h-6 sm:w-8 sm:h-8 lg:w-10 lg:h-10 rounded-full bg-muted/50 hover:bg-accent hover:text-accent-foreground transition-all duration-200 group/link"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`View ${member.title}'s LinkedIn profile`}
+                        >
+                          <Linkedin className="w-3 h-3 sm:w-4 sm:h-4 lg:w-5 lg:h-5 transition-transform duration-200 group-hover/link:scale-110" />
+                        </a>
+                      )}
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
 
         {/* Empty State */}
         {tabs[activeTab].members.length === 0 && (

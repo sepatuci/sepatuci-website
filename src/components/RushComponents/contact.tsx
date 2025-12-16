@@ -92,7 +92,7 @@ const ContactSection: React.FC = () => {
             
             <div className="flex justify-center">
               <a
-                href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
+                href="https://www.instagram.com/sepatuci/"
                 target="_blank"
                 rel="noopener noreferrer"
               >

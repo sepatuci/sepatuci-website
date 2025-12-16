@@ -63,7 +63,7 @@ const Navbar: React.FC = () => {
             
             {/* CTA Button */}
             <Link
-              href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
+              href="https://www.instagram.com/sepatuci/"
               target="_blank"
               rel="noopener noreferrer"
               className="ml-6"
@@ -108,7 +108,7 @@ const Navbar: React.FC = () => {
             
             <div className="pt-4">
               <Link
-                href="https://forms.gle/GSFD6MBbsgbJ8sAC6"
+                href="https://www.instagram.com/sepatuci/"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}
