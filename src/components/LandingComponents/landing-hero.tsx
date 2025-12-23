@@ -5,6 +5,7 @@ import { ArrowRight, Sparkles, Rocket, Users } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { AuroraBackground } from "../ui/aurora-background";
+import CountUp from "react-countup";
 
 export default function LandingHero() {
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
@@ -100,10 +101,10 @@ export default function LandingHero() {
             className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto"
           >
             {[
-              { number: "40+", label: "Members", icon: Users },
-              { number: "20+", label: "Startups Launched", icon: Rocket },
-              { number: "$1M+", label: "Funding Raised", icon: Sparkles },
-              { number: "15+", label: "Majors", icon: Sparkles }
+              { value: 40, suffix: "+", label: "Members", icon: Users },
+              { value: 20, suffix: "+", label: "Startups Launched", icon: Rocket },
+              { value: 1, prefix: "$", suffix: "M+", label: "Funding Raised", icon: Sparkles },
+              { value: 15, suffix: "+", label: "Majors", icon: Sparkles }
             ].map((stat, index) => {
               const Icon = stat.icon;
               return (
@@ -120,7 +121,18 @@ export default function LandingHero() {
                       <Icon className="w-4 h-4 text-accent" />
                     </div>
                     <div className="text-3xl sm:text-4xl font-light text-foreground mb-2 group-hover:text-accent transition-colors duration-300">
-                      {stat.number}
+                      {stat.prefix}
+                      <CountUp 
+                        start={0}
+                        end={stat.value} 
+                        duration={4.5}
+                        enableScrollSpy
+                        scrollSpyOnce
+                        scrollSpyDelay={100}
+                      >
+                        {({ countUpRef }) => <span ref={countUpRef} />}
+                      </CountUp>
+                      {stat.suffix}
                     </div>
                     <div className="text-xs sm:text-sm text-muted-foreground uppercase tracking-wider">
                       {stat.label}
