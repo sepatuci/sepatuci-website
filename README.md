@@ -9,6 +9,7 @@ This website showcases our fraternity's mission to foster entrepreneurial spirit
 ## 🛠 Tech Stack
 
 - **Framework**: Next.js 14 with TypeScript
+- **Runtime**: Bun
 - **Styling**: Tailwind CSS with custom animations
 - **UI Components**: Radix UI, shadcn/ui
 - **Animations**: Framer Motion
@@ -19,8 +20,7 @@ This website showcases our fraternity's mission to foster entrepreneurial spirit
 ## 🏗 Getting Started
 
 ### Prerequisites
-- Node.js 18+ 
-- npm, yarn, pnpm, or bun
+- [Bun](https://bun.sh/) 1.0+
 
 ### Installation
 
@@ -32,21 +32,11 @@ cd sepatuci-website
 
 2. Install dependencies:
 ```bash
-npm install
-# or
-yarn install
-# or
-pnpm install
+bun install
 ```
 
 3. Run the development server:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
 bun dev
 ```
 
@@ -83,8 +73,8 @@ The site is automatically deployed to Vercel on every push to the main branch.
 ### Manual Deployment
 
 ```bash
-npm run build
-npm run start
+bun run build
+bun run start
 ```
 
 ## 🤝 Contributing
