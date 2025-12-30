@@ -4,33 +4,18 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import sepLogo from "../assets/logos/sep_logos/sep_white.png";
-import { BookOpen, Users, Rocket, HandHeart, Menu, X, ExternalLink } from 'lucide-react';
+import { Menu, X, ExternalLink } from 'lucide-react';
 
 
 const Navbar: React.FC = () => {
   const [isOpen, setIsOpen] = useState(false);
 
   const navItems = [
-    {
-      href: "/founderseducation",
-      label: "Founder's Education",
-      icon: BookOpen,
-    },
-    {
-      href: "/people",
-      label: "People",
-      icon: Users,
-    },
-    {
-      href: "/brotherhood",
-      label: "Brotherhood",
-      icon: HandHeart,
-    },
-    {
-      href: "/rush",
-      label: "Rush",
-      icon: Rocket,
-    },
+    { href: "/founderseducation", label: "Founder's Education" },
+    { href: "/people", label: "People" },
+    { href: "/brotherhood", label: "Brotherhood" },
+    { href: "/rush", label: "Rush" },
+    { href: "/blog", label: "Blog" },
   ];
 
   return (
@@ -50,20 +35,19 @@ const Navbar: React.FC = () => {
 
           {/* Desktop Menu */}
           <div className="hidden lg:flex items-center space-x-2">
-            {navItems.map(({ href, label, icon: Icon }) => (
+            {navItems.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
-                className="group flex items-center gap-2 px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                className="px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
               >
-                <Icon className="w-4 h-4 transition-transform duration-200 group-hover:scale-110" />
-                <span>{label}</span>
+                {label}
               </Link>
             ))}
             
             {/* CTA Button */}
             <Link
-              href="https://www.instagram.com/sepatuci/"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSeOXUWoniHjlFl-ABRuzTXkKK8MOTdO91Y2sv_xX-DuOVUlgQ/viewform?usp=sharing&ouid=116780283286912141619"
               target="_blank"
               rel="noopener noreferrer"
               className="ml-6"
@@ -94,21 +78,20 @@ const Navbar: React.FC = () => {
       {isOpen && (
         <div className="lg:hidden border-t border-border/50 bg-background/95 backdrop-blur-xl">
           <div className="section-padding py-6 space-y-2">
-            {navItems.map(({ href, label, icon: Icon }) => (
+            {navItems.map(({ href, label }) => (
               <Link
                 key={href}
                 href={href}
                 onClick={() => setIsOpen(false)}
-                className="group flex items-center gap-3 px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                className="block px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
               >
-                <Icon className="w-5 h-5 transition-transform duration-200 group-hover:scale-110" />
-                <span>{label}</span>
+                {label}
               </Link>
             ))}
             
             <div className="pt-4">
               <Link
-                href="https://www.instagram.com/sepatuci/"
+                href="https://docs.google.com/forms/d/e/1FAIpQLSeOXUWoniHjlFl-ABRuzTXkKK8MOTdO91Y2sv_xX-DuOVUlgQ/viewform?usp=sharing&ouid=116780283286912141619"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}

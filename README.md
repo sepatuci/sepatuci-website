@@ -62,6 +62,23 @@ src/
 └── lib/                    # Utility functions
 ```
 
+## 📝 Blog
+
+Add posts by creating `.mdx` files in `src/content/blog/`:
+
+```mdx
+export const metadata = {
+  title: "Post Title",
+  description: "Brief description for SEO",
+  date: "2025-01-15",
+  author: "SEP at UCI",
+};
+
+# Your Content
+
+Write markdown here with **bold**, [links](/rush), etc.
+```
+
 ## 🎨 Features
 
 
