@@ -201,12 +201,12 @@ const teamMembers = [
   },
   {
     description: "Zeta Class",
-    title: "Yurina Tamura",
-    src: yurina.src,
-    ctaLink: "http://www.linkedin.com/in/yurina-tamura",
+    title: "Hannah McCarthy",
+    src: hannah.src,
+    ctaLink: "https://www.linkedin.com/in/hannah-mccarthy-6101a22ba/",
     category: "Actives",
   },
-  
+
   // Eta Class
   {
     description: "Eta Class",
