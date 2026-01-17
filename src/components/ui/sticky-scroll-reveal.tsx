@@ -23,25 +23,19 @@ export const StickyScroll = ({
   });
   const cardLength = content.length;
 
+  const biasFactorStart = 0.15;
+  const biasFactorEnd = 0.45;
+
+  const cardsBreakpoints = useMemo(() =>
+    content.map((_, index) => {
+      if (index === 0) return biasFactorStart;
+      if (index === cardLength - 1) return 1 - biasFactorEnd;
+      return biasFactorStart + (index / cardLength) * (1 - biasFactorStart - biasFactorEnd);
+    }),
+    [content.length, cardLength]
+  );
+
   useMotionValueEvent(scrollYProgress, "change", (latest) => {
-    const biasFactorStart = 0.15;  // Bias factor for the first card (larger value = more scroll time)
-    const biasFactorEnd = 0.45;    // Bias factor for the last card
-    const cardLength = content.length;
-  
-    // Define custom breakpoints to allocate more scroll time for the first and last cards
-    const cardsBreakpoints = content.map((_, index) => {
-      if (index === 0) {
-        // First card gets more scroll space
-        return biasFactorStart;
-      } else if (index === cardLength - 1) {
-        // Last card gets more scroll space
-        return 1 - biasFactorEnd;
-      } else {
-        // Middle cards share the remaining space evenly
-        return biasFactorStart + (index / cardLength) * (1 - biasFactorStart - biasFactorEnd);
-      }
-    });
-  
     const closestBreakpointIndex = cardsBreakpoints.reduce(
       (acc, breakpoint, index) => {
         const distance = Math.abs(latest - breakpoint);

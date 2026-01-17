@@ -1,9 +1,21 @@
-import Community from "@/components/LandingComponents/community"
-import LandingHero from "@/components/LandingComponents/landing-hero"
-import LandingPillars from "@/components/LandingComponents/landing-pillars"
-import { StickyScrollRevealDemo } from "../components/LandingComponents/main-page-scroll";
-import TestimonialSection from "@/components/LandingComponents/fe-testemonial";
+import dynamic from "next/dynamic";
 import { Metadata } from "next"
+
+const LandingHero = dynamic(
+  () => import("@/components/LandingComponents/landing-hero")
+);
+
+const StickyScrollRevealDemo = dynamic(
+  () => import("../components/LandingComponents/main-page-scroll").then(m => m.StickyScrollRevealDemo)
+);
+
+const TestimonialSection = dynamic(
+  () => import("@/components/LandingComponents/fe-testemonial")
+);
+
+const Community = dynamic(
+  () => import("@/components/LandingComponents/community")
+);
 
 export const metadata: Metadata = {
   title: "SEP at UCI | UCI's Startup Community for Student Founders",

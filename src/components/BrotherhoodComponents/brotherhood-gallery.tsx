@@ -17,6 +17,8 @@ interface ImageLoaderProps {
   title?: string;
 }
 
+const BLUR_DATA_URL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUG/8QAIhAAAgEDBAMBAAAAAAAAAAAAAQIDAAQRBRIhMQYTQVH/xAAVAQEBAAAAAAAAAAAAAAAAAAADBP/EABkRAAIDAQAAAAAAAAAAAAAAAAECAAMRIf/aAAwDAQACEQMRAD8A";
+
 const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt, title }) => {
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -27,6 +29,8 @@ const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt, title }) => {
         alt={alt}
         fill
         sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        placeholder="blur"
+        blurDataURL={BLUR_DATA_URL}
         className={`object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
           isLoaded ? 'opacity-100' : 'opacity-0'
         }`}

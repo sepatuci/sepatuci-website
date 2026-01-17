@@ -1,18 +1,18 @@
 "use client";
 import { cn } from "@/lib/utils";
-import React, { ReactNode } from "react";
+import React, { ReactNode, memo } from "react";
 
 interface AuroraBackgroundProps extends React.HTMLProps<HTMLDivElement> {
   children: ReactNode;
   showRadialGradient?: boolean;
 }
 
-export const AuroraBackground = ({
+export const AuroraBackground = memo(function AuroraBackground({
   className,
   children,
   showRadialGradient = true,
   ...props
-}: AuroraBackgroundProps) => {
+}: AuroraBackgroundProps) {
   return (
     <main>
       <div
@@ -51,4 +51,4 @@ export const AuroraBackground = ({
       </div>
     </main>
   );
-};
+});

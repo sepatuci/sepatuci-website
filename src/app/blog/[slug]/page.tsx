@@ -1,8 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { cache } from "react";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { Calendar, ArrowLeft, User } from "lucide-react";
+
+const getPost = cache(async (slug: string) => {
+  return getPostBySlug(slug);
+});
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -16,7 +21,7 @@ export async function generateStaticParams() {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
   try {
-    const { metadata } = await getPostBySlug(slug);
+    const { metadata } = await getPost(slug);
     return {
       title: metadata.title,
       description: metadata.description,
@@ -37,7 +42,7 @@ export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
 
   try {
-    const { Content, metadata } = await getPostBySlug(slug);
+    const { Content, metadata } = await getPost(slug);
 
     return (
       <main className="dark min-h-screen bg-background pt-32 pb-16">

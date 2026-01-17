@@ -1,14 +1,13 @@
 import React from "react";
 import Image from "next/image";
-// import banner from "../../assets/community/banner.JPG"
-// import check from "../../assets/community/check.JPG"
 import check2 from "../../assets/community/check2.jpeg";
-// import table from "../../assets/community/table.JPG";
 import mhfinals from "../../assets/community/mhfinals.jpeg";
-// import crescentbros from "../../assets/community/crescentbros.JPG";
-import hike from "../../assets/community/hike.jpeg"
-import restaurant from "../../assets/community/atRestraunt.jpeg"
-import alphaog from "../../assets/community/1alphaogEdited.jpeg"
+import hike from "../../assets/community/hike.jpeg";
+import restaurant from "../../assets/community/atRestraunt.jpeg";
+import alphaog from "../../assets/community/1alphaogEdited.jpeg";
+import table from "../../assets/community/table.jpeg";
+import check from "../../assets/community/check.jpeg";
+import crescentbros from "../../assets/community/crescentbros.jpeg";
 
 
 
@@ -31,7 +30,7 @@ const GallerySection: React.FC = () => {
               <Image
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/table.jpeg")}
+                src={table.src}
                 width={300}
                 height={300}
               />
@@ -89,7 +88,7 @@ const GallerySection: React.FC = () => {
               <Image
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/table.jpeg")}
+                src={table.src}
                 width={300}
                 height={300}
               />
@@ -98,7 +97,7 @@ const GallerySection: React.FC = () => {
               <Image
                 alt="gallery"
                 className="w-full h-full object-cover object-center block"
-                src={require("../../assets/community/check.jpeg")}
+                src={check.src}
                 width={600}
                 height={300}
               />
@@ -118,7 +117,7 @@ const GallerySection: React.FC = () => {
               <Image
                 alt="gallery"
                 className="w-full object-cover h-full object-center block"
-                src={require("../../assets/community/crescentbros.jpeg")}
+                src={crescentbros.src}
                 width={300}
                 height={300}
               />

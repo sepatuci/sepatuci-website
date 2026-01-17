@@ -1,7 +1,7 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, memo } from "react";
 import Image from "next/image";
 
-export const InfiniteMovingCards = ({
+export const InfiniteMovingCards = memo(function InfiniteMovingCards({
   items,
   direction = "left",
   speed = "slow",
@@ -17,7 +17,7 @@ export const InfiniteMovingCards = ({
   speed?: "fast" | "normal" | "slow";
   pauseOnHover?: boolean;
   className?: string;
-}) => {
+}) {
   const containerRef = React.useRef<HTMLDivElement>(null);
   const scrollerRef = React.useRef<HTMLUListElement>(null);
   const [start, setStart] = useState(false);
@@ -87,4 +87,4 @@ export const InfiniteMovingCards = ({
       </ul>
     </div>
   );
-};
+});
