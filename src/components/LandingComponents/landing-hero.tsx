@@ -97,9 +97,9 @@ export default function LandingHero() {
                 <div className="absolute inset-0 bg-gradient-to-r from-primary via-accent/20 to-primary opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </button>
             </Link>
-            <Link href="/founderseducation">
+            <Link href="#events">
               <button className="btn-secondary group relative overflow-hidden">
-                <span className="relative z-10">Founder&apos;s Education</span>
+                <span className="relative z-10">Upcoming Events</span>
                 <div className="absolute inset-0 bg-accent/5 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
               </button>
             </Link>

@@ -5,6 +5,10 @@ const LandingHero = dynamic(
   () => import("@/components/LandingComponents/landing-hero")
 );
 
+const UpcomingEvents = dynamic(
+  () => import("@/components/LandingComponents/upcoming-events")
+);
+
 const StickyScrollRevealDemo = dynamic(
   () => import("../components/LandingComponents/main-page-scroll").then(m => m.StickyScrollRevealDemo)
 );
@@ -41,6 +45,9 @@ export default function Home() {
   return (
     <main className="dark min-h-screen">
       <LandingHero />
+      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
+        <UpcomingEvents />
+      </div>
       <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
         <StickyScrollRevealDemo/>
       </div>
