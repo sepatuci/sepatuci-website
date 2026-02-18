@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import { CalendarDays, MapPin, Clock, ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import eventImage from "@/assets/community/mvp-event.avif";
+import eventImage from "@/assets/community/mvp-event.jpeg";
 
 export default function UpcomingEvents() {
   return (
