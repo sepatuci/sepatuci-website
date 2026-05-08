@@ -3,9 +3,9 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next"
-
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer";
+import SplashScreen from "@/components/SplashScreenClient";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sepatuci.com'),
@@ -95,12 +95,26 @@ export default function RootLayout({
   return (
     <html lang='en'>
         <head>
+          {/* Synchronous mask: on every real page load (refresh / direct URL)
+              clear splashSeen and hide body content so the splash is the first
+              thing painted. SPA navigations never re-run this script, so the
+              already-mounted SplashScreen component (visible=false) stays hidden. */}
+          <script dangerouslySetInnerHTML={{__html:
+            `try{` +
+            `sessionStorage.removeItem('splashSeen');` +
+            `var s=document.createElement('style');` +
+            `s.id='splash-mask';` +
+            `s.textContent='body>*:not([data-splash-screen]){opacity:0!important;pointer-events:none}';` +
+            `document.head.appendChild(s);` +
+            `}catch(e){}`
+          }} />
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
           />
         </head>
         <body className={GeistSans.className}>
+          <SplashScreen />
           <Navbar/>
         <main>{children}</main>
         <Footer/>

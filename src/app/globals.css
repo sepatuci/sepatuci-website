@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 2%;
+    --background: 10 18% 4%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
+    --card: 10 12% 6%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
+    --popover: 10 12% 6%;
     --popover-foreground: 0 0% 95%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 2%;
-    --secondary: 0 0% 8%;
+    --secondary: 10 10% 9%;
     --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 6%;
+    --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 210 40% 25%;
+    --accent: 23 77% 44%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 8%;
-    --ring: 210 40% 25%;
+    --border: 10 8% 14%;
+    --input: 10 8% 9%;
+    --ring: 23 77% 44%;
     --radius: 0.75rem;
     
     --spacing-xs: 0.25rem;
@@ -50,25 +50,25 @@
   }
 
   .dark {
-    --background: 0 0% 2%;
+    --background: 10 18% 4%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
+    --card: 10 12% 6%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
+    --popover: 10 12% 6%;
     --popover-foreground: 0 0% 95%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 2%;
-    --secondary: 0 0% 8%;
+    --secondary: 10 10% 9%;
     --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 6%;
+    --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 210 40% 25%;
+    --accent: 23 77% 44%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 8%;
-    --ring: 210 40% 25%;
+    --border: 10 8% 14%;
+    --input: 10 8% 9%;
+    --ring: 23 77% 44%;
   }
 }
 
@@ -154,4 +154,72 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+/* Logo slider for FE section */
+@keyframes logo-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* FE section scroll-triggered base */
+.fe-animate {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.fe-animate.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* FE logo strip */
+.fe-logo-strip {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.fe-logo-strip.is-visible {
+  opacity: 1;
+}
+
+/* FE curriculum card v2 */
+.fe-card-v2 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 36px;
+  cursor: default;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
+}
+.fe-card-v2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: #c45c1a;
+  transition: width 0.3s ease;
+}
+.fe-card-v2.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fe-card-v2.is-visible:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(196, 92, 26, 0.2);
+}
+.fe-card-v2.is-visible:hover::after {
+  width: 100%;
+}
+
+/* FE startup logo hover — reveal color */
+.fe-logo {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.fe-logo:hover {
+  opacity: 1 !important;
+  filter: none !important;
 }

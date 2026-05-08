@@ -19,7 +19,7 @@ const Navbar: React.FC = () => {
   ];
 
   return (
-    <nav className="fixed w-full z-50 bg-background/80 backdrop-blur-xl border-b border-border/50">
+    <nav className="fixed w-full z-50 bg-background/75 backdrop-blur-xl border-b border-border/40">
       <div className="content-max-width section-padding">
         <div className="flex items-center justify-between h-20">
           {/* Logo */}
@@ -39,7 +39,7 @@ const Navbar: React.FC = () => {
               <Link
                 key={href}
                 href={href}
-                className="px-4 py-3 rounded-xl font-medium text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
+                className="px-4 py-3 rounded-xl font-mono text-sm tracking-wide text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-all duration-200"
               >
                 {label}
               </Link>
