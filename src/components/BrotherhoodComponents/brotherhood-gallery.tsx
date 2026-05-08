@@ -1,112 +1,116 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { Bebas_Neue } from 'next/font/google';
 
-import banner from "../../assets/community/banner.jpeg";
-import check2 from "../../assets/community/check2.jpeg";
-import mhfinals from "../../assets/community/mhfinals.jpeg";
+import banner       from "../../assets/community/banner.jpeg";
+import check2       from "../../assets/community/check2.jpeg";
+import mhfinals     from "../../assets/community/mhfinals.jpeg";
 import crescentbros from "../../assets/community/crescentbros.jpeg";
-import hike from "../../assets/community/hike.jpeg";
-import restaurant from "../../assets/community/atRestraunt.jpeg";
-import alphaog from "../../assets/community/1alphaogEdited.jpeg";
+import hike         from "../../assets/community/hike.jpeg";
+import restaurant   from "../../assets/community/atRestraunt.jpeg";
 
-interface ImageLoaderProps {
-  src: string;
-  alt: string;
-  title?: string;
-}
+const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
-const BLUR_DATA_URL = "data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAAIAAoDASIAAhEBAxEB/8QAFgABAQEAAAAAAAAAAAAAAAAAAAUG/8QAIhAAAgEDBAMBAAAAAAAAAAAAAQIDAAQRBRIhMQYTQVH/xAAVAQEBAAAAAAAAAAAAAAAAAAADBP/EABkRAAIDAQAAAAAAAAAAAAAAAAECAAMRIf/aAAwDAQACEQMRAD8A";
+const PHOTOS = [
+  { src: hike.src,         alt: 'Brotherhood hike',             caption: 'Adventure Together' },
+  { src: check2.src,       alt: 'Community moments',            caption: 'Community Moments' },
+  { src: mhfinals.src,     alt: 'Celebrating finals together',  caption: 'Celebrating Success' },
+  { src: restaurant.src,   alt: 'Breaking bread together',      caption: 'Breaking Bread' },
+  { src: banner.src,       alt: 'SEP united',                   caption: 'United We Stand' },
+  { src: crescentbros.src, alt: 'Brotherhood bonds',            caption: 'Brotherhood Bonds' },
+];
 
-const ImageLoader: React.FC<ImageLoaderProps> = ({ src, alt, title }) => {
-  const [isLoaded, setIsLoaded] = useState(false);
-
-  return (
-    <div className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-muted/20 group">
-      <Image
-        src={src}
-        alt={alt}
-        fill
-        sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        placeholder="blur"
-        blurDataURL={BLUR_DATA_URL}
-        className={`object-cover transition-all duration-700 ease-out group-hover:scale-105 ${
-          isLoaded ? 'opacity-100' : 'opacity-0'
-        }`}
-        onLoad={() => setIsLoaded(true)}
-      />
-      {!isLoaded && (
-        <div className="absolute inset-0 flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-muted-foreground/20 border-t-accent rounded-full animate-spin" />
-        </div>
-      )}
-      {title && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end">
-          <p className="text-white p-4 font-medium">{title}</p>
-        </div>
-      )}
-    </div>
-  );
-};
+// Vary heights to create the masonry feel
+const HEIGHTS = ['280px', '340px', '300px', '320px', '260px', '360px'];
 
 const GallerySection: React.FC = () => {
-  const items = [
-    {
-      id: 1,
-      imageUrl: hike.src,
-      title: "Adventure Together",
-    },
-    {
-      id: 2,
-      imageUrl: check2.src,
-      title: "Community Moments",
-    },
-    {
-      id: 3,
-      imageUrl: mhfinals.src,
-      title: "Celebrating Success",
-    },
-    {
-      id: 4,
-      imageUrl: restaurant.src,
-      title: "Breaking Bread",
-    },
-    {
-      id: 5,
-      imageUrl: banner.src,
-      title: "United We Stand",
-    },
-    {
-      id: 6,
-      imageUrl: crescentbros.src,
-      title: "Brotherhood Bonds",
-    },
-  ];
+  const gridRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const container = gridRef.current;
+    if (!container) return;
+    const observer = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      observer.disconnect();
+      container.querySelectorAll('[data-bh-item]').forEach((el, i) => {
+        setTimeout(() => el.classList.add('visible'), i * 100);
+      });
+    }, { threshold: 0.1 });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
 
   return (
-    <section className="section-margin">
-      <div className="content-max-width section-padding">
-        <div className="text-center mb-16 lg:mb-20">
-          <h2 className="heading-2 mb-6">
-            Moments That Matter
-          </h2>
-          <p className="body-large max-w-2xl mx-auto">
-            From adventures to achievements, these moments capture the spirit of our entrepreneurial brotherhood
-          </p>
+    <section style={{ padding: '80px 40px' }}>
+      {/* Page header */}
+      <div style={{ textAlign: 'center', marginBottom: 80 }}>
+        <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+          Brotherhood
         </div>
-        
-        <div className="grid-premium grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
-          {items.map((item) => (
-            <div key={item.id} className="group">
-              <ImageLoader 
-                src={item.imageUrl}
-                alt={item.title || "Brotherhood moment"}
-                title={item.title}
+        <h1
+          className={bebasNeue.className}
+          style={{ fontSize: 'clamp(5rem, 8vw, 7rem)', color: '#ffffff', lineHeight: 1, marginBottom: 20, letterSpacing: '0.04em' }}
+        >
+          SEP Throughout the Years
+        </h1>
+        <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.6)', maxWidth: 600, margin: '0 auto', lineHeight: 1.7 }}>
+          Celebrating the bonds that unite our entrepreneurial family
+        </p>
+      </div>
+
+      {/* Gallery label */}
+      <div style={{ textAlign: 'center', marginBottom: 48 }}>
+        <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+          Moments That Matter
+        </div>
+      </div>
+
+      {/* Masonry grid — CSS columns */}
+      <div
+        ref={gridRef}
+        style={{
+          columns:   3,
+          gap:       '16px',
+          maxWidth:  1100,
+          margin:    '0 auto',
+        }}
+      >
+        {PHOTOS.map((photo, i) => (
+          <div
+            key={photo.caption}
+            data-bh-item
+            className="fade-up bh-photo"
+            style={{
+              breakInside:  'avoid',
+              marginBottom: 16,
+              borderRadius: 12,
+              overflow:     'hidden',
+              display:      'block',
+            }}
+          >
+            <div style={{ position: 'relative', width: '100%', height: HEIGHTS[i], overflow: 'hidden' }}>
+              <Image
+                src={photo.src}
+                alt={photo.alt}
+                fill
+                sizes="(max-width: 768px) 100vw, 33vw"
+                style={{ objectFit: 'cover' }}
               />
             </div>
-          ))}
-        </div>
+            <div style={{
+              padding:    '10px 12px',
+              fontSize:   '0.8rem',
+              color:      'rgba(255,255,255,0.45)',
+              fontStyle:  'italic',
+              textAlign:  'center',
+              background: 'rgba(0,0,0,0.6)',
+            }}>
+              {photo.caption}
+            </div>
+          </div>
+        ))}
       </div>
     </section>
   );

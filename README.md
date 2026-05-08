@@ -62,9 +62,63 @@ src/
 └── lib/                    # Utility functions
 ```
 
-## 📝 Blog
+## Blog Pipeline
 
-Add posts by creating `.mdx` files in `src/content/blog/`:
+The blog page is powered by an automated pipeline that fetches top stories from Hacker News, rewrites them in SEP's voice using the `tencent/hy3-preview:free` model via OpenRouter, and stores them in SQLite. The model is completely free.
+
+### Setup
+
+1. Create a free account at https://openrouter.ai
+2. Go to https://openrouter.ai/keys and create a new API key
+3. Open the `.env` file in the project root (create it if it doesn't exist)
+4. Add this as line 1:
+```
+OPENROUTER_API_KEY=your_key_here
+```
+5. Install dependencies:
+```bash
+npm install
+```
+6. Start the pipeline:
+```bash
+node server/cron.js
+```
+
+### How it works
+
+1. **Fetching** — pulls the top 20 qualifying stories from the Hacker News API daily (free, no auth required)
+2. **Filtering** — skips low-score posts, community threads, and already-processed stories
+3. **AI Rewriting** — each story is sent to `tencent/hy3-preview:free` via OpenRouter which rewrites it as a 250–350 word blog post in SEP's voice
+4. **Storage** — posts saved to local SQLite at `/server/posts.db`
+5. **Serving** — Express API at `/api/posts` serves posts to the blog page
+6. **Scheduling** — runs automatically every day at 8am, and once on startup
+
+### Running manually
+
+```bash
+node server/cron.js
+```
+
+### Adding or changing story filters
+
+Open `server/pipeline.js` and adjust the filter conditions — minimum score threshold, excluded title keywords, and max stories per run.
+
+### Database
+
+Stored at `server/posts.db`, gitignored. Delete it and restart to regenerate all posts from scratch.
+
+### Troubleshooting
+
+- `"OPENROUTER_API_KEY is not set"` — add your key to line 1 of the `.env` file in the project root
+- `data.choices undefined` — your API key may be invalid or the model may be temporarily unavailable. Check https://openrouter.ai/keys
+- Blog page empty — run `node server/cron.js` at least once to seed the database
+- Posts not generating — confirm your key is valid and the `tencent/hy3-preview:free` model is still available at https://openrouter.ai/models
+
+---
+
+## 📝 Blog (MDX posts)
+
+Add permanent posts by creating `.mdx` files in `src/content/blog/`:
 
 ```mdx
 export const metadata = {

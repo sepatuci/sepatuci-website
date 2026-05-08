@@ -29,6 +29,7 @@ import logoWastewise   from '@/assets/logos/wastewise logo.png';
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
 const LandingEmberCanvas = dynamic(() => import('./landing-ember-canvas'), { ssr: false });
+const FEHeatCanvas       = dynamic(() => import('./fe-heat-canvas'),       { ssr: false });
 
 const STARTUP_LOGOS = [
   { src: (logoBonsai     as { src: string }).src, name: 'Bonsai' },
@@ -51,28 +52,32 @@ const STARTUP_LOGOS = [
 
 const FE_CARDS = [
   {
-    num:   '01',
-    title: 'Problem Discovery',
-    desc:  'Learn to identify real problems worth solving in your community',
-    bg:    'linear-gradient(135deg, #1a0800 0%, #2d1200 100%)',
+    num:       '01',
+    title:     'Problem Discovery',
+    desc:      'Learn to identify real problems worth solving in your community',
+    bg:        'linear-gradient(135deg, #1a0800 0%, #2d1200 100%)',
+    baseColor: [0.10, 0.03, 0.00] as const,
   },
   {
-    num:   '02',
-    title: 'Minimum Viable Product',
-    desc:  'Build and ship your first MVP to real users',
-    bg:    'linear-gradient(135deg, #0d0800 0%, #1a0f00 100%)',
+    num:       '02',
+    title:     'Minimum Viable Product',
+    desc:      'Build and ship your first MVP to real users',
+    bg:        'linear-gradient(135deg, #0d0800 0%, #1a0f00 100%)',
+    baseColor: [0.05, 0.03, 0.00] as const,
   },
   {
-    num:   '03',
-    title: 'Pitch Training',
-    desc:  'Master your pitch deck and present to real investors',
-    bg:    'linear-gradient(135deg, #1a0500 0%, #2a0e00 100%)',
+    num:       '03',
+    title:     'Pitch Training',
+    desc:      'Master your pitch deck and present to real investors',
+    bg:        'linear-gradient(135deg, #1a0500 0%, #2a0e00 100%)',
+    baseColor: [0.10, 0.02, 0.00] as const,
   },
   {
-    num:   '04',
-    title: 'Founder Networking',
-    desc:  'Connect with VCs, mentors, and UCI alumni founders',
-    bg:    'linear-gradient(135deg, #0a0a00 0%, #1a1200 100%)',
+    num:       '04',
+    title:     'Founder Networking',
+    desc:      'Connect with VCs, mentors, and UCI alumni founders',
+    bg:        'linear-gradient(135deg, #0a0a00 0%, #1a1200 100%)',
+    baseColor: [0.04, 0.04, 0.00] as const,
   },
 ];
 
@@ -472,13 +477,17 @@ export default function LandingHero() {
                     className="fe-card-v2"
                     style={{ background: card.bg }}
                   >
-                    {/* Ghosted decorative number */}
+                    {/* Heat distortion canvas — z=0, behind all card content */}
+                    <FEHeatCanvas baseColor={card.baseColor} />
+
+                    {/* Ghosted decorative number — z=1, above canvas */}
                     <div
                       className={bebasNeue.className}
                       style={{
                         position:      'absolute',
                         top:           12,
                         left:          20,
+                        zIndex:        1,
                         fontSize:      '5rem',
                         color:         'rgba(196, 92, 26, 0.2)',
                         lineHeight:    1,
@@ -488,7 +497,7 @@ export default function LandingHero() {
                     >
                       {card.num}
                     </div>
-                    {/* Content sits above number */}
+                    {/* Content — z=1, above canvas */}
                     <div style={{ position: 'relative', zIndex: 1, marginTop: '3rem' }}>
                       <div style={{ fontSize: '1.3rem', fontWeight: 700, color: '#ffffff', marginBottom: 12 }}>
                         {card.title}

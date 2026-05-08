@@ -5,22 +5,6 @@ const LandingHero = dynamic(
   () => import("@/components/LandingComponents/landing-hero")
 );
 
-const UpcomingEvents = dynamic(
-  () => import("@/components/LandingComponents/upcoming-events")
-);
-
-const StickyScrollRevealDemo = dynamic(
-  () => import("../components/LandingComponents/main-page-scroll").then(m => m.StickyScrollRevealDemo)
-);
-
-const TestimonialSection = dynamic(
-  () => import("@/components/LandingComponents/fe-testemonial")
-);
-
-const Community = dynamic(
-  () => import("@/components/LandingComponents/community")
-);
-
 export const metadata: Metadata = {
   title: "SEP at UCI | UCI's Startup Community for Student Founders",
   description: "UCI's startup community for student founders. Launch your startup, learn from experienced entrepreneurs, and join 40+ UCI students building companies. 20+ startups launched, $1M+ funding raised. Open to all majors.",
@@ -45,18 +29,6 @@ export default function Home() {
   return (
     <main className="dark min-h-screen">
       <LandingHero />
-      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
-        <UpcomingEvents />
-      </div>
-      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
-        <StickyScrollRevealDemo/>
-      </div>
-      <div className="pt-32 pb-16 sm:pt-40 sm:pb-20 lg:pt-48 lg:pb-24">
-        <TestimonialSection/>
-      </div>
-      <div className="section-margin">
-        <Community />
-      </div>
     </main>
   );
 }

@@ -1,68 +1,57 @@
 import type { Metadata } from "next";
-import Link from "next/link";
+import { Bebas_Neue } from 'next/font/google';
 import { getAllPosts } from "@/lib/blog";
-import { Calendar, ArrowRight } from "lucide-react";
+import BlogPageClient from "@/components/BlogComponents/blog-page-client";
+
+const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
 export const metadata: Metadata = {
   title: "Blog",
-  description:
-    "Articles about entrepreneurship, startups, and building at UCI. Learn from Sigma Eta Pi's community of student founders.",
+  description: "Articles about entrepreneurship, startups, and building at UCI. Learn from Sigma Eta Pi's community of student founders.",
   openGraph: {
     title: "Blog | SEP at UCI",
-    description:
-      "Articles about entrepreneurship, startups, and building at UCI.",
+    description: "Articles about entrepreneurship, startups, and building at UCI.",
   },
 };
 
 export default async function BlogPage() {
-  const posts = await getAllPosts();
+  // Original MDX posts are fetched server-side and passed as permanent entries
+  const staticPosts = await getAllPosts();
 
   return (
-    <main className="dark min-h-screen bg-background pt-32 pb-16">
-      <div className="content-max-width section-padding">
-        <div className="max-w-3xl mx-auto">
-          <h1 className="heading-1 mb-4">Blog</h1>
-          <p className="body-large text-muted-foreground mb-12">
-            Insights on entrepreneurship, startups, and building at UCI.
-          </p>
+    <div
+      className="dark"
+      style={{
+        minHeight:       '100vh',
+        paddingTop:      '80px',
+        background:      'radial-gradient(ellipse at top, #1a0800 0%, #000000 50%)',
+        backgroundColor: '#000000',
+      }}
+    >
+      <section style={{ padding: '80px 40px' }}>
+        <div style={{ maxWidth: 800, margin: '0 auto' }}>
 
-          {posts.length === 0 ? (
-            <p className="text-muted-foreground">No posts yet. Check back soon!</p>
-          ) : (
-            <div className="space-y-8">
-              {posts.map((post) => (
-                <article
-                  key={post.slug}
-                  className="group border border-border/50 rounded-2xl p-6 hover:border-border hover:bg-muted/30 transition-all duration-200"
-                >
-                  <Link href={`/blog/${post.slug}`}>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground mb-3">
-                      <Calendar className="w-4 h-4" />
-                      <time dateTime={post.date}>
-                        {new Date(post.date).toLocaleDateString("en-US", {
-                          year: "numeric",
-                          month: "long",
-                          day: "numeric",
-                        })}
-                      </time>
-                    </div>
-                    <h2 className="heading-3 mb-2 group-hover:text-primary transition-colors">
-                      {post.title}
-                    </h2>
-                    <p className="text-muted-foreground mb-4">
-                      {post.description}
-                    </p>
-                    <div className="flex items-center gap-2 text-primary font-medium">
-                      <span>Read more</span>
-                      <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                    </div>
-                  </Link>
-                </article>
-              ))}
+          {/* Header */}
+          <div style={{ textAlign: 'center', marginBottom: 72 }}>
+            <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+              Insights
             </div>
-          )}
+            <h1
+              className={bebasNeue.className}
+              style={{ fontSize: 'clamp(5rem, 8vw, 7rem)', color: '#ffffff', lineHeight: 1, marginBottom: 20, letterSpacing: '0.04em' }}
+            >
+              Blog
+            </h1>
+            <p style={{ fontSize: '1.1rem', color: 'rgba(255,255,255,0.6)', maxWidth: 600, margin: '0 auto', lineHeight: 1.7 }}>
+              Insights on entrepreneurship, startups, and building at UCI.
+            </p>
+          </div>
+
+          {/* Client component handles: API fetch + skeleton + static posts at bottom */}
+          <BlogPageClient staticPosts={staticPosts} />
+
         </div>
-      </div>
-    </main>
+      </section>
+    </div>
   );
 }

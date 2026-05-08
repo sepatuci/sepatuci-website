@@ -26,7 +26,11 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
 .env*.local
+
+# blog pipeline — SQLite database is gitignored; delete to regenerate
+/server/posts.db
 
 # vercel
 .vercel

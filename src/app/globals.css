@@ -156,6 +156,44 @@
   }
 }
 
+/* Shared dark-ember page styles (brotherhood, rush, blog) */
+.dark-card {
+  background:    rgba(255,255,255,0.03);
+  border:        1px solid rgba(196, 92, 26, 0.15);
+  border-radius: 16px;
+  transition:    all 0.3s ease;
+}
+.dark-card:hover {
+  border-color: rgba(196, 92, 26, 0.5);
+  box-shadow:   0 8px 32px rgba(196, 92, 26, 0.15);
+  transform:    translateY(-4px);
+}
+.fade-up {
+  opacity:    0;
+  transform:  translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.fade-up.visible {
+  opacity:   1;
+  transform: translateY(0);
+}
+/* Brotherhood photo hover */
+.bh-photo img {
+  filter:     brightness(0.8) contrast(1.05) sepia(0.15);
+  transition: filter 0.4s ease, transform 0.4s ease;
+}
+.bh-photo:hover img {
+  filter:    brightness(1.0) contrast(1.1) sepia(0);
+  transform: scale(1.02);
+}
+.bh-photo {
+  border:     1px solid rgba(196, 92, 26, 0.1);
+  transition: border-color 0.4s ease;
+}
+.bh-photo:hover {
+  border-color: rgba(196, 92, 26, 0.4);
+}
+
 /* People page — card animation + hover */
 .people-card {
   opacity: 0;
