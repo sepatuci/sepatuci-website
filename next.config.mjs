@@ -3,13 +3,43 @@ import createMDX from "@next/mdx";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
-  serverExternalPackages: ["better-sqlite3", "express", "node-cron"],
-  // Exclude packages with missing files from Vercel's serverless bundle tracer
+
+  experimental: {
+    serverComponentsExternalPackages: [
+      'better-sqlite3',
+      'node-cron',
+      '@opentelemetry/api',
+    ],
+  },
+
+  serverExternalPackages: [
+    'better-sqlite3',
+    'express',
+    'node-cron',
+    '@opentelemetry/api',
+  ],
+
   outputFileTracingExcludes: {
     "*": [
-      "node_modules/@opentelemetry/api/**/*",
-      "node_modules/better-sqlite3/**/*",
+      "node_modules/@opentelemetry/**",
+      "node_modules/better-sqlite3/**",
+      "node_modules/node-cron/**",
     ],
+  },
+
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.externals = [
+        ...(Array.isArray(config.externals) ? config.externals : []),
+        'better-sqlite3',
+        'node-cron',
+        '@opentelemetry/api',
+        '@opentelemetry/core',
+        '@opentelemetry/sdk-trace-base',
+        '@opentelemetry/sdk-trace-node',
+      ];
+    }
+    return config;
   },
 };
 
