@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import type { MutableRefObject } from 'react';
+import type * as THREE from 'three';
 import phoenixPng from '@/assets/logos/sep_logos/sep_white.png';
 
 // ── World-space constants ─────────────────────────────────────────────────────
