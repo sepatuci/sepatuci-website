@@ -3,9 +3,14 @@ import createMDX from "@next/mdx";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
-  // Exclude server-only packages from the Next.js bundle —
-  // these are only used by the Express API server, not by Next.js itself.
   serverExternalPackages: ["better-sqlite3", "express", "node-cron"],
+  // Exclude packages with missing files from Vercel's serverless bundle tracer
+  outputFileTracingExcludes: {
+    "*": [
+      "node_modules/@opentelemetry/api/**/*",
+      "node_modules/better-sqlite3/**/*",
+    ],
+  },
 };
 
 const withMDX = createMDX({
