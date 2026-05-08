@@ -58,10 +58,133 @@ export default function AIPostPage({ id }: { id: number }) {
   });
 
   // Split content on "## What This Means For You" header
-  const WTM_HEADER = /^##\s*What This Means For You/im;
-  const parts      = post.content.split(WTM_HEADER);
+  const WTM_HEADER  = /^##\s*What This Means For You/im;
+  const parts       = post.content.split(WTM_HEADER);
   const mainContent = parts[0].trim();
   const wtmContent  = parts[1]?.trim() ?? '';
+
+  // ── Content renderer ──────────────────────────────────────────────────────
+  // Handles: ## headers, ### sub-headers, numbered lists, bullet lists, **bold**
+
+  function renderInline(text: string): React.ReactNode {
+    const segments = text.split(/(\*\*[^*]+\*\*)/g);
+    return segments.map((seg, i) =>
+      seg.startsWith('**') && seg.endsWith('**')
+        ? <strong key={i} style={{ color: '#ffffff', fontWeight: 600 }}>{seg.slice(2, -2)}</strong>
+        : seg
+    );
+  }
+
+  function renderBlocks(raw: string, keyPrefix: string): React.ReactNode[] {
+    const lines   = raw.split('\n');
+    const blocks: React.ReactNode[] = [];
+    let i = 0;
+
+    while (i < lines.length) {
+      const line = lines[i].trim();
+
+      if (!line) { i++; continue; }
+
+      // ## Section header (not WTM — already stripped)
+      if (/^##\s+/.test(line)) {
+        blocks.push(
+          <h3 key={`${keyPrefix}-${i}`} style={{
+            fontSize: '1.2rem', fontWeight: 700, color: '#7c3aed',
+            marginTop: '2em', marginBottom: '0.6em', letterSpacing: '0.02em',
+          }}>
+            {line.replace(/^##\s+/, '')}
+          </h3>
+        );
+        i++; continue;
+      }
+
+      // ### Sub-header
+      if (/^###\s+/.test(line)) {
+        blocks.push(
+          <h4 key={`${keyPrefix}-${i}`} style={{
+            fontSize: '1.05rem', fontWeight: 600, color: 'rgba(124,58,237,0.85)',
+            marginTop: '1.6em', marginBottom: '0.5em',
+          }}>
+            {line.replace(/^###\s+/, '')}
+          </h4>
+        );
+        i++; continue;
+      }
+
+      // Numbered list — collect consecutive `N.` lines
+      if (/^\d+\.\s/.test(line)) {
+        const items: string[] = [];
+        while (i < lines.length && /^\d+\.\s/.test(lines[i].trim())) {
+          items.push(lines[i].trim().replace(/^\d+\.\s+/, ''));
+          i++;
+        }
+        blocks.push(
+          <ol key={`${keyPrefix}-ol-${i}`} style={{
+            paddingLeft: '1.4em', marginBottom: '1.8em',
+          }}>
+            {items.map((item, j) => (
+              <li key={j} style={{
+                fontSize: '1.1rem', lineHeight: 1.9,
+                color: 'rgba(255,255,255,0.85)', marginBottom: '0.6em',
+              }}>
+                {renderInline(item)}
+              </li>
+            ))}
+          </ol>
+        );
+        continue;
+      }
+
+      // Bullet list — collect consecutive `- ` / `• ` / `* ` lines
+      if (/^[-•*]\s/.test(line)) {
+        const items: string[] = [];
+        while (i < lines.length && /^[-•*]\s/.test(lines[i].trim())) {
+          items.push(lines[i].trim().replace(/^[-•*]\s+/, ''));
+          i++;
+        }
+        blocks.push(
+          <ul key={`${keyPrefix}-ul-${i}`} style={{
+            paddingLeft: '1.4em', marginBottom: '1.8em', listStyleType: 'disc',
+          }}>
+            {items.map((item, j) => (
+              <li key={j} style={{
+                fontSize: '1.1rem', lineHeight: 1.9,
+                color: 'rgba(255,255,255,0.85)', marginBottom: '0.6em',
+              }}>
+                {renderInline(item)}
+              </li>
+            ))}
+          </ul>
+        );
+        continue;
+      }
+
+      // Regular paragraph — collect until blank line or special prefix
+      const paraLines: string[] = [];
+      while (
+        i < lines.length &&
+        lines[i].trim() &&
+        !/^#{2,3}\s/.test(lines[i].trim()) &&
+        !/^\d+\.\s/.test(lines[i].trim()) &&
+        !/^[-•*]\s/.test(lines[i].trim())
+      ) {
+        paraLines.push(lines[i].trim());
+        i++;
+      }
+      if (paraLines.length > 0) {
+        blocks.push(
+          <p key={`${keyPrefix}-p-${i}`} style={{
+            fontSize: '1.1rem', lineHeight: 1.9,
+            color: 'rgba(255,255,255,0.85)', marginBottom: '1.8em',
+          }}>
+            {renderInline(paraLines.join(' '))}
+          </p>
+        );
+      }
+    }
+
+    return blocks;
+  }
 
   return (
     <div style={{
@@ -199,39 +322,21 @@ export default function AIPostPage({ id }: { id: number }) {
 
         {/* Main content */}
         <div style={{ maxWidth: 700, margin: '0 auto' }}>
-          {mainContent.split(/\n\n+/).filter(Boolean).map((para, i) => (
-            <p key={i} style={{
-              fontSize:     '1.1rem',
-              lineHeight:   1.9,
-              color:        'rgba(255,255,255,0.85)',
-              marginBottom: '1.8em',
-            }}>
-              {para.trim()}
-            </p>
-          ))}
+          {renderBlocks(mainContent, 'main')}
 
           {/* "What This Means For You" section */}
           {wtmContent && (
             <>
               <h2 style={{
-                fontSize:   '1.3rem',
-                fontWeight: 700,
-                color:      '#7c3aed',
-                marginTop:  '2.5em',
+                fontSize:     '1.3rem',
+                fontWeight:   700,
+                color:        '#7c3aed',
+                marginTop:    '2.5em',
                 marginBottom: '1em',
               }}>
                 What This Means For You
               </h2>
-              {wtmContent.split(/\n\n+/).filter(Boolean).map((para, i) => (
-                <p key={i} style={{
-                  fontSize:     '1.1rem',
-                  lineHeight:   1.9,
-                  color:        'rgba(255,255,255,0.85)',
-                  marginBottom: '1.8em',
-                }}>
-                  {para.trim()}
-                </p>
-              ))}
+              {renderBlocks(wtmContent, 'wtm')}
             </>
           )}
 
