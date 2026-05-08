@@ -3,7 +3,7 @@ const MAX_POSTS_PER_RUN = 3
 import dotenv from 'dotenv'
 dotenv.config()
 
-import { insertPost, postExists } from './db.js'
+import { insertPost, postExists, getAllPosts } from './db.js'
 
 const HN_TOP_STORIES = 'https://hacker-news.firebaseio.com/v0/topstories.json'
 const HN_ITEM        = (id) => `https://hacker-news.firebaseio.com/v0/item/${id}.json`
@@ -70,17 +70,24 @@ export async function runPipeline() {
 
   console.log(`[Pipeline] Starting at ${new Date().toISOString()}`)
 
-  // Fetch top 50 story IDs
+  // Build set of already-used story IDs from existing cluster_hashes
+  const usedStoryIds = new Set()
+  getAllPosts().forEach(p => {
+    if (p.cluster_hash) p.cluster_hash.split(',').forEach(id => usedStoryIds.add(parseInt(id)))
+  })
+
+  // Fetch top 150 story IDs for broader coverage
   const topIds  = await fetch(HN_TOP_STORIES).then(r => r.json())
-  const ids     = topIds.slice(0, 50)
+  const ids     = topIds.slice(0, 150)
   const stories = await Promise.all(ids.map(id => fetch(HN_ITEM(id)).then(r => r.json())))
 
-  // Filter: score, URL, prefix, keyword relevance
+  // Filter: score, URL, prefix, keyword relevance, not already used
   const qualifying = stories.filter(story => {
     if (!story.url || !story.title)                                  return false
     if (story.score < 100)                                           return false
     if (SKIP_PREFIXES.some(p => story.title.startsWith(p)))          return false
     if (!TECH_KEYWORDS.test(story.title))                            return false
+    if (usedStoryIds.has(story.id))                                  return false
     return true
   })
 
@@ -111,7 +118,20 @@ export async function runPipeline() {
     const urls        = cluster.map(s => s.url)
 
     try {
-      const prompt = `You are a blog writer for Sigma Eta Pi (SEP), UCI's student-run entrepreneurship fraternity. Based on the following related Hacker News stories, write an original long-form blog post on the unified theme they represent. This must be your own original article — not a summary of any single source. Write at least 5 full paragraphs. Cover the topic in depth with insight, nuance, and practical advice for a UCI student entrepreneur. Write in a clear energetic tone like a smart older sibling who has been through the startup world. The post must be strictly about entrepreneurship or the tech startup space — do not write about anything outside these topics. End with a concrete actionable section titled "What This Means For You" with 2–3 takeaways for a college student building their first startup. Return only the blog post content with no preamble and no markdown headers except for the final "What This Means For You" section header.
+      const prompt = `You are a blog writer for Sigma Eta Pi (SEP), UCI's student-run entrepreneurship fraternity. Based on the following related Hacker News stories, write an original long-form blog post on the unified theme they represent.
+
+Rules you must follow:
+- Write as SEP the organization, not as a single narrator with personal anecdotes. Use "we" sparingly — mostly just write in a clear, direct second-person voice addressing the reader as a fellow student founder
+- Never invent specific people, fake scenarios, fabricated statistics, or fictional case studies. Every claim must be grounded in what the source stories actually say or widely known general knowledge about startups
+- Do not reference UCI, Panda Express, specific UCI courses, SEP Slack, or any hyper-local details — keep the advice universally applicable to any student founder
+- Write like a sharp, experienced practitioner giving real advice — not like someone trying to sound relatable. No forced humor, no cringe pop culture references, no filler phrases
+- Stay tightly focused on the theme the stories share — do not go on tangents or repeat the same point multiple times
+- Write at least 5 paragraphs. Each paragraph should advance the argument or add new information — no padding
+- The post must be strictly about entrepreneurship or the tech startup space
+- End with a section titled "What This Means For You" containing 2–3 concise, specific, actionable takeaways. Each takeaway should be one or two sentences max — punchy, not preachy
+- Do not use buzzwords like "synergy", "disrupt", "game-changer", "revolutionize", or "in today's fast-paced world"
+- Start your response with a compelling, original title for this post on its own line, followed by a blank line, then the blog post content. The title should reflect the unified theme — not copy any single story headline. No "Title:" prefix — just the title text itself
+- After the title and blank line, return only the blog post content with no markdown headers except for the final "What This Means For You" section header
 
 Related stories:
 ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
@@ -138,13 +158,14 @@ ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
         continue
       }
 
-      const generatedContent = data.choices[0].message.content
-
-      // Derive a title from the shared theme — use the highest-scoring story's title
-      const topStory = cluster.reduce((best, s) => s.score > best.score ? s : best)
+      const raw   = data.choices[0].message.content.trim()
+      const lines = raw.split('\n')
+      const title = lines[0].trim()
+      // Content starts after the title line and the blank line that follows it
+      const generatedContent = lines.slice(lines[1]?.trim() === '' ? 2 : 1).join('\n').trim()
 
       insertPost({
-        title:          topStory.title,
+        title,
         content:        generatedContent,
         cluster_hash:   clusterHash,
         source_titles:  JSON.stringify(titles),
@@ -155,7 +176,7 @@ ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
         hn_score:       avgScore,
       })
 
-      console.log(`[Pipeline] Saved cluster: "${topStory.title}" + ${cluster.length - 1} more (avg ▲ ${avgScore})`)
+      console.log(`[Pipeline] Saved: "${title}" (${cluster.length} stories, avg ▲ ${avgScore})`)
       newPostCount++
     } catch (err) {
       console.error(`[Pipeline] Error processing cluster "${titles[0]}": ${err.message}`)

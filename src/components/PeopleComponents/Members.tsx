@@ -83,7 +83,7 @@ import victoria from "../../assets/members/theta/victoria.jpeg";
 import vasudev from "../../assets/members/iota/vasudev.jpg";
 import vineel from "../../assets/members/iota/vineel.jpg";
 import selina from "../../assets/members/iota/selina.jpg";
-import meher from "../../assets/members/iota/meher.jpg";
+import meher from "../../assets/members/iota/meher.png";
 import pallavi from "../../assets/members/iota/pallavi.jpg";
 import abhi from "../../assets/members/iota/abhi.jpg";
 
@@ -142,13 +142,6 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
     category: "Actives",
   },
-  {
-    description: "Delta Class",
-    title: "Byren Cheema",
-    src: byren.src,
-    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
-    category: "Actives",
-  },
   
   // Epsilon Class
   {
@@ -190,13 +183,6 @@ const teamMembers = [
   },
   {
     description: "Zeta Class",
-    title: "Kyle King",
-    src: kyleking.src,
-    ctaLink: "https://www.linkedin.com/in/king-kyle/",
-    category: "Actives",
-  },
-  {
-    description: "Zeta Class",
     title: "Rohit De",
     src: rohit.src,
     ctaLink: "https://www.linkedin.com/in/rohitde/",
@@ -223,13 +209,6 @@ const teamMembers = [
     title: "Adithi Gudipati",
     src: adithi.src,
     ctaLink: "https://www.linkedin.com/in/adithileela/",
-    category: "Actives",
-  },
-  {
-    description: "Eta Class",
-    title: "Meaghan Gouws",
-    src: meaghan.src,
-    ctaLink: "https://www.linkedin.com/in/meaghangouws",
     category: "Actives",
   },
   
