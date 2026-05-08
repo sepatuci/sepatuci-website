@@ -10,22 +10,31 @@ app.use((req, res, next) => {
   next()
 })
 
-// GET /api/posts — all posts, newest first, hn_score included
+function parsePostJSON(post) {
+  if (!post) return post
+  return {
+    ...post,
+    source_titles: post.source_titles ? JSON.parse(post.source_titles) : [],
+    source_urls:   post.source_urls   ? JSON.parse(post.source_urls)   : [],
+  }
+}
+
+// GET /api/posts — all posts, newest first
 app.get('/api/posts', (req, res) => {
   try {
-    res.json(getAllPosts())
+    res.json(getAllPosts().map(parsePostJSON))
   } catch (err) {
     console.error('[API] getAllPosts error:', err.message)
     res.json([])
   }
 })
 
-// GET /api/posts/:id — single post
+// GET /api/posts/:id — single post with parsed JSON fields
 app.get('/api/posts/:id', (req, res) => {
   try {
     const post = getPostById(parseInt(req.params.id, 10))
     if (!post) return res.status(404).json({ error: 'Post not found' })
-    res.json(post)
+    res.json(parsePostJSON(post))
   } catch (err) {
     console.error('[API] getPostById error:', err.message)
     res.status(500).json({ error: 'Internal server error' })

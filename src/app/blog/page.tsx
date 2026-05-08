@@ -24,7 +24,7 @@ export default async function BlogPage() {
       style={{
         minHeight:       '100vh',
         paddingTop:      '80px',
-        background:      'radial-gradient(ellipse at top, #1a0800 0%, #000000 50%)',
+        background:      'radial-gradient(ellipse at top, #0f0528 0%, #000000 50%)',
         backgroundColor: '#000000',
       }}
     >
@@ -33,7 +33,7 @@ export default async function BlogPage() {
 
           {/* Header */}
           <div style={{ textAlign: 'center', marginBottom: 72 }}>
-            <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+            <div style={{ fontSize: '0.85rem', color: '#7c3aed', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
               Insights
             </div>
             <h1

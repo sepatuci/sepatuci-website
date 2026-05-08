@@ -64,7 +64,7 @@ src/
 
 ## Blog Pipeline
 
-The blog page is powered by an automated pipeline that fetches top stories from Hacker News, rewrites them in SEP's voice using the `tencent/hy3-preview:free` model via OpenRouter, and stores them in SQLite. The model is completely free.
+The blog page is powered by an automated pipeline that fetches top stories from Hacker News, clusters related stories by topic, and synthesizes each cluster into one original long-form blog post using `tencent/hy3-preview:free` via OpenRouter. Generates up to 3 posts per run. The model is completely free.
 
 ### Setup
 
@@ -86,12 +86,14 @@ node server/cron.js
 
 ### How it works
 
-1. **Fetching** — pulls the top 20 qualifying stories from the Hacker News API daily (free, no auth required)
-2. **Filtering** — skips low-score posts, community threads, and already-processed stories
-3. **AI Rewriting** — each story is sent to `tencent/hy3-preview:free` via OpenRouter which rewrites it as a 250–350 word blog post in SEP's voice
-4. **Storage** — posts saved to local SQLite at `/server/posts.db`
-5. **Serving** — Express API at `/api/posts` serves posts to the blog page
-6. **Scheduling** — runs automatically every day at 8am, and once on startup
+1. **Fetching** — pulls the top 50 stories from the Hacker News API (free, no auth required)
+2. **Filtering** — keeps only stories with score ≥ 100, a real URL, and at least one startup/tech keyword in the title
+3. **Clustering** — groups related stories by shared topic keywords (AI, Fundraising, Product, Growth, etc.) into clusters of 3–5
+4. **Synthesis** — sends each cluster's titles to `tencent/hy3-preview:free` which writes one original long-form post on the unified theme — not a summary of any single article
+5. **Deduplication** — each cluster gets a `cluster_hash` (sorted story IDs joined) so the same cluster is never processed twice
+6. **Storage** — posts saved to local SQLite at `/server/posts.db` with source titles and URLs stored as JSON arrays
+7. **Serving** — Express API at `/api/posts` and `/api/posts/:id` serves posts to the blog page and individual post pages
+8. **Scheduling** — runs automatically every day at 8am, generating up to 3 new posts per run
 
 ### Running manually
 
@@ -99,13 +101,25 @@ node server/cron.js
 node server/cron.js
 ```
 
+### Individual post pages
+
+Each AI-generated post has its own page at `/blog/{id}` (numeric database ID). Clicking any post card on the blog listing navigates there. The page shows the full article, the source stories that inspired it, and a "What This Means For You" section.
+
+### Clearing all generated posts
+
+To remove all AI-generated posts and start fresh:
+```bash
+npm run blog:reset
+```
+This does not affect the two original hardcoded posts on the blog page.
+
 ### Adding or changing story filters
 
-Open `server/pipeline.js` and adjust the filter conditions — minimum score threshold, excluded title keywords, and max stories per run.
+Open `server/pipeline.js` and adjust `TECH_KEYWORDS` (the keyword allowlist), `SKIP_PREFIXES` (HN thread types to skip), `MAX_POSTS_PER_RUN` (default 3), or the score threshold.
 
 ### Database
 
-Stored at `server/posts.db`, gitignored. Delete it and restart to regenerate all posts from scratch.
+Stored at `server/posts.db`, gitignored. Columns: `id`, `title`, `content`, `cluster_hash` (dedup key), `source_titles` (JSON array), `source_urls` (JSON array), `hn_score` (average of cluster), `category`, `generated_date`.
 
 ### Troubleshooting
 

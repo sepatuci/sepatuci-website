@@ -18,13 +18,13 @@
     --secondary-foreground: 0 0% 90%;
     --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 23 77% 44%;
+    --accent: 263 83% 57%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 10 8% 14%;
     --input: 10 8% 9%;
-    --ring: 23 77% 44%;
+    --ring: 263 83% 57%;
     --radius: 0.75rem;
     
     --spacing-xs: 0.25rem;
@@ -62,13 +62,13 @@
     --secondary-foreground: 0 0% 90%;
     --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 23 77% 44%;
+    --accent: 263 83% 57%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 10 8% 14%;
     --input: 10 8% 9%;
-    --ring: 23 77% 44%;
+    --ring: 263 83% 57%;
   }
 }
 
@@ -159,13 +159,13 @@
 /* Shared dark-ember page styles (brotherhood, rush, blog) */
 .dark-card {
   background:    rgba(255,255,255,0.03);
-  border:        1px solid rgba(196, 92, 26, 0.15);
+  border:        1px solid rgba(124, 58, 237, 0.15);
   border-radius: 16px;
   transition:    all 0.3s ease;
 }
 .dark-card:hover {
-  border-color: rgba(196, 92, 26, 0.5);
-  box-shadow:   0 8px 32px rgba(196, 92, 26, 0.15);
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow:   0 8px 32px rgba(124, 58, 237, 0.15);
   transform:    translateY(-4px);
 }
 .fade-up {
@@ -187,11 +187,11 @@
   transform: scale(1.02);
 }
 .bh-photo {
-  border:     1px solid rgba(196, 92, 26, 0.1);
+  border:     1px solid rgba(124, 58, 237, 0.1);
   transition: border-color 0.4s ease;
 }
 .bh-photo:hover {
-  border-color: rgba(196, 92, 26, 0.4);
+  border-color: rgba(124, 58, 237, 0.4);
 }
 
 /* People page — card animation + hover */
@@ -206,8 +206,8 @@
   transform: translateY(0);
 }
 .people-card.visible:hover {
-  border-color: rgba(196, 92, 26, 0.5) !important;
-  box-shadow: 0 8px 32px rgba(196, 92, 26, 0.15);
+  border-color: rgba(124, 58, 237, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.15);
   transform: translateY(-4px);
 }
 .people-card:hover .people-card-photo {
@@ -258,7 +258,7 @@
   left: 0;
   height: 2px;
   width: 0;
-  background: #c45c1a;
+  background: #7c3aed;
   transition: width 0.3s ease;
 }
 .fe-card-v2.is-visible {
@@ -267,7 +267,7 @@
 }
 .fe-card-v2.is-visible:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 40px rgba(196, 92, 26, 0.2);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.2);
 }
 .fe-card-v2.is-visible:hover::after {
   width: 100%;

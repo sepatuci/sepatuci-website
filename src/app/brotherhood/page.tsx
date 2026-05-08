@@ -26,7 +26,7 @@ export default function BrotherhoodPage() {
       style={{
         minHeight:  '100vh',
         paddingTop: '80px',
-        background: 'radial-gradient(ellipse at top, #1a0800 0%, #000000 50%)',
+        background: 'radial-gradient(ellipse at top, #0f0528 0%, #000000 50%)',
         backgroundColor: '#000000',
       }}
     >

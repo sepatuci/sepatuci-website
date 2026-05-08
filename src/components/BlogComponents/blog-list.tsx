@@ -46,7 +46,7 @@ const BlogList: React.FC<{ posts: Post[] }> = ({ posts }) => {
           >
             <div style={{
               fontSize:      '0.8rem',
-              color:         '#c45c1a',
+              color:         '#7c3aed',
               letterSpacing: '0.15em',
               textTransform: 'uppercase',
               marginBottom:  12,
@@ -70,7 +70,7 @@ const BlogList: React.FC<{ posts: Post[] }> = ({ posts }) => {
             }}>
               {post.description}
             </p>
-            <div style={{ fontSize: '0.9rem', color: '#c45c1a' }}>
+            <div style={{ fontSize: '0.9rem', color: '#7c3aed' }}>
               Read more →
             </div>
           </article>

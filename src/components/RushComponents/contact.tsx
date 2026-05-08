@@ -82,7 +82,7 @@ const ContactSection: React.FC = () => {
 
       {/* Header */}
       <div style={{ textAlign: 'center', marginBottom: 72 }}>
-        <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+        <div style={{ fontSize: '0.85rem', color: '#7c3aed', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
           Recruitment
         </div>
         <h1
@@ -116,7 +116,7 @@ const ContactSection: React.FC = () => {
             className="fade-up dark-card"
             style={{ flex: '1 1 220px', maxWidth: 240, padding: 36, textAlign: 'center' }}
           >
-            <div style={{ color: '#c45c1a', display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
+            <div style={{ color: '#7c3aed', display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
               <Icon />
             </div>
             <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#ffffff', marginBottom: 8 }}>
@@ -129,7 +129,7 @@ const ContactSection: React.FC = () => {
               href={href}
               target="_blank"
               rel="noopener noreferrer"
-              style={{ fontSize: '0.95rem', color: '#c45c1a', textDecoration: 'none' }}
+              style={{ fontSize: '0.95rem', color: '#7c3aed', textDecoration: 'none' }}
             >
               {value}
             </a>
@@ -156,7 +156,7 @@ const ContactSection: React.FC = () => {
           <a href={APPLY_URL} target="_blank" rel="noopener noreferrer">
             <button
               style={{
-                border:       '1px solid rgba(196, 92, 26, 0.6)',
+                border:       '1px solid rgba(124, 58, 237, 0.6)',
                 background:   'transparent',
                 color:        '#ffffff',
                 borderRadius: 8,
@@ -167,13 +167,13 @@ const ContactSection: React.FC = () => {
               }}
               onMouseEnter={e => {
                 const b = e.currentTarget as HTMLButtonElement;
-                b.style.background   = 'rgba(196, 92, 26, 0.15)';
-                b.style.borderColor  = '#c45c1a';
+                b.style.background   = 'rgba(124, 58, 237, 0.15)';
+                b.style.borderColor  = '#7c3aed';
               }}
               onMouseLeave={e => {
                 const b = e.currentTarget as HTMLButtonElement;
                 b.style.background   = 'transparent';
-                b.style.borderColor  = 'rgba(196, 92, 26, 0.6)';
+                b.style.borderColor  = 'rgba(124, 58, 237, 0.6)';
               }}
             >
               Get Notified

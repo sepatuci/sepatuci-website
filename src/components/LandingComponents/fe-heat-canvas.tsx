@@ -49,8 +49,8 @@ const FRAG = /* glsl */`
     // Sample color noise at distorted coords
     float colorN = noise(distortedUv * 2.5 + uTime * 0.08);
 
-    // Subtle pulse between dark base and slightly warmer amber — effect is FELT, not seen
-    vec3 warmColor  = vec3(0.24, 0.094, 0.0); // #3d1800
+    // Subtle pulse between dark base and slightly warmer purple — effect is FELT, not seen
+    vec3 warmColor  = vec3(0.176, 0.102, 0.431); // #2d1a6e
     vec3 finalColor = mix(uBaseColor, warmColor, colorN * 0.4);
 
     // Alpha = intensity so canvas fades in on hover; at 0.0 the CSS gradient shows through

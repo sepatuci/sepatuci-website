@@ -5,7 +5,7 @@ import phoenixImg from '@/assets/logos/sep_logos/sep_white.png';
 import emberImg    from '@/assets/logos/ember.png';
 
 // ── Particle constants ────────────────────────────────────────────────────────
-const MAX_P    = 600;
+const MAX_P    = 900;
 const FROZEN_R = 0.08; // world-space radius — within this → frozen
 
 // Particle states (stored in Float32Array for speed)
@@ -91,6 +91,7 @@ export default function SplashScreen() {
         uniforms: {
           map:        { value: emberTex },
           pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+          tint:       { value: new THREE.Color(0xd4aaff) },
         },
         vertexShader: /* glsl */`
           attribute float aSize;
@@ -103,10 +104,11 @@ export default function SplashScreen() {
         `,
         fragmentShader: /* glsl */`
           uniform sampler2D map;
+          uniform vec3      tint;
           void main() {
             vec4 c = texture2D(map, gl_PointCoord);
             if (c.a < 0.01) discard;
-            gl_FragColor = c;
+            gl_FragColor = vec4(c.rgb * tint, c.a);
           }
         `,
         transparent: true,
@@ -148,7 +150,7 @@ export default function SplashScreen() {
         const speed     = 0.006 + Math.random() * 0.006;
         vxArr[i]  = Math.cos(baseAngle + vary) * speed;
         vyArr[i]  = Math.sin(baseAngle + vary) * speed;
-        szArr[i]  = 5 + Math.random() * 12;
+        szArr[i]  = 8.75 + Math.random() * 21.0;
         wobArr[i] = Math.random() * Math.PI * 2;
         ageArr[i] = 0;
         pState[i] = S_GATHERING;
@@ -340,7 +342,7 @@ export default function SplashScreen() {
       style={{
         position:        'fixed',
         inset:           0,
-        background:      'radial-gradient(ellipse at bottom, #3a1200 0%, #1a0800 45%, #000000 100%)',
+        background:      'radial-gradient(ellipse at bottom, #1e0a4a 0%, #0f0528 45%, #000000 100%)',
         zIndex:          9999,
         overflow:        'hidden',
       }}
@@ -381,7 +383,7 @@ export default function SplashScreen() {
         style={{
           position:        'absolute',
           inset:           0,
-          backgroundColor: '#1a0800',
+          backgroundColor: '#0f0528',
           opacity:         0,
           pointerEvents:   'none',
           zIndex:          3,

@@ -46,7 +46,7 @@ const GallerySection: React.FC = () => {
     <section style={{ padding: '80px 40px' }}>
       {/* Page header */}
       <div style={{ textAlign: 'center', marginBottom: 80 }}>
-        <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
+        <div style={{ fontSize: '0.85rem', color: '#7c3aed', letterSpacing: '0.3em', textTransform: 'uppercase', marginBottom: 16 }}>
           Brotherhood
         </div>
         <h1
@@ -62,7 +62,7 @@ const GallerySection: React.FC = () => {
 
       {/* Gallery label */}
       <div style={{ textAlign: 'center', marginBottom: 48 }}>
-        <div style={{ fontSize: '0.85rem', color: '#c45c1a', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
+        <div style={{ fontSize: '0.85rem', color: '#7c3aed', letterSpacing: '0.3em', textTransform: 'uppercase' }}>
           Moments That Matter
         </div>
       </div>

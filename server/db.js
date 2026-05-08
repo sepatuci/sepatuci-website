@@ -11,27 +11,31 @@ db.exec(`
     id             INTEGER PRIMARY KEY AUTOINCREMENT,
     title          TEXT    NOT NULL,
     content        TEXT    NOT NULL,
-    source_url     TEXT    UNIQUE NOT NULL,
-    source_name    TEXT    NOT NULL,
+    cluster_hash   TEXT    UNIQUE NOT NULL,
+    source_titles  TEXT    NOT NULL,
+    source_urls    TEXT    NOT NULL,
+    source_name    TEXT    NOT NULL DEFAULT 'Hacker News',
     generated_date TEXT    NOT NULL,
     category       TEXT    NOT NULL,
     hn_score       INTEGER DEFAULT 0
   )
 `)
 
-// Migrate existing DB that may not have hn_score yet
-try {
-  db.exec('ALTER TABLE posts ADD COLUMN hn_score INTEGER DEFAULT 0')
-} catch (_) {
-  // column already present — ignore
+// Migrations for any pre-existing DB that may have the old schema
+for (const stmt of [
+  'ALTER TABLE posts ADD COLUMN cluster_hash TEXT',
+  'ALTER TABLE posts ADD COLUMN source_titles TEXT',
+  'ALTER TABLE posts ADD COLUMN source_urls TEXT',
+]) {
+  try { db.exec(stmt) } catch (_) {}
 }
 
 export function insertPost(post) {
   return db.prepare(`
     INSERT OR IGNORE INTO posts
-      (title, content, source_url, source_name, generated_date, category, hn_score)
+      (title, content, cluster_hash, source_titles, source_urls, source_name, generated_date, category, hn_score)
     VALUES
-      (@title, @content, @source_url, @source_name, @generated_date, @category, @hn_score)
+      (@title, @content, @cluster_hash, @source_titles, @source_urls, @source_name, @generated_date, @category, @hn_score)
   `).run(post)
 }
 
@@ -39,8 +43,8 @@ export function getAllPosts() {
   return db.prepare('SELECT * FROM posts ORDER BY generated_date DESC').all()
 }
 
-export function postExists(sourceUrl) {
-  return !!db.prepare('SELECT id FROM posts WHERE source_url = ?').get(sourceUrl)
+export function postExists(clusterHash) {
+  return !!db.prepare('SELECT id FROM posts WHERE cluster_hash = ?').get(clusterHash)
 }
 
 export function getPostById(id) {

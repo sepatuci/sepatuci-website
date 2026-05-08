@@ -55,45 +55,44 @@ const FE_CARDS = [
     num:       '01',
     title:     'Problem Discovery',
     desc:      'Learn to identify real problems worth solving in your community',
-    bg:        'linear-gradient(135deg, #1a0800 0%, #2d1200 100%)',
-    baseColor: [0.10, 0.03, 0.00] as const,
+    bg:        'linear-gradient(135deg, #0f0528 0%, #2d1a6e 100%)',
+    baseColor: [0.08, 0.04, 0.20] as const,
   },
   {
     num:       '02',
     title:     'Minimum Viable Product',
     desc:      'Build and ship your first MVP to real users',
-    bg:        'linear-gradient(135deg, #0d0800 0%, #1a0f00 100%)',
-    baseColor: [0.05, 0.03, 0.00] as const,
+    bg:        'linear-gradient(135deg, #080318 0%, #150d3d 100%)',
+    baseColor: [0.05, 0.02, 0.15] as const,
   },
   {
     num:       '03',
     title:     'Pitch Training',
     desc:      'Master your pitch deck and present to real investors',
-    bg:        'linear-gradient(135deg, #1a0500 0%, #2a0e00 100%)',
-    baseColor: [0.10, 0.02, 0.00] as const,
+    bg:        'linear-gradient(135deg, #0a0320 0%, #251060 100%)',
+    baseColor: [0.08, 0.03, 0.18] as const,
   },
   {
     num:       '04',
     title:     'Founder Networking',
     desc:      'Connect with VCs, mentors, and UCI alumni founders',
-    bg:        'linear-gradient(135deg, #0a0a00 0%, #1a1200 100%)',
-    baseColor: [0.04, 0.04, 0.00] as const,
+    bg:        'linear-gradient(135deg, #060218 0%, #150d3d 100%)',
+    baseColor: [0.04, 0.02, 0.16] as const,
   },
 ];
 
 // Shared photo styles
 const PHOTO_STYLE: React.CSSProperties = {
-  width:          420,
-  height:         280,
-  objectFit:      'cover',
-  borderRadius:   12,
-  opacity:        0,
-  transform:      'translateY(20px)',
-  display:        'block',
-  mixBlendMode:   'luminosity',
-  filter:         'brightness(0.7) contrast(1.1) sepia(0.3)',
-  border:         '1px solid rgba(196, 92, 26, 0.2)',
-  boxShadow:      '0 0 40px rgba(0, 0, 0, 0.8)',
+  width:        420,
+  height:       280,
+  objectFit:    'cover',
+  borderRadius: 12,
+  opacity:      0,
+  transform:    'translateY(20px)',
+  display:      'block',
+  filter:       'brightness(0.85) contrast(1.05)',
+  border:       '1px solid rgba(124, 58, 237, 0.2)',
+  boxShadow:    '0 0 40px rgba(0, 0, 0, 0.8)',
 };
 
 // Count-up fires once per component lifetime when stats section enters viewport
@@ -181,13 +180,13 @@ export default function LandingHero() {
       observer.disconnect();
       if (photo1Ref.current) {
         photo1Ref.current.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-        photo1Ref.current.style.opacity    = '0.75';
+        photo1Ref.current.style.opacity    = '0.85';
         photo1Ref.current.style.transform  = 'translateY(0)';
       }
       setTimeout(() => {
         if (photo2Ref.current) {
           photo2Ref.current.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
-          photo2Ref.current.style.opacity    = '0.75';
+          photo2Ref.current.style.opacity    = '0.85';
           photo2Ref.current.style.transform  = 'translateY(0)';
         }
       }, 200);
@@ -257,7 +256,7 @@ export default function LandingHero() {
             margin:     0,
             padding:    0,
             zIndex:     1,
-            background: 'radial-gradient(ellipse at bottom, #3a1200 0%, #1a0800 45%, #000000 100%)',
+            background: 'radial-gradient(ellipse at bottom, #1e0a4a 0%, #0f0528 45%, #000000 100%)',
           }}
         >
           <div
@@ -265,7 +264,7 @@ export default function LandingHero() {
             style={{
               position:        'absolute',
               inset:           0,
-              backgroundColor: '#c45c1a',
+              backgroundColor: '#7c3aed',
               opacity:         0,
               pointerEvents:   'none',
               zIndex:          5,
@@ -342,7 +341,7 @@ export default function LandingHero() {
             padding:        '80px 2rem',
             boxSizing:      'border-box',
             zIndex:         1,
-            background:     'radial-gradient(ellipse at top, #3a1200 0%, #1a0800 45%, #000000 100%)',
+            background:     'radial-gradient(ellipse at top, #1e0a4a 0%, #0f0528 45%, #000000 100%)',
             display:        'flex',
             flexDirection:  'column',
             alignItems:     'center',
@@ -360,7 +359,7 @@ export default function LandingHero() {
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#c45c1a', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(196, 92, 26, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span ref={countStartupsRef}>0</span><span>+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -369,7 +368,7 @@ export default function LandingHero() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#c45c1a', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(196, 92, 26, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span>$</span><span ref={countFundingRef}>0</span><span>M+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -378,7 +377,7 @@ export default function LandingHero() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#c45c1a', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(196, 92, 26, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span ref={countMajorsRef}>0</span><span>+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -416,7 +415,7 @@ export default function LandingHero() {
             padding:        '100px 40px 80px',
             boxSizing:      'border-box',
             zIndex:         1,
-            background:     'radial-gradient(ellipse at bottom, #3a1200 0%, #1a0800 45%, #000000 100%)',
+            background:     'radial-gradient(ellipse at bottom, #1e0a4a 0%, #0f0528 45%, #000000 100%)',
           }}
         >
           {/* Black fade from stats section above */}
@@ -443,7 +442,7 @@ export default function LandingHero() {
                 className={bebasNeue.className}
                 style={{
                   fontSize:      'clamp(5rem, 8vw, 8rem)',
-                  color:         '#c45c1a',
+                  color:         '#7c3aed',
                   lineHeight:    1,
                   marginBottom:  24,
                   letterSpacing: '0.04em',
@@ -489,7 +488,7 @@ export default function LandingHero() {
                         left:          20,
                         zIndex:        1,
                         fontSize:      '5rem',
-                        color:         'rgba(196, 92, 26, 0.2)',
+                        color:         'rgba(124, 58, 237, 0.2)',
                         lineHeight:    1,
                         userSelect:    'none',
                         pointerEvents: 'none',
@@ -517,7 +516,7 @@ export default function LandingHero() {
                 textAlign:     'center',
                 marginBottom:  32,
                 fontSize:      '0.85rem',
-                color:         '#c45c1a',
+                color:         '#7c3aed',
                 letterSpacing: '0.3em',
                 textTransform: 'uppercase',
               }}>
@@ -554,7 +553,7 @@ export default function LandingHero() {
               <Link href="/founderseducation">
                 <button
                   style={{
-                    border:      '1px solid rgba(196, 92, 26, 0.6)',
+                    border:      '1px solid rgba(124, 58, 237, 0.6)',
                     background:  'transparent',
                     color:       '#ffffff',
                     borderRadius: 8,
@@ -565,13 +564,13 @@ export default function LandingHero() {
                   }}
                   onMouseEnter={e => {
                     const b = e.currentTarget as HTMLButtonElement;
-                    b.style.background   = 'rgba(196, 92, 26, 0.15)';
-                    b.style.borderColor  = '#c45c1a';
+                    b.style.background   = 'rgba(124, 58, 237, 0.15)';
+                    b.style.borderColor  = '#7c3aed';
                   }}
                   onMouseLeave={e => {
                     const b = e.currentTarget as HTMLButtonElement;
                     b.style.background   = 'transparent';
-                    b.style.borderColor  = 'rgba(196, 92, 26, 0.6)';
+                    b.style.borderColor  = 'rgba(124, 58, 237, 0.6)';
                   }}
                 >
                   Learn More About FE →

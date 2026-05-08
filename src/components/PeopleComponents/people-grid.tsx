@@ -32,7 +32,7 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => (
     className="people-card"
     style={{
       backgroundColor: 'rgba(255,255,255,0.03)',
-      border:          '1px solid rgba(196, 92, 26, 0.15)',
+      border:          '1px solid rgba(124, 58, 237, 0.15)',
       borderRadius:    16,
       overflow:        'hidden',
     }}
@@ -67,7 +67,7 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => (
         {member.title}
       </div>
     </div>
-    <div style={{ padding: '0 20px 12px', fontSize: '0.85rem', color: '#c45c1a' }}>
+    <div style={{ padding: '0 20px 12px', fontSize: '0.85rem', color: '#7c3aed' }}>
       {member.description}
     </div>
 
@@ -84,7 +84,7 @@ const MemberCard: React.FC<{ member: Member }> = ({ member }) => (
             color:      'rgba(255,255,255,0.4)',
             transition: 'color 0.2s ease',
           }}
-          onMouseEnter={e => (e.currentTarget.style.color = '#c45c1a')}
+          onMouseEnter={e => (e.currentTarget.style.color = '#7c3aed')}
           onMouseLeave={e => (e.currentTarget.style.color = 'rgba(255,255,255,0.4)')}
         >
           <LinkedInIcon />
@@ -144,7 +144,7 @@ const TeamSection: React.FC = () => {
       cards.forEach((card, i) => {
         setTimeout(() => card.classList.add('visible'), i * 80);
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0 });
 
     observer.observe(container);
     return () => observer.disconnect();
@@ -164,7 +164,7 @@ const TeamSection: React.FC = () => {
         <div style={{ textAlign: 'center', marginBottom: 64 }}>
           <div style={{
             fontSize:      '0.85rem',
-            color:         '#c45c1a',
+            color:         '#7c3aed',
             letterSpacing: '0.3em',
             textTransform: 'uppercase',
             marginBottom:  16,
@@ -205,8 +205,8 @@ const TeamSection: React.FC = () => {
                 style={{
                   padding:         '10px 28px',
                   borderRadius:    8,
-                  border:          active ? '1px solid #c45c1a' : '1px solid rgba(196, 92, 26, 0.3)',
-                  background:      active ? 'rgba(196, 92, 26, 0.15)' : 'transparent',
+                  border:          active ? '1px solid #7c3aed' : '1px solid rgba(124, 58, 237, 0.3)',
+                  background:      active ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
                   color:           active ? '#ffffff' : 'rgba(255,255,255,0.5)',
                   fontSize:        '0.9rem',
                   cursor:          'pointer',
@@ -215,13 +215,13 @@ const TeamSection: React.FC = () => {
                 }}
                 onMouseEnter={e => {
                   if (!active) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(196, 92, 26, 0.6)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(124, 58, 237, 0.6)';
                     (e.currentTarget as HTMLButtonElement).style.color = '#ffffff';
                   }
                 }}
                 onMouseLeave={e => {
                   if (!active) {
-                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(196, 92, 26, 0.3)';
+                    (e.currentTarget as HTMLButtonElement).style.borderColor = 'rgba(124, 58, 237, 0.3)';
                     (e.currentTarget as HTMLButtonElement).style.color = 'rgba(255,255,255,0.5)';
                   }
                 }}

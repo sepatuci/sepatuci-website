@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { cache } from "react";
 import { getAllPosts, getPostBySlug } from "@/lib/blog";
 import { Calendar, ArrowLeft, User } from "lucide-react";
+import AIPostPage from "@/components/BlogComponents/AIPostPage";
 
 const getPost = cache(async (slug: string) => {
   return getPostBySlug(slug);
@@ -20,6 +21,12 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params;
+
+  // Numeric ID — AI-generated post, dynamic metadata
+  if (/^\d+$/.test(slug)) {
+    return { title: "Blog Post | SEP at UCI" };
+  }
+
   try {
     const { metadata } = await getPost(slug);
     return {
@@ -41,6 +48,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 export default async function BlogPostPage({ params }: Props) {
   const { slug } = await params;
 
+  // Numeric ID → render AI-generated post (client component fetches from Express API)
+  if (/^\d+$/.test(slug)) {
+    return <AIPostPage id={parseInt(slug, 10)} />;
+  }
+
+  // String slug → render static MDX post
   try {
     const { Content, metadata } = await getPost(slug);
 

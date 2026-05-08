@@ -58,7 +58,7 @@ export default function LandingEmberCanvas() {
       zArr[i]      = (Math.random() - 0.5);
       vxArr[i]     = (Math.random() - 0.5) * 0.006;
       vyArr[i]     = 0.002 + Math.random() * 0.006; // upward
-      baseSize[i]  = 4 + Math.random() * 14;
+      baseSize[i]  = 7.0 + Math.random() * 24.5;
       maxAgeArr[i] = 200 + Math.floor(Math.random() * 201);
       wobbleArr[i] = Math.random() * Math.PI * 2;
       ageArr[i]    = randomAge ? Math.floor(Math.random() * maxAgeArr[i]) : 0;
@@ -72,7 +72,7 @@ export default function LandingEmberCanvas() {
       vxArr[i]     = (Math.random() - 0.5) * 0.004;
       const dir    = Math.random() < 0.5 ? 1 : -1;
       vyArr[i]     = dir * (0.001 + Math.random() * 0.003);
-      baseSize[i]  = 3 + Math.random() * 10;
+      baseSize[i]  = 5.25 + Math.random() * 17.5;
       maxAgeArr[i] = 150 + Math.floor(Math.random() * 151);
       wobbleArr[i] = Math.random() * Math.PI * 2;
       ageArr[i]    = randomAge ? Math.floor(Math.random() * maxAgeArr[i]) : 0;
@@ -85,7 +85,7 @@ export default function LandingEmberCanvas() {
       zArr[i]      = (Math.random() - 0.5);
       vxArr[i]     = (Math.random() - 0.5) * 0.006;
       vyArr[i]     = -(0.001 + Math.random() * 0.003); // downward
-      baseSize[i]  = 4 + Math.random() * 14;
+      baseSize[i]  = 7.0 + Math.random() * 24.5;
       maxAgeArr[i] = 200 + Math.floor(Math.random() * 201);
       wobbleArr[i] = Math.random() * Math.PI * 2;
       ageArr[i]    = randomAge ? Math.floor(Math.random() * maxAgeArr[i]) : 0;
@@ -98,7 +98,7 @@ export default function LandingEmberCanvas() {
       zArr[i]      = (Math.random() - 0.5);
       vxArr[i]     = (Math.random() - 0.5) * 0.006;
       vyArr[i]     = 0.002 + Math.random() * 0.006; // upward
-      baseSize[i]  = 3 + Math.random() * 10;        // slightly smaller → lower density
+      baseSize[i]  = 5.25 + Math.random() * 17.5;   // slightly smaller → lower density
       maxAgeArr[i] = 200 + Math.floor(Math.random() * 201);
       wobbleArr[i] = Math.random() * Math.PI * 2;
       ageArr[i]    = randomAge ? Math.floor(Math.random() * maxAgeArr[i]) : 0;
@@ -164,6 +164,7 @@ export default function LandingEmberCanvas() {
         uniforms: {
           map:        { value: emberTexture },
           pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+          tint:       { value: new THREE.Color(0xd4aaff) },
         },
         vertexShader: /* glsl */`
           attribute float aSize;
@@ -176,10 +177,11 @@ export default function LandingEmberCanvas() {
         `,
         fragmentShader: /* glsl */`
           uniform sampler2D map;
+          uniform vec3      tint;
           void main() {
             vec4 c = texture2D(map, gl_PointCoord);
             if (c.a < 0.01) discard;
-            gl_FragColor = c;
+            gl_FragColor = vec4(c.rgb * tint, c.a);
           }
         `,
         transparent: true,
@@ -229,7 +231,7 @@ export default function LandingEmberCanvas() {
             // Fade in from top of stats (y=2), fade out at bottom (y=1)
             const fadeIn  = 1.0 - smoothstep(1.85, 2.0, yArr[i]);
             const fadeOut = smoothstep(1.0, 1.15, yArr[i]);
-            size *= fadeIn * fadeOut;
+            size *= fadeIn * fadeOut * 0.3; // stats section density reduction
             if (ageArr[i] >= maxAgeArr[i]) initFalling(i, false);
 
           } else {
