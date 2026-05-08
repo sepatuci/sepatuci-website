@@ -156,6 +156,26 @@
   }
 }
 
+/* People page — card animation + hover */
+.people-card {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease,
+              box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.people-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.people-card.visible:hover {
+  border-color: rgba(196, 92, 26, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(196, 92, 26, 0.15);
+  transform: translateY(-4px);
+}
+.people-card:hover .people-card-photo {
+  filter: brightness(1.0) contrast(1.1) !important;
+}
+
 /* Logo slider for FE section */
 @keyframes logo-scroll {
   from { transform: translateX(0); }
