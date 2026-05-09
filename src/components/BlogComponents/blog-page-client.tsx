@@ -125,7 +125,7 @@ const ApiCard: React.FC<{ post: ApiPost }> = ({ post }) => {
 
 // ── Main component ────────────────────────────────────────────────────────────
 
-const API_URL = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001') + '/api/posts';
+const API_URL = '/api/posts';
 
 const BlogPageClient: React.FC<{ staticPosts: StaticPost[] }> = ({ staticPosts }) => {
   const [apiPosts, setApiPosts] = useState<ApiPost[]>([]);

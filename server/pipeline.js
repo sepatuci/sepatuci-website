@@ -72,7 +72,8 @@ export async function runPipeline() {
 
   // Build set of already-used story IDs from existing cluster_hashes
   const usedStoryIds = new Set()
-  getAllPosts().forEach(p => {
+  const existingPosts = await getAllPosts()
+  existingPosts.forEach(p => {
     if (p.cluster_hash) p.cluster_hash.split(',').forEach(id => usedStoryIds.add(parseInt(id)))
   })
 
@@ -98,10 +99,11 @@ export async function runPipeline() {
 
   // Cluster by topic, skip clusters already processed
   const allClusters = clusterStories(qualifying)
-  const newClusters = allClusters.filter(cluster => {
+  const newClusters = []
+  for (const cluster of allClusters) {
     const hash = cluster.map(s => s.id).sort().join(',')
-    return !postExists(hash)
-  })
+    if (!await postExists(hash)) newClusters.push(cluster)
+  }
 
   if (newClusters.length === 0) {
     console.log('[Pipeline] No new qualifying stories found today')
@@ -164,12 +166,12 @@ ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
       // Content starts after the title line and the blank line that follows it
       const generatedContent = lines.slice(lines[1]?.trim() === '' ? 2 : 1).join('\n').trim()
 
-      insertPost({
+      await insertPost({
         title,
         content:        generatedContent,
         cluster_hash:   clusterHash,
-        source_titles:  JSON.stringify(titles),
-        source_urls:    JSON.stringify(urls),
+        source_titles:  titles,
+        source_urls:    urls,
         source_name:    'Hacker News',
         generated_date: new Date().toISOString(),
         category:       inferCategory(titles),

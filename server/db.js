@@ -1,52 +1,40 @@
-import Database from 'better-sqlite3'
-import { fileURLToPath } from 'url'
-import path from 'path'
+import pg from 'pg'
+import dotenv from 'dotenv'
+dotenv.config()
 
-const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const { Pool } = pg
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
 
-const db = new Database(path.join(__dirname, 'posts.db'))
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS posts (
-    id             INTEGER PRIMARY KEY AUTOINCREMENT,
-    title          TEXT    NOT NULL,
-    content        TEXT    NOT NULL,
-    cluster_hash   TEXT    UNIQUE NOT NULL,
-    source_titles  TEXT    NOT NULL,
-    source_urls    TEXT    NOT NULL,
-    source_name    TEXT    NOT NULL DEFAULT 'Hacker News',
-    generated_date TEXT    NOT NULL,
-    category       TEXT    NOT NULL,
-    hn_score       INTEGER DEFAULT 0
+export async function insertPost(post) {
+  const { title, content, source_urls, source_titles, source_name, generated_date, category, hn_score, cluster_hash } = post
+  await pool.query(
+    `INSERT INTO posts (title, content, source_urls, source_titles, source_name, generated_date, category, hn_score, cluster_hash)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (cluster_hash) DO NOTHING`,
+    [title, content, JSON.stringify(source_urls), JSON.stringify(source_titles), source_name, generated_date, category, hn_score, cluster_hash]
   )
-`)
-
-// Migrations for any pre-existing DB that may have the old schema
-for (const stmt of [
-  'ALTER TABLE posts ADD COLUMN cluster_hash TEXT',
-  'ALTER TABLE posts ADD COLUMN source_titles TEXT',
-  'ALTER TABLE posts ADD COLUMN source_urls TEXT',
-]) {
-  try { db.exec(stmt) } catch (_) {}
 }
 
-export function insertPost(post) {
-  return db.prepare(`
-    INSERT OR IGNORE INTO posts
-      (title, content, cluster_hash, source_titles, source_urls, source_name, generated_date, category, hn_score)
-    VALUES
-      (@title, @content, @cluster_hash, @source_titles, @source_urls, @source_name, @generated_date, @category, @hn_score)
-  `).run(post)
+export async function getAllPosts() {
+  const result = await pool.query('SELECT * FROM posts ORDER BY generated_date DESC')
+  return result.rows.map(row => ({
+    ...row,
+    source_urls:   JSON.parse(row.source_urls   || '[]'),
+    source_titles: JSON.parse(row.source_titles || '[]'),
+  }))
 }
 
-export function getAllPosts() {
-  return db.prepare('SELECT * FROM posts ORDER BY generated_date DESC').all()
+export async function getPostById(id) {
+  const result = await pool.query('SELECT * FROM posts WHERE id = $1', [id])
+  if (!result.rows[0]) return null
+  return {
+    ...result.rows[0],
+    source_urls:   JSON.parse(result.rows[0].source_urls   || '[]'),
+    source_titles: JSON.parse(result.rows[0].source_titles || '[]'),
+  }
 }
 
-export function postExists(clusterHash) {
-  return !!db.prepare('SELECT id FROM posts WHERE cluster_hash = ?').get(clusterHash)
-}
-
-export function getPostById(id) {
-  return db.prepare('SELECT * FROM posts WHERE id = ?').get(id)
+export async function postExists(clusterHash) {
+  const result = await pool.query('SELECT 1 FROM posts WHERE cluster_hash = $1', [clusterHash])
+  return result.rows.length > 0
 }

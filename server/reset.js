@@ -1,5 +1,9 @@
-import Database from 'better-sqlite3'
-const db = new Database('./server/posts.db')
-db.prepare('DELETE FROM posts').run()
+import pg from 'pg'
+import dotenv from 'dotenv'
+dotenv.config()
+
+const { Pool } = pg
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+await pool.query('DELETE FROM posts')
 console.log('All generated blog posts cleared.')
-db.close()
+await pool.end()

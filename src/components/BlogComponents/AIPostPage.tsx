@@ -20,7 +20,7 @@ interface AIPost {
   hn_score:       number;
 }
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+const API_BASE = '';
 
 export default function AIPostPage({ id }: { id: number }) {
   const [post,         setPost]         = useState<AIPost | null>(null);
