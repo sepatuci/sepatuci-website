@@ -1,23 +1,36 @@
-import pg from 'pg'
 import dotenv from 'dotenv'
 dotenv.config()
 
-const { Pool } = pg
-const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.SUPABASE_URL,
+  process.env.SUPABASE_ANON_KEY
+)
 
 export async function insertPost(post) {
   const { title, content, source_urls, source_titles, source_name, generated_date, category, hn_score, cluster_hash } = post
-  await pool.query(
-    `INSERT INTO posts (title, content, source_urls, source_titles, source_name, generated_date, category, hn_score, cluster_hash)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
-     ON CONFLICT (cluster_hash) DO NOTHING`,
-    [title, content, JSON.stringify(source_urls), JSON.stringify(source_titles), source_name, generated_date, category, hn_score, cluster_hash]
-  )
+  const { error } = await supabase.from('posts').insert({
+    title,
+    content,
+    source_urls:   JSON.stringify(source_urls),
+    source_titles: JSON.stringify(source_titles),
+    source_name,
+    generated_date,
+    category,
+    hn_score,
+    cluster_hash,
+  })
+  if (error && error.code !== '23505') throw error // 23505 = unique violation (already exists)
 }
 
 export async function getAllPosts() {
-  const result = await pool.query('SELECT * FROM posts ORDER BY generated_date DESC')
-  return result.rows.map(row => ({
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .order('generated_date', { ascending: false })
+  if (error) throw error
+  return (data ?? []).map(row => ({
     ...row,
     source_urls:   JSON.parse(row.source_urls   || '[]'),
     source_titles: JSON.parse(row.source_titles || '[]'),
@@ -25,16 +38,24 @@ export async function getAllPosts() {
 }
 
 export async function getPostById(id) {
-  const result = await pool.query('SELECT * FROM posts WHERE id = $1', [id])
-  if (!result.rows[0]) return null
+  const { data, error } = await supabase
+    .from('posts')
+    .select('*')
+    .eq('id', id)
+    .single()
+  if (error) return null
   return {
-    ...result.rows[0],
-    source_urls:   JSON.parse(result.rows[0].source_urls   || '[]'),
-    source_titles: JSON.parse(result.rows[0].source_titles || '[]'),
+    ...data,
+    source_urls:   JSON.parse(data.source_urls   || '[]'),
+    source_titles: JSON.parse(data.source_titles || '[]'),
   }
 }
 
 export async function postExists(clusterHash) {
-  const result = await pool.query('SELECT 1 FROM posts WHERE cluster_hash = $1', [clusterHash])
-  return result.rows.length > 0
+  const { data } = await supabase
+    .from('posts')
+    .select('id')
+    .eq('cluster_hash', clusterHash)
+    .single()
+  return !!data
 }
