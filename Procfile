@@ -1,1 +1,1 @@
-worker: node server/cron.js
+worker: node server/cron.mjs

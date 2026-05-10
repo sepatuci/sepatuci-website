@@ -4,7 +4,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node api/posts.js",
+    "startCommand": "node server/cron.mjs",
     "healthcheckPath": "/api/posts",
     "healthcheckTimeout": 30,
     "restartPolicyType": "ON_FAILURE",

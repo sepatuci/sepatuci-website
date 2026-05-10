@@ -3,7 +3,7 @@ const MAX_POSTS_PER_RUN = 3
 import dotenv from 'dotenv'
 dotenv.config()
 
-import { insertPost, postExists, getAllPosts } from './db.js'
+import { insertPost, postExists, getAllPosts } from './db.mjs'
 
 const HN_TOP_STORIES = 'https://hacker-news.firebaseio.com/v0/topstories.json'
 const HN_ITEM        = (id) => `https://hacker-news.firebaseio.com/v0/item/${id}.json`

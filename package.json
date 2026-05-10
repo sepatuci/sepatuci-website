@@ -2,15 +2,14 @@
   "name": "test-website",
   "version": "0.1.0",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "bun --bun next dev",
     "build": "bun --bun next build",
     "start": "bun --bun next start",
     "lint": "next lint",
-    "blog:reset": "node server/reset.js",
+    "blog:reset": "node server/reset.mjs",
     "start:api": "node api/posts.js",
-    "start:cron": "node server/cron.js"
+    "start:cron": "node server/cron.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.95.1",

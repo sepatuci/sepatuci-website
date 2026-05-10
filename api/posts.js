@@ -1,5 +1,5 @@
 import express from 'express'
-import { getAllPosts, getPostById } from '../server/db.js'
+import { getAllPosts, getPostById } from '../server/db.mjs'
 
 const app  = express()
 const PORT = process.env.API_PORT || 3001

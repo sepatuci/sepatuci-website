@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 dotenv.config()
 
 import cron from 'node-cron'
-import { runPipeline } from './pipeline.js'
+import { runPipeline } from './pipeline.mjs'
 
 ;(async () => {
   console.log(`[Cron] Initial run starting at ${new Date().toISOString()}`)
