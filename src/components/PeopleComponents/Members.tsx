@@ -83,6 +83,9 @@ import victoria from "../../assets/members/theta/victoria.jpeg";
 import vasudev from "../../assets/members/iota/vasudev.jpg";
 import vineel from "../../assets/members/iota/vineel.jpg";
 import selina from "../../assets/members/iota/selina.jpg";
+import meher from "../../assets/members/iota/meher.png";
+import pallavi from "../../assets/members/iota/pallavi.jpg";
+import abhi from "../../assets/members/iota/abhi.jpg";
 
 const teamMembers = [
   // EBOARD 2025-2026
@@ -109,20 +112,20 @@ const teamMembers = [
   },
   {
     description: "VP of Finance",
-    title: "Byren Cheema",
-    src: byren.src,
-    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
+    title: "Vineel Bhattiprolu",
+    src: vineel.src,
+    ctaLink: "www.linkedin.com/in/vineelbhattiprolu",
     category: "Executive Board",
   },
   {
-    description: "VP of Tech/Communication",
+    description: "VP of Founder's Education",
     title: "Aarushi Manikandan",
     src: aarushi.src,
     ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
     category: "Executive Board",
   },
   {
-    description: "VP of External Affairs",
+    description: "VP of Founder's Education",
     title: "Kyle Spink",
     src: kyle.src,
     ctaLink: "https://www.linkedin.com/in/kyle-spink/",
@@ -137,13 +140,6 @@ const teamMembers = [
     title: "Shreya Mawandia",
     src: shreya.src,
     ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
-    category: "Actives",
-  },
-  {
-    description: "Delta Class",
-    title: "Byren Cheema",
-    src: byren.src,
-    ctaLink: "https://www.linkedin.com/in/byren-cheema-255a25215/",
     category: "Actives",
   },
   
@@ -187,13 +183,6 @@ const teamMembers = [
   },
   {
     description: "Zeta Class",
-    title: "Kyle King",
-    src: kyleking.src,
-    ctaLink: "https://www.linkedin.com/in/king-kyle/",
-    category: "Actives",
-  },
-  {
-    description: "Zeta Class",
     title: "Rohit De",
     src: rohit.src,
     ctaLink: "https://www.linkedin.com/in/rohitde/",
@@ -220,13 +209,6 @@ const teamMembers = [
     title: "Adithi Gudipati",
     src: adithi.src,
     ctaLink: "https://www.linkedin.com/in/adithileela/",
-    category: "Actives",
-  },
-  {
-    description: "Eta Class",
-    title: "Meaghan Gouws",
-    src: meaghan.src,
-    ctaLink: "https://www.linkedin.com/in/meaghangouws",
     category: "Actives",
   },
   
@@ -280,6 +262,27 @@ const teamMembers = [
     title: "Selina Mai Nguyen",
     src: selina.src,
     ctaLink: "https://www.linkedin.com/in/selina-mai-nguyen/",
+    category: "Actives",
+  },
+  {
+    description: "Iota Class",
+    title: "Meher Khandpur",
+    src: meher.src,
+    ctaLink: "https://www.linkedin.com/in/meher-khandpur/",
+    category: "Actives",
+  },
+  {
+    description: "Iota Class",
+    title: "Pallavi Nadhan",
+    src: pallavi.src,
+    ctaLink: "https://www.linkedin.com/in/pallavi-nadhan-b9488a312/",
+    category: "Actives",
+  },
+  {
+    description: "Iota Class",
+    title: "Abhijit Sipahimalani",
+    src: abhi.src,
+    ctaLink: "https://www.linkedin.com/in/asipahimalani/",
     category: "Actives",
   },
 

@@ -1,4 +1,3 @@
-import Section from "@/components/FEComponents/fevp-section";
 import MainFE from "@/components/FEComponents/main-founders";
 import ScrollStartups from "@/components/FEComponents/startups-scroll";
 import { Metadata } from "next"
@@ -27,7 +26,6 @@ export default function FoundersEducationPage() {
   return (
     <main className="dark min-h-screen pt-20">
       <MainFE/>
-      <Section/>
       <ScrollStartups/>
     </main>
   );

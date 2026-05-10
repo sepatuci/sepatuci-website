@@ -62,9 +62,77 @@ src/
 └── lib/                    # Utility functions
 ```
 
-## 📝 Blog
+## Blog Pipeline
 
-Add posts by creating `.mdx` files in `src/content/blog/`:
+The blog page is powered by an automated pipeline that fetches top stories from Hacker News, clusters related stories by topic, and synthesizes each cluster into one original long-form blog post using `tencent/hy3-preview:free` via OpenRouter. Generates up to 3 posts per run. The model is completely free.
+
+### Setup
+
+1. Create a free account at https://openrouter.ai
+2. Go to https://openrouter.ai/keys and create a new API key
+3. Open the `.env` file in the project root (create it if it doesn't exist)
+4. Add this as line 1:
+```
+OPENROUTER_API_KEY=your_key_here
+```
+5. Install dependencies:
+```bash
+npm install
+```
+6. Start the pipeline:
+```bash
+node server/cron.js
+```
+
+### How it works
+
+1. **Fetching** — pulls the top 50 stories from the Hacker News API (free, no auth required)
+2. **Filtering** — keeps only stories with score ≥ 100, a real URL, and at least one startup/tech keyword in the title
+3. **Clustering** — groups related stories by shared topic keywords (AI, Fundraising, Product, Growth, etc.) into clusters of 3–5
+4. **Synthesis** — sends each cluster's titles to `tencent/hy3-preview:free` which writes one original long-form post on the unified theme — not a summary of any single article
+5. **Deduplication** — each cluster gets a `cluster_hash` (sorted story IDs joined) so the same cluster is never processed twice
+6. **Storage** — posts saved to local SQLite at `/server/posts.db` with source titles and URLs stored as JSON arrays
+7. **Serving** — Express API at `/api/posts` and `/api/posts/:id` serves posts to the blog page and individual post pages
+8. **Scheduling** — runs automatically every day at 8am, generating up to 3 new posts per run
+
+### Running manually
+
+```bash
+node server/cron.js
+```
+
+### Individual post pages
+
+Each AI-generated post has its own page at `/blog/{id}` (numeric database ID). Clicking any post card on the blog listing navigates there. The page shows the full article, the source stories that inspired it, and a "What This Means For You" section.
+
+### Clearing all generated posts
+
+To remove all AI-generated posts and start fresh:
+```bash
+npm run blog:reset
+```
+This does not affect the two original hardcoded posts on the blog page.
+
+### Adding or changing story filters
+
+Open `server/pipeline.js` and adjust `TECH_KEYWORDS` (the keyword allowlist), `SKIP_PREFIXES` (HN thread types to skip), `MAX_POSTS_PER_RUN` (default 3), or the score threshold.
+
+### Database
+
+Stored at `server/posts.db`, gitignored. Columns: `id`, `title`, `content`, `cluster_hash` (dedup key), `source_titles` (JSON array), `source_urls` (JSON array), `hn_score` (average of cluster), `category`, `generated_date`.
+
+### Troubleshooting
+
+- `"OPENROUTER_API_KEY is not set"` — add your key to line 1 of the `.env` file in the project root
+- `data.choices undefined` — your API key may be invalid or the model may be temporarily unavailable. Check https://openrouter.ai/keys
+- Blog page empty — run `node server/cron.js` at least once to seed the database
+- Posts not generating — confirm your key is valid and the `tencent/hy3-preview:free` model is still available at https://openrouter.ai/models
+
+---
+
+## 📝 Blog (MDX posts)
+
+Add permanent posts by creating `.mdx` files in `src/content/blog/`:
 
 ```mdx
 export const metadata = {

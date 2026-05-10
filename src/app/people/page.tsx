@@ -23,7 +23,15 @@ export const metadata: Metadata = {
 
 export default function PeoplePage() {
   return (
-    <div className="dark min-h-screen pt-20">
+    <div
+      className="dark"
+      style={{
+        minHeight:       '100vh',
+        paddingTop:      '80px',
+        background:      'radial-gradient(ellipse at top, #0f0528 0%, #000000 50%)',
+        backgroundColor: '#000000',
+      }}
+    >
       <TeamSection />
     </div>
   );

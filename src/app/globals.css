@@ -6,25 +6,25 @@
 
 @layer base {
   :root {
-    --background: 0 0% 2%;
+    --background: 10 18% 4%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
+    --card: 10 12% 6%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
+    --popover: 10 12% 6%;
     --popover-foreground: 0 0% 95%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 2%;
-    --secondary: 0 0% 8%;
+    --secondary: 10 10% 9%;
     --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 6%;
+    --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 210 40% 25%;
+    --accent: 263 83% 57%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 8%;
-    --ring: 210 40% 25%;
+    --border: 10 8% 14%;
+    --input: 10 8% 9%;
+    --ring: 263 83% 57%;
     --radius: 0.75rem;
     
     --spacing-xs: 0.25rem;
@@ -50,25 +50,25 @@
   }
 
   .dark {
-    --background: 0 0% 2%;
+    --background: 10 18% 4%;
     --foreground: 0 0% 98%;
-    --card: 0 0% 4%;
+    --card: 10 12% 6%;
     --card-foreground: 0 0% 95%;
-    --popover: 0 0% 4%;
+    --popover: 10 12% 6%;
     --popover-foreground: 0 0% 95%;
     --primary: 0 0% 98%;
     --primary-foreground: 0 0% 2%;
-    --secondary: 0 0% 8%;
+    --secondary: 10 10% 9%;
     --secondary-foreground: 0 0% 90%;
-    --muted: 0 0% 6%;
+    --muted: 10 8% 7%;
     --muted-foreground: 0 0% 60%;
-    --accent: 210 40% 25%;
+    --accent: 263 83% 57%;
     --accent-foreground: 0 0% 98%;
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 12%;
-    --input: 0 0% 8%;
-    --ring: 210 40% 25%;
+    --border: 10 8% 14%;
+    --input: 10 8% 9%;
+    --ring: 263 83% 57%;
   }
 }
 
@@ -154,4 +154,130 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
+}
+
+/* Shared dark-ember page styles (brotherhood, rush, blog) */
+.dark-card {
+  background:    rgba(255,255,255,0.03);
+  border:        1px solid rgba(124, 58, 237, 0.15);
+  border-radius: 16px;
+  transition:    all 0.3s ease;
+}
+.dark-card:hover {
+  border-color: rgba(124, 58, 237, 0.5);
+  box-shadow:   0 8px 32px rgba(124, 58, 237, 0.15);
+  transform:    translateY(-4px);
+}
+.fade-up {
+  opacity:    0;
+  transform:  translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.fade-up.visible {
+  opacity:   1;
+  transform: translateY(0);
+}
+/* Brotherhood photo hover */
+.bh-photo img {
+  filter:     brightness(0.8) contrast(1.05) sepia(0.15);
+  transition: filter 0.4s ease, transform 0.4s ease;
+}
+.bh-photo:hover img {
+  filter:    brightness(1.0) contrast(1.1) sepia(0);
+  transform: scale(1.02);
+}
+.bh-photo {
+  border:     1px solid rgba(124, 58, 237, 0.1);
+  transition: border-color 0.4s ease;
+}
+.bh-photo:hover {
+  border-color: rgba(124, 58, 237, 0.4);
+}
+
+/* People page — card animation + hover */
+.people-card {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.5s ease, transform 0.5s ease,
+              box-shadow 0.3s ease, border-color 0.3s ease;
+}
+.people-card.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.people-card.visible:hover {
+  border-color: rgba(124, 58, 237, 0.5) !important;
+  box-shadow: 0 8px 32px rgba(124, 58, 237, 0.15);
+  transform: translateY(-4px);
+}
+.people-card:hover .people-card-photo {
+  filter: brightness(1.0) contrast(1.1) !important;
+}
+
+/* Logo slider for FE section */
+@keyframes logo-scroll {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+
+/* FE section scroll-triggered base */
+.fe-animate {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.fe-animate.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* FE logo strip */
+.fe-logo-strip {
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+.fe-logo-strip.is-visible {
+  opacity: 1;
+}
+
+/* FE curriculum card v2 */
+.fe-card-v2 {
+  position: relative;
+  overflow: hidden;
+  border-radius: 16px;
+  padding: 36px;
+  cursor: default;
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease, box-shadow 0.3s ease;
+}
+.fe-card-v2::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  height: 2px;
+  width: 0;
+  background: #7c3aed;
+  transition: width 0.3s ease;
+}
+.fe-card-v2.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.fe-card-v2.is-visible:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 40px rgba(124, 58, 237, 0.2);
+}
+.fe-card-v2.is-visible:hover::after {
+  width: 100%;
+}
+
+/* FE startup logo hover — reveal color */
+.fe-logo {
+  transition: opacity 0.2s ease, filter 0.2s ease;
+}
+.fe-logo:hover {
+  opacity: 1 !important;
+  filter: none !important;
 }
