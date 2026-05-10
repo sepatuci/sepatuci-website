@@ -147,7 +147,8 @@ ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
           'X-Title':       'SEP Blog Pipeline',
         },
         body: JSON.stringify({
-          model: 'tencent/hy3-preview:free',
+          model: 'nvidia/nemotron-3-super-120b-a12b:free',
+          max_tokens: 1500,
           messages: [{ role: 'user', content: prompt }],
         }),
       })
@@ -184,7 +185,7 @@ ${cluster.map(s => `- ${s.title} (${s.score} upvotes)`).join('\n')}`
       console.error(`[Pipeline] Error processing cluster "${titles[0]}": ${err.message}`)
     }
 
-    await delay(500)
+    await delay(35000)
   }
 
   console.log(`[Pipeline] Finished at ${new Date().toISOString()}`)
