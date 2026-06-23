@@ -6,7 +6,7 @@ import { Bebas_Neue } from 'next/font/google';
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
 const APPLY_URL =
-  'https://docs.google.com/forms/d/e/1FAIpQLSeOXUWoniHjlFl-ABRuzTXkKK8MOTdO91Y2sv_xX-DuOVUlgQ/viewform?usp=sharing&ouid=116780283286912141619';
+  'https://docs.google.com/forms/d/e/1FAIpQLSeM42jBQmowwPJBARD4k91oQr4Y1od3JlZ2HZDldDWhljAz7w/viewform?usp=header';
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 const EmailIcon = () => (

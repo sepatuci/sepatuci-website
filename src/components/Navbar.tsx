@@ -65,7 +65,7 @@ const Navbar: React.FC = () => {
             ))}
 
             <Link
-              href="https://docs.google.com/forms/d/e/1FAIpQLSeOXUWoniHjlFl-ABRuzTXkKK8MOTdO91Y2sv_xX-DuOVUlgQ/viewform?usp=sharing&ouid=116780283286912141619"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSeM42jBQmowwPJBARD4k91oQr4Y1od3JlZ2HZDldDWhljAz7w/viewform?usp=header"
               target="_blank"
               rel="noopener noreferrer"
               className="ml-6"
@@ -107,7 +107,7 @@ const Navbar: React.FC = () => {
             ))}
             <div className="pt-4">
               <Link
-                href="https://docs.google.com/forms/d/e/1FAIpQLSeOXUWoniHjlFl-ABRuzTXkKK8MOTdO91Y2sv_xX-DuOVUlgQ/viewform?usp=sharing&ouid=116780283286912141619"
+                href="https://docs.google.com/forms/d/e/1FAIpQLSeM42jBQmowwPJBARD4k91oQr4Y1od3JlZ2HZDldDWhljAz7w/viewform?usp=header"
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={() => setIsOpen(false)}
