@@ -87,24 +87,32 @@ import meher from "../../assets/members/iota/meher.png";
 import pallavi from "../../assets/members/iota/pallavi.jpg";
 import abhi from "../../assets/members/iota/abhi.jpg";
 
+// Kappa
+import sanjoy from "../../assets/members/kappa/sanjoy.jpg";
+import chase from "../../assets/members/kappa/chase.jpg";
+import arjun from "../../assets/members/kappa/arjun.jpg";
+import varun from "../../assets/members/kappa/varun.jpg";
+import shrujan from "../../assets/members/kappa/shrujan.jpg";
+import vienna from "../../assets/members/kappa/vienna.jpg";
+
 const teamMembers = [
-  // EBOARD 2025-2026
+  // EBOARD 2026-2027
   {
     description: "President",
-    title: "Ariya Gowda",
-    src: ariya.src,
-    ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Startup Growth",
-    title: "Shreya Mawandia",
-    src: shreya.src,
-    ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
+    title: "Meher Khandpur",
+    src: meher.src,
+    ctaLink: "www.linkedin.com/in/meher-khandpur-a92ab3228",
     category: "Executive Board",
   },
   {
     description: "VP of Internal Affairs",
+    title: "Vasudev Vinod",
+    src: vasudev.src,
+    ctaLink: "www.linkedin.com/in/vasudevvinod",
+    category: "Executive Board",
+  },
+  {
+    description: "VP of External Affairs",
     title: "Victoria Hoang",
     src: victoria.src,
     ctaLink: "https://www.linkedin.com/in/vhoang9/",
@@ -117,82 +125,15 @@ const teamMembers = [
     ctaLink: "www.linkedin.com/in/vineelbhattiprolu",
     category: "Executive Board",
   },
-  {
-    description: "VP of Founder's Education",
-    title: "Aarushi Manikandan",
-    src: aarushi.src,
-    ctaLink: "https://www.linkedin.com/in/aarushi-manikandan-98600a282/",
-    category: "Executive Board",
-  },
-  {
-    description: "VP of Founder's Education",
-    title: "Kyle Spink",
-    src: kyle.src,
-    ctaLink: "https://www.linkedin.com/in/kyle-spink/",
-    category: "Executive Board",
-  },
 
   // ACTIVES (Ordered by Class: Oldest to Newest)
   
-  // Delta Class
-  {
-    description: "Delta Class",
-    title: "Shreya Mawandia",
-    src: shreya.src,
-    ctaLink: "https://www.linkedin.com/in/shreyamawandia/",
-    category: "Actives",
-  },
-  
   // Epsilon Class
-  {
-    description: "Epsilon Class",
-    title: "Ariya Gowda",
-    src: ariya.src,
-    ctaLink: "https://www.linkedin.com/in/ariya-gowda-b20485225/",
-    category: "Actives",
-  },
-  {
-    description: "Epsilon Class",
-    title: "Caleb Chung",
-    src: caleb.src,
-    ctaLink: "https://www.linkedin.com/in/caleb-chung-7796941a0/",
-    category: "Actives",
-  },
   {
     description: "Epsilon Class",
     title: "Jessica Hu",
     src: jessicahu.src,
     ctaLink: "https://www.linkedin.com/in/jessica-hu-a85557276/",
-    category: "Actives",
-  },
-  {
-    description: "Epsilon Class",
-    title: "Pahel Srivastava",
-    src: pahel.src,
-    ctaLink: "https://www.linkedin.com/in/pahel-srivastava/",
-    category: "Actives",
-  },
-  
-  // Zeta Class
-  {
-    description: "Zeta Class",
-    title: "Jose Callejas",
-    src: jose.src,
-    ctaLink: "https://www.linkedin.com/in/jose-mizraim-callejas-gonzalez-371987212/",
-    category: "Actives",
-  },
-  {
-    description: "Zeta Class",
-    title: "Rohit De",
-    src: rohit.src,
-    ctaLink: "https://www.linkedin.com/in/rohitde/",
-    category: "Actives",
-  },
-  {
-    description: "Zeta Class",
-    title: "Hannah McCarthy",
-    src: hannah.src,
-    ctaLink: "https://www.linkedin.com/in/hannah-mccarthy-6101a22ba/",
     category: "Actives",
   },
 
@@ -218,13 +159,6 @@ const teamMembers = [
     title: "Kyle Spink",
     src: kyle.src,
     ctaLink: "https://www.linkedin.com/in/kyle-spink/",
-    category: "Actives",
-  },
-  {
-    description: "Theta Class",
-    title: "Trisha Satyavrat",
-    src: trisha.src,
-    ctaLink: "https://www.linkedin.com/in/trishasatyavrat/",
     category: "Actives",
   },
   {
@@ -285,6 +219,48 @@ const teamMembers = [
     ctaLink: "https://www.linkedin.com/in/asipahimalani/",
     category: "Actives",
   },
+     {
+  description: "Kappa Class",
+  title: "Sanjoy Datta",
+  src: sanjoy.src,
+  ctaLink: "https://www.linkedin.com/in/datta-sanjoy/",
+  category: "Actives",
+},
+  {
+  description: "Kappa Class",
+  title: "Arjun Vivek",
+  src: arjun.src,
+  ctaLink: "https://www.linkedin.com/in/arjun-vivek/",
+  category: "Actives",
+},
+  {
+  description: "Kappa Class",
+  title: "Chase Phung",
+  src: chase.src,
+  ctaLink: "https://www.linkedin.com/in/chasephung/",
+  category: "Actives",
+},
+  {
+  description: "Kappa Class",
+  title: "Varun Pradeep",
+  src: varun.src,
+  ctaLink: "https://www.linkedin.com/in/varun-a-pradeep/",
+  category: "Actives",
+},
+  {
+  description: "Kappa Class",
+  title: "Shrujan Sriram",
+  src: shrujan.src,
+  ctaLink: "https://www.linkedin.com/in/shrujansriram/",
+  category: "Actives",
+},
+  {
+  description: "Kappa Class",
+  title: "Vienna To",
+  src: vienna.src,
+  ctaLink: "https://www.linkedin.com/in/viennato/",
+  category: "Actives",
+},
 
 // CLASSES
 // FOUNDERS
@@ -768,6 +744,71 @@ const teamMembers = [
   ctaLink: "https://www.linkedin.com/in/selina-mai-nguyen/",
   category: "Classes",
 },
+{
+  description: "Iota Class",
+  title: "Meher Khandpur",
+  src: meher.src,
+  ctaLink: "https://www.linkedin.com/in/meher-khandpur/",
+  category: "Classes",
+},
+{
+  description: "Iota Class",
+  title: "Pallavi Nadhan",
+  src: pallavi.src,
+  ctaLink: "https://www.linkedin.com/in/pallavi-nadhan-b9488a312/",
+  category: "Classes",
+},
+{
+  description: "Iota Class",
+  title: "Abhijit Sipahimalani",
+  src: abhi.src,
+  ctaLink: "https://www.linkedin.com/in/asipahimalani/",
+  category: "Classes",
+},
+
+  // KAPPA
+  {
+  description: "Kappa Class",
+  title: "Sanjoy Datta",
+  src: sanjoy.src,
+  ctaLink: "https://www.linkedin.com/in/datta-sanjoy/",
+  category: "Classes",
+},
+  {
+  description: "Kappa Class",
+  title: "Arjun Vivek",
+  src: arjun.src,
+  ctaLink: "https://www.linkedin.com/in/arjun-vivek/",
+  category: "Classes",
+},
+  {
+  description: "Kappa Class",
+  title: "Chase Phung",
+  src: chase.src,
+  ctaLink: "https://www.linkedin.com/in/chasephung/",
+  category: "Classes",
+},
+  {
+  description: "Kappa Class",
+  title: "Varun Pradeep",
+  src: varun.src,
+  ctaLink: "https://www.linkedin.com/in/varun-a-pradeep/",
+  category: "Classes",
+},
+  {
+  description: "Kappa Class",
+  title: "Shrujan Sriram",
+  src: shrujan.src,
+  ctaLink: "https://www.linkedin.com/in/shrujansriram/",
+  category: "Classes",
+},
+  {
+  description: "Kappa Class",
+  title: "Vienna To",
+  src: vienna.src,
+  ctaLink: "https://www.linkedin.com/in/viennato/",
+  category: "Classes",
+}
 
 ];
 
