@@ -118,7 +118,7 @@ const TeamSection: React.FC = () => {
 
   const classOrder = [
     'Founder Class','Alpha Class','Beta Class','Gamma Class',
-    'Delta Class','Epsilon Class','Zeta Class','Eta Class','Theta Class','Iota Class',
+    'Delta Class','Epsilon Class','Zeta Class','Eta Class','Theta Class','Iota Class','Kappa Class',
   ];
 
   const groupedClasses = () => {
