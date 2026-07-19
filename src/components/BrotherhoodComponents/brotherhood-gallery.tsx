@@ -4,26 +4,32 @@ import React, { useEffect, useRef } from 'react';
 import Image from 'next/image';
 import { Bebas_Neue } from 'next/font/google';
 
-import banner       from "../../assets/community/banner.jpeg";
-import check2       from "../../assets/community/check2.jpeg";
-import mhfinals     from "../../assets/community/mhfinals.jpeg";
-import crescentbros from "../../assets/community/crescentbros.jpeg";
-import hike         from "../../assets/community/hike.jpeg";
-import restaurant   from "../../assets/community/atRestraunt.jpeg";
+import check2         from "../../assets/community/check2.jpeg";
+import crescentbros   from "../../assets/community/crescentbros.jpeg";
+import nuclearReactor from "../../assets/community/nuclear_reactor.jpg";
+import ef             from "../../assets/community/ef.jpeg";
+import kappaFlowers   from "../../assets/community/kappa_flowers.jpg";
+import utahSittingOnRock from "../../assets/community/utahSittingOnRock.jpeg";
+import mhfinals       from "../../assets/community/mhfinals.jpeg";
+import restaurant     from "../../assets/community/atRestraunt.jpeg";
+import banner         from "../../assets/community/banner.jpeg";
 
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
 const PHOTOS = [
-  { src: hike.src,         alt: 'Brotherhood hike',             caption: 'Adventure Together' },
-  { src: check2.src,       alt: 'Community moments',            caption: 'Community Moments' },
-  { src: mhfinals.src,     alt: 'Celebrating finals together',  caption: 'Celebrating Success' },
-  { src: restaurant.src,   alt: 'Breaking bread together',      caption: 'Breaking Bread' },
-  { src: banner.src,       alt: 'SEP united',                   caption: 'United We Stand' },
-  { src: crescentbros.src, alt: 'Brotherhood bonds',            caption: 'Brotherhood Bonds' },
+  { src: utahSittingOnRock.src, alt: 'Brotherhood hike' },
+  { src: check2.src,            alt: 'Community moments' },
+  { src: ef.src,                alt: 'Celebrating finals together' },
+  { src: nuclearReactor.src,    alt: 'Breaking bread together' },
+  { src: kappaFlowers.src,      alt: 'SEP united' },
+  { src: crescentbros.src,      alt: 'Brotherhood bonds' },
+  { src: mhfinals.src,          alt: 'Celebrating finals together' },
+  { src: restaurant.src,        alt: 'Breaking bread together' },
+  { src: banner.src,            alt: 'SEP united' },
 ];
 
 // Vary heights to create the masonry feel
-const HEIGHTS = ['280px', '340px', '300px', '320px', '260px', '360px'];
+const HEIGHTS = ['280px', '340px', '300px', '320px', '260px', '360px', '300px', '260px', '320px'];
 
 const GallerySection: React.FC = () => {
   const gridRef = useRef<HTMLDivElement>(null);
@@ -79,7 +85,7 @@ const GallerySection: React.FC = () => {
       >
         {PHOTOS.map((photo, i) => (
           <div
-            key={photo.caption}
+            key={photo.src}
             data-bh-item
             className="fade-up bh-photo"
             style={{
@@ -98,16 +104,6 @@ const GallerySection: React.FC = () => {
                 sizes="(max-width: 768px) 100vw, 33vw"
                 style={{ objectFit: 'cover' }}
               />
-            </div>
-            <div style={{
-              padding:    '10px 12px',
-              fontSize:   '0.8rem',
-              color:      'rgba(255,255,255,0.45)',
-              fontStyle:  'italic',
-              textAlign:  'center',
-              background: 'rgba(0,0,0,0.6)',
-            }}>
-              {photo.caption}
             </div>
           </div>
         ))}
