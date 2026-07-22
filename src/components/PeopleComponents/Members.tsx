@@ -125,6 +125,13 @@ const teamMembers = [
     ctaLink: "www.linkedin.com/in/vineelbhattiprolu",
     category: "Executive Board",
   },
+  {
+    description: "VP of Marketing",
+    title: "Pallavi Nadhan",
+    src: pallavi.src,
+    ctaLink: "https://www.linkedin.com/in/pallavi-nadhan-b9488a312/",
+    category: "Executive Board",
+  },
 
   // ACTIVES (Ordered by Class: Oldest to Newest)
   
