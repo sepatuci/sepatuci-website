@@ -5,8 +5,7 @@ import { Bebas_Neue } from 'next/font/google';
 
 const bebasNeue = Bebas_Neue({ weight: '400', subsets: ['latin'], display: 'swap' });
 
-const APPLY_URL =
-  'https://docs.google.com/forms/d/e/1FAIpQLSeM42jBQmowwPJBARD4k91oQr4Y1od3JlZ2HZDldDWhljAz7w/viewform?usp=header';
+const APPLY_URL = 'https://forms.gle/DjLngqaKkubLyyRu9';
 
 // ── Inline SVG icons ──────────────────────────────────────────────────────────
 const EmailIcon = () => (
@@ -150,8 +149,8 @@ const ContactSection: React.FC = () => {
             Ready to Get Started?
           </h2>
           <p style={{ fontSize: '1rem', color: 'rgba(255,255,255,0.6)', lineHeight: 1.7, marginBottom: 32 }}>
-            Applications for our next recruitment cycle will be opening soon. Follow us on social
-            media to be the first to know.
+            Applications for our next recruitment cycle are now open. Follow us on social
+            media to stay up to date.
           </p>
           <a href={APPLY_URL} target="_blank" rel="noopener noreferrer">
             <button
@@ -176,7 +175,7 @@ const ContactSection: React.FC = () => {
                 b.style.borderColor  = 'rgba(124, 58, 237, 0.6)';
               }}
             >
-              Get Notified
+              Apply
             </button>
           </a>
         </div>
