@@ -51,7 +51,31 @@ const config = {
         accent: {
           DEFAULT: "hsl(var(--accent))",
           foreground: "hsl(var(--accent-foreground))",
+          subtle: "hsl(var(--accent-subtle))",
+          border: "hsl(var(--accent-border))",
+          ink: "hsl(var(--accent-ink))",
         },
+        // Portal status colours: solid for fills, subtle for backgrounds, ink for text.
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          subtle: "hsl(var(--success-subtle))",
+          border: "hsl(var(--success-border))",
+          ink: "hsl(var(--success-ink))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning))",
+          subtle: "hsl(var(--warning-subtle))",
+          border: "hsl(var(--warning-border))",
+          ink: "hsl(var(--warning-ink))",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger))",
+          subtle: "hsl(var(--danger-subtle))",
+          border: "hsl(var(--danger-border))",
+          ink: "hsl(var(--danger-ink))",
+        },
+        field: "hsl(var(--field))",
+        overlay: "hsl(var(--overlay))",
         popover: {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
