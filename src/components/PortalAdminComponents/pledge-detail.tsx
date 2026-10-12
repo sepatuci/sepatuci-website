@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { ArrowLeft, Ban, Check, KeyRound, Link2, Lock, Mail, Pencil, ShieldOff, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, Check, Link2, Lock, Mail, Pencil, ShieldOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Input, Label, Textarea } from "@/components/ui/input";
@@ -230,10 +230,6 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
             <Lock className="mr-1.5 h-3.5 w-3.5" />
             Temporary password
           </Button>
-          <Button variant="outline" size="sm" onClick={() => setPending("reset_mfa")}>
-            <KeyRound className="mr-1.5 h-3.5 w-3.5" />
-            Reset two-step
-          </Button>
           {/* Both follow whether sign-in is really blocked. An account that is
               only marked disabled gets both, so it can be put right either way. */}
           {disabled || pledge.signInBlocked ? (
@@ -312,9 +308,8 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           hint={lastSeenMs === null ? undefined : formatDateTime(pledge.activity.lastSeenAt)}
         />
         <StatTile
-          label="Two-step"
-          value={pledge.mfaEnrolled ? "Set up" : "Not set up"}
-          hint={pledge.lastSignInAt ? `Last sign-in ${formatDate(pledge.lastSignInAt)}` : "Never signed in"}
+          label="Last sign-in"
+          value={pledge.lastSignInAt ? formatDate(pledge.lastSignInAt) : "Never"}
         />
       </div>
 

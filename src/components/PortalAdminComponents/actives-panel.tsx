@@ -230,7 +230,7 @@ const ActivesPanel: React.FC = () => {
         <EmptyState
           icon={<Users className="h-8 w-8" />}
           title="No actives yet"
-          body="Add an active with their name and UCI email. They choose a password, then set up Duo Mobile."
+          body="Add an active with their name and UCI email. They choose their own password at their first sign-in."
           action={
             <Button variant="accent" onClick={() => setAddOpen(true)}>
               Add the first active
@@ -269,9 +269,6 @@ const ActivesPanel: React.FC = () => {
                     onClick={() => setPending({ kind: "temporary", active })}
                   >
                     Temporary password
-                  </Button>
-                  <Button variant="outline" size="sm" onClick={() => setPending({ kind: "reset", active })}>
-                    Reset two-step
                   </Button>
                   {active.signInBlocked ? (
                     <Button
@@ -315,7 +312,7 @@ const ActivesPanel: React.FC = () => {
       <Dialog open={addOpen} onOpenChange={closeAdd}>
         <DialogContent
           title="Add an active"
-          description="They choose their own password, set up Duo Mobile, then see a short welcome. It happens once."
+          description="They choose their own password, then see a short welcome. It happens once."
         >
           <form onSubmit={add} noValidate className="mt-5 space-y-4">
             <div>

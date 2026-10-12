@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
-import { KeyRound, Loader2, ShieldCheck } from "lucide-react";
+import { KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { getPortalAuth } from "@/lib/portal/client/firebase";
 import { formatDate } from "@/lib/portal/dates";
 import { ROLE_DESCRIPTION } from "@/lib/portal/roles";
 import type { Role } from "@/lib/portal/types";
 import { usePortal } from "./portal-session";
-import { Card, Chip, PageHeader, useToast } from "./primitives";
+import { Card, PageHeader, useToast } from "./primitives";
 import { ThemeChoice } from "./theme-controls";
 
 const ACCOUNT_NOTE: Record<Role, string> = {
@@ -82,21 +82,6 @@ const AccountPanel: React.FC = () => {
         Security
       </h2>
       <Card className="divide-y divide-border">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Two-step verification</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                A Duo Mobile passcode is required every time you sign in. If you get a new phone,
-                ask a chair to reset it.
-              </p>
-            </div>
-          </div>
-          <Chip tone={me.mfaEnforced ? "success" : "warning"}>
-            {me.mfaEnforced ? "On" : "Off in local demo"}
-          </Chip>
-        </div>
         <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
           <div className="flex items-start gap-3">
             <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" />

@@ -16,7 +16,7 @@ function stepsFor(overview: AdminOverviewDto): Step[] {
   return [
     {
       title: "Add your pledges",
-      detail: "One at a time or a whole class at once. Each one chooses a password and sets up Duo Mobile.",
+      detail: "One at a time or a whole class at once. Each one chooses their own password.",
       href: "/portal/admin",
       done: pledges.length > 0,
     },

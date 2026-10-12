@@ -555,7 +555,6 @@ const LoginFlow: React.FC = () => {
   if (step.name === "enroll_intro" || step.name === "enroll_scan") {
     return (
       <>
-        {firstRun ? <SetupProgress current="duo" /> : null}
         <EnrollSteps
           stage={step.name === "enroll_intro" ? "intro" : "scan"}
           qrUrl={step.name === "enroll_scan" ? step.qrUrl : ""}
@@ -654,9 +653,6 @@ const LoginFlow: React.FC = () => {
         Continue
       </Button>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        Next comes two-step verification with Duo Mobile. The first time, you&apos;ll set it up.
-      </p>
-      <p className="mt-2 text-center text-xs text-muted-foreground">
         New here? Use the temporary password a chair gave you, or the link in your welcome email.
       </p>
     </form>

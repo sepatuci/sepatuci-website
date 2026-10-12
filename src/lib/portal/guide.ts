@@ -55,7 +55,7 @@ export const BEFORE_YOU_START: GuideTopic = {
     "The chairs, and only the chairs, can see when you're signed in and how long you spend here.",
     "You start solo. If the chairs put you on a team, it shows on your Account page.",
     "If the chairs need your attention, a notice appears at the top of your Deliverables page.",
-    "Sign-in is your password plus a Duo Mobile passcode. Thirty idle minutes signs you out.",
+    "Sign-in is your UCI email and your password. Thirty idle minutes signs you out.",
     "New phone, or a question about a deadline? Talk to a Founder's Education chair.",
   ],
 };
@@ -82,12 +82,11 @@ export const ADMIN_TOPICS: GuideTopic[] = [
     title: "Accounts",
     body:
       "You create every account, one at a time or a whole class with Add several. Each person " +
-      "chooses a password, sets up Duo Mobile, then sees a short welcome. It happens once.",
+      "chooses a password, then sees a short welcome. It happens once.",
     points: [
       "Email a link: they choose a password from the email. Links last about an hour.",
       "Temporary password: you pass it on yourself. It works for 3 days, and their next sign-in makes them replace it.",
       "Invited: they have not finished signing in for the first time, or are on a temporary password.",
-      "Needs two-step: they have signed in, but have not set up Duo Mobile.",
       "Set up: ready to use. Disabled: signed out and blocked, with all their work kept.",
       "Removing an account deletes it and everything attached to it, for good.",
       "Locked out? Send a new password link or give a new temporary password, from the pledge's page or the Actives page.",

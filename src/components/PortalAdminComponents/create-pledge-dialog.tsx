@@ -181,7 +181,7 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
       ) : (
         <DialogContent
           title="Add a pledge"
-          description="They choose their own password, set up Duo Mobile, then see a short welcome. It happens once."
+          description="They choose their own password, then see a short welcome. It happens once."
         >
           <form onSubmit={submit} noValidate className="mt-5 space-y-4">
             {formError ? (

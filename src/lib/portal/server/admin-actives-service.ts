@@ -46,7 +46,7 @@ function toActiveRow(
   // factor, and they have not been through the welcome.
   else if (!mfaEnrolled && lastSignInAt === null && profile.onboardedAt === null) {
     accountState = "invited";
-  } else if (admin.env.mode === "live" && !mfaEnrolled) accountState = "needs_mfa";
+  }
 
   return {
     uid,

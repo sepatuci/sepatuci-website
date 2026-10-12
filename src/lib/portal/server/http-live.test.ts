@@ -188,33 +188,38 @@ describe("a route on the live site", () => {
       ["a firebase claim that names only the sign-in provider", { sign_in_provider: "password" }],
       ["an empty second factor", { sign_in_second_factor: "" }],
       ["a second factor that is not a string", { sign_in_second_factor: true }],
-    ])("refuses a pledge whose token has %s with 403 mfa_required, before the handler runs", async (_label, firebase) => {
+    ])("lets a pledge through whose token has %s: sign-in is email and password only", async (_label, firebase) => {
       stub.claims = pledgeClaims({ firebase });
-      for (const role of ["any", "pledge", "admin"] as const) {
+      for (const role of ["any", "pledge"] as const) {
         const { handler, reached } = route(role);
         const result = await send(handler);
-        expect(result.status).toBe(403);
-        expect(result.body).toEqual({ error: "Two-step verification is required.", code: "mfa_required" });
-        expect(reached).toEqual([]);
+        expect(result.status).toBe(200);
+        expect(reached.map((call) => call.user.uid)).toEqual(["pledge1"]);
       }
-    });
-
-    it("refuses an allow-listed admin whose token has no second factor", async () => {
-      stub.claims = adminClaims({ firebase: { sign_in_provider: "password" } });
+      // No second factor is asked for, and none is a way past the role either.
       const { handler, reached } = route("admin");
-      const result = await send(handler);
-      expect({ status: result.status, code: result.body.code }).toEqual({ status: 403, code: "mfa_required" });
+      const refused = await send(handler);
+      expect({ status: refused.status, code: refused.body.code }).toEqual({ status: 403, code: "forbidden" });
       expect(reached).toEqual([]);
     });
 
-    it("refuses writes as well as reads without one", async () => {
+    it("lets an allow-listed admin through whose token has no second factor", async () => {
+      stub.claims = adminClaims({ firebase: { sign_in_provider: "password" } });
+      const { handler, reached } = route("admin");
+      const result = await send(handler);
+      expect(result.status).toBe(200);
+      expect(reached.map((call) => call.user.uid)).toEqual(["admin1"]);
+    });
+
+    it("never answers mfa_required, for reads or writes", async () => {
       stub.claims = pledgeClaims({ firebase: {} });
       const { handler, reached } = route("pledge");
       for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"] as const) {
         const result = await send(handler, method);
-        expect({ method, status: result.status, code: result.body.code }).toEqual({ method, status: 403, code: "mfa_required" });
+        expect({ method, status: result.status }).toEqual({ method, status: 200 });
+        expect(result.body.code).not.toBe("mfa_required");
       }
-      expect(reached).toEqual([]);
+      expect(reached).toHaveLength(5);
     });
 
     it("runs the handler, as the user in the token, when the token carries one", async () => {
@@ -396,14 +401,13 @@ describe("a route on the live site", () => {
       ["no firebase claim", undefined],
       ["a firebase claim that names only the sign-in provider", { sign_in_provider: "password" }],
       ["an empty second factor", { sign_in_second_factor: "" }],
-    ])("refuses an active whose token has %s with 403 mfa_required, before the handler runs", async (_label, firebase) => {
+    ])("lets an active through whose token has %s: no second factor is asked for", async (_label, firebase) => {
       stub.claims = activeClaims({ firebase });
       for (const role of ["any", "active"] as const) {
         const { handler, reached } = route(role);
         const result = await send(handler);
-        expect(result.status).toBe(403);
-        expect(result.body).toEqual({ error: "Two-step verification is required.", code: "mfa_required" });
-        expect(reached).toEqual([]);
+        expect(result.status).toBe(200);
+        expect(reached).toHaveLength(1);
       }
     });
 
@@ -513,9 +517,9 @@ describe("a route on the live site", () => {
       }
     });
 
-    // The exception is for these accounts alone. Were it for everyone, the route for
-    // choosing a password would be a way past two-step verification.
-    it("does not let anyone else through that route without a second factor", async () => {
+    // Nobody is asked for a second factor, so for everyone else this route is
+    // gated like any other: by sign-in and by role.
+    it("treats everyone else on that route as on any other, with or without a second factor", async () => {
       for (const claims of [
         pledgeClaims({ firebase: PASSWORD_ONLY }),
         activeClaims({ firebase: {} }),
@@ -529,10 +533,10 @@ describe("a route on the live site", () => {
         const { handler, reached } = route("any", { passwordSetup: true });
         for (const method of ["GET", "POST"] as const) {
           const result = await send(handler, method);
-          expect(result.status, JSON.stringify(claims)).toBe(403);
-          expect(result.body, JSON.stringify(claims)).toEqual(MFA_REQUIRED);
+          expect(result.status, JSON.stringify(claims)).toBe(200);
+          expect(result.body.code, JSON.stringify(claims)).not.toBe(MFA_REQUIRED.code);
         }
-        expect(reached).toEqual([]);
+        expect(reached).toHaveLength(2);
       }
     });
 
@@ -943,7 +947,6 @@ describe("a route on the live site", () => {
 
     it("answers every refusal as uncacheable JSON with just a message and a code", async () => {
       const refusals: Array<Record<string, unknown>> = [
-        pledgeClaims({ firebase: {} }),
         pledgeClaims({ auth_time: (NOW - 13 * HOUR) / 1000 }),
         pledgeClaims({ email: "avery.chen@gmail.com" }),
         adminClaims({ email: "former.chair@uci.edu" }),
@@ -1218,7 +1221,7 @@ describe("the portal's own routes on the live site, for an account still on a te
     expect(JSON.stringify(result.body)).not.toContain(password);
   });
 
-  it("POST /password asks everyone else for their second factor first", async () => {
+  it("POST /password answers everyone else, second factor or not, that there is nothing to do", async () => {
     stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu" };
     for (const claims of [
       pledgeClaims({ firebase: { sign_in_provider: "password" } }),
@@ -1228,8 +1231,8 @@ describe("the portal's own routes on the live site, for an account still on a te
     ]) {
       stub.claims = claims;
       const result = await sendTo(choosePassword());
-      expect(result.status).toBe(403);
-      expect(result.body).toEqual({ error: "Two-step verification is required.", code: "mfa_required" });
+      expect(result.status).toBe(409);
+      expect(result.body.code).toBe("not_required");
     }
   });
 

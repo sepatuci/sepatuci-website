@@ -111,7 +111,8 @@ async function authenticate(
 
   const result = evaluateGate(claims, {
     need,
-    mfaRequired: admin.env.mode === "live",
+    // Sign-in is email and password. No second factor is asked for.
+    mfaRequired: false,
     adminEmails: admin.env.adminEmails,
     nowMs,
     issuedRequired: admin.env.mode === "live",
