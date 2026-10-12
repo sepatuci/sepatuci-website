@@ -30,6 +30,7 @@ import {
   TEAM_ATLAS,
   TEAM_ATLAS_NAME,
   call,
+  claimsOf,
   countAll,
   countSessions,
   createAccount,
@@ -39,8 +40,10 @@ import {
   ok,
   redeemResetCode,
   refused,
+  renewed,
   seedPortal,
   signIn,
+  signInEarlyInASecond,
   signInFailure,
   sleep,
   testAuth,
@@ -108,7 +111,6 @@ describe("who the portal says you are", () => {
       role: "pledge",
       pledgeClass: "Lambda",
       team: { name: TEAM_ATLAS_NAME, teammates: ["Jordan Patel"] },
-      mfaEnforced: false,
     });
     // The seed has Avery finishing the tour 20 days ago.
     expect(Date.parse(profile.onboardedAt ?? "")).toBeLessThan(Date.now() - 19 * 86_400_000);
@@ -223,6 +225,50 @@ describe("an account whose sign-in address is no longer the one it was issued wi
       expect(await redeemResetCode(code, "chosen-again-by-robin-2")).toBe(true);
       const back = await signIn(ISSUED, "chosen-again-by-robin-2");
       expect((await me(back)).email).toBe(ISSUED);
+    },
+    SLOW_TEST_MS,
+  );
+
+  // Firebase ends sign-ins by the whole second. Ended only as the address is put back, a
+  // sign-in made in that same second by whoever moved it would be left standing, and once
+  // renewed it would carry the issued address and open the portal. The repair waits for the
+  // next second and ends them again, as issuing a temporary password does.
+  it(
+    "shuts out a sign-in made at the moved address in the very second the link was asked for",
+    async () => {
+      const issued = "wren.sato@uci.edu";
+      const movedTo = "wren.sato+elsewhere@uci.edu";
+      const wren = await newPledge(issued, "Wren Sato");
+      await testAuth().updateUser(wren.uid, { email: movedTo, emailVerified: true });
+
+      const lastMoment = await signInEarlyInASecond(movedTo, PASSWORD);
+      const from = Date.now();
+      ok<InviteLinkDto>(await call(inviteLink, { uid: wren.uid }, { method: "POST", token: admin.token, body: {} }));
+      const by = Date.now();
+      // The sign-in and the request were in the same second.
+      expect(Math.floor(lastMoment.signedInAtMs / 1000)).toBe(Math.floor(from / 1000));
+      const signedInAt = Number(claimsOf(lastMoment.token).auth_time);
+      expect(signedInAt).toBe(Math.floor(from / 1000));
+      expect((await testAuth().getUser(wren.uid)).email).toBe(issued);
+
+      // Sign-ins are only honoured from a later second than that one, which the request waited for, and not much longer.
+      const validFrom = Date.parse((await testAuth().getUser(wren.uid)).tokensValidAfterTime ?? "") / 1000;
+      expect(validFrom).toBeGreaterThan(signedInAt);
+      expect(Math.floor(by / 1000)).toBeGreaterThan(Math.floor(from / 1000));
+      expect(by - from).toBeLessThan(5_000);
+      for (const result of [await call(getMe, {}, { token: lastMoment.token }), await call(getDashboard, {}, { token: lastMoment.token })]) {
+        expect(refused(result, 401, "session_revoked").error).toBe("Your session has ended. Sign in again.");
+      }
+      // Nobody has signed in since, so the emulator's renewed token is dated as Firebase's would be.
+      // It names the issued address now, and must not be honoured for that.
+      const again = await renewed(lastMoment);
+      if (again !== null) {
+        refused(await call(getMe, {}, { token: again.token }), 401, "session_revoked");
+        refused(await call(getDashboard, {}, { token: again.token }), 401, "session_revoked");
+      }
+      // The password they knew is no use with either address.
+      expect(await signInFailure(issued, PASSWORD)).toMatch(/INVALID|PASSWORD/);
+      expect(await signInFailure(movedTo, PASSWORD)).not.toBe("");
     },
     SLOW_TEST_MS,
   );

@@ -43,6 +43,7 @@ import {
   ADMIN_ONE,
   ADMIN_TWO,
   AVERY,
+  A_KEPT_FINGERPRINT,
   CASEY,
   DANA,
   JORDAN,
@@ -119,7 +120,6 @@ const BANNED_KEYS = [
   "status",
   "signInBlocked",
   "accountState",
-  "mfaEnrolled",
   "createdAt",
   "lastSignInAt",
   "onboardedAt",
@@ -1143,7 +1143,8 @@ describe("as things change", () => {
     const result = await call(createPledge, {}, { method: "POST", token: admin.token, body: { email: "on.temporary@uci.edu", displayName: "Wren Halloran", start: "temporary_password" } });
     const made = ok<CreatePledgeResultDto>(result);
     expect(made.temporaryPassword).toMatch(TEMPORARY_PASSWORD);
-    expect(await storedFingerprint(made.pledge.uid)).toEqual({ salt: expect.stringMatching(/^[0-9a-f]{32}$/), hash: expect.stringMatching(/^[0-9a-f]{64}$/) });
+    expect(await storedFingerprint(made.pledge.uid)).toEqual(A_KEPT_FINGERPRINT);
+    // The salt and the hash of the one account that is on a temporary password.
     const kept = await everyStoredFingerprint();
     expect(kept).toHaveLength(2);
 

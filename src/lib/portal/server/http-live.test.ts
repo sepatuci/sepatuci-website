@@ -1,20 +1,22 @@
 /**
  * The gate as a deployed route applies it. The emulator-backed tests under
- * tests/portal run in emulator mode, where the second factor is skipped, so
- * nothing there exercises a route with it required. Here the Firebase Admin
- * SDK is the one thing replaced: `getPortalAdmin` reports live mode, its
- * token verifier hands back whatever claims the test sets, and it can read
- * the one account and the documents the test puts there. It can write
- * nothing. Everything else, including `portalRoute`, the gate, the rate limit
- * and the fingerprint of a temporary password, is the real code.
+ * tests/portal run in emulator mode, where an account need not say which
+ * address it was issued to, and where the token is whatever the emulator
+ * makes. Here the Firebase Admin SDK is the one thing replaced:
+ * `getPortalAdmin` reports live mode, its token verifier hands back whatever
+ * claims the test sets, and it can read the one account and the documents the
+ * test puts there. It can write nothing. Everything else, including
+ * `portalRoute`, the gate, the rate limit and the fingerprint of a temporary
+ * password, is the real code.
  *
  * The clock is the test's own, so the three days a temporary password lasts
  * and the fifteen minutes it may take to replace one are checked here to the
  * millisecond, which the emulator-backed tests cannot do.
  *
- * The last part of the file calls the portal's own route exports the same way,
- * to check which of them an account on a temporary password can reach when a
- * second factor is required, and what the one it reaches says.
+ * The last part of the file calls the portal's own route exports the same way:
+ * to check that a sign-in with an email and a password, and nothing more, is
+ * let through to every one of them that is its role's, and which of them an
+ * account on a temporary password can reach, and what the one it reaches says.
  */
 import { readdirSync } from "node:fs";
 import path from "node:path";
@@ -24,7 +26,7 @@ import { TIMING } from "../constants";
 import type { ApiErrorBody } from "../types";
 import type { AuthedUser } from "./gate";
 import { portalRoute, type RouteOptions } from "./http";
-import { RATE_LIMITS, resetRateLimits } from "./rate-limit";
+import { RATE_LIMITS, allowRequest, resetRateLimits } from "./rate-limit";
 import { fingerprint } from "./temporary-password";
 
 const stub = vi.hoisted(() => ({
@@ -38,6 +40,10 @@ const stub = vi.hoisted(() => ({
   failure: null as unknown,
   /** The claims stored on the account itself, which a route may read apart from the token's. */
   accountClaims: {} as Record<string, unknown>,
+  /** How Firebase stores the account's password, as the Admin SDK hands it back with the account. */
+  accountHash: undefined as string | null | undefined,
+  /** Every account a route looked up, by uid. */
+  lookedUp: [] as string[],
   /** The documents a route may read, by path. None by default. */
   documents: {} as Record<string, Record<string, unknown>>,
   /** Every document a route read, by path. */
@@ -72,7 +78,10 @@ vi.mock("./admin", () => {
           return stub.claims;
         },
         // Read by the one real route that is called past the gate below.
-        getUser: async (uid: string) => ({ uid, displayName: "Somebody Else", customClaims: stub.accountClaims }),
+        getUser: async (uid: string) => {
+          stub.lookedUp.push(uid);
+          return { uid, displayName: "Somebody Else", customClaims: stub.accountClaims, passwordHash: stub.accountHash };
+        },
       },
       db: { collection },
     }),
@@ -88,10 +97,15 @@ const TOKEN = "aaa.bbb.ccc";
 const TEMP = { temp: true, tempAt: (NOW - HOUR) / SECOND };
 /** The same, for one issued this long ago. */
 const issued = (msAgo: number): { temp: true; tempAt: number } => ({ temp: true, tempAt: (NOW - msAgo) / SECOND });
-const EXPIRED = { error: "That temporary password has expired. Ask a chair for a new one.", code: "temporary_password_expired" };
+const EXPIRED = { error: "That temporary password has expired. Ask an admin for a new one.", code: "temporary_password_expired" };
 const SESSION_EXPIRED = { error: "Your session has expired. Sign in again.", code: "session_expired" };
 
-/** A pledge's verified token on the live site: signed in a minute ago, with a second factor. */
+/** How Firebase describes a sign-in with an email and a password, which is the only kind the portal has. */
+const PASSWORD_ONLY = { sign_in_provider: "password" };
+/** What it would say of an account that had an authenticator attached through Firebase directly. */
+const WITH_SECOND_FACTOR = { sign_in_provider: "password", sign_in_second_factor: "totp", second_factor_identifier: "factor1" };
+
+/** A pledge's verified token on the live site: signed in a minute ago, with their email and password. */
 const pledgeClaims = (overrides: Record<string, unknown> = {}): Record<string, unknown> => ({
   uid: "pledge1",
   email: "avery.chen@uci.edu",
@@ -99,7 +113,7 @@ const pledgeClaims = (overrides: Record<string, unknown> = {}): Record<string, u
   role: "pledge",
   issued: "avery.chen@uci.edu",
   auth_time: (NOW - 60_000) / 1000,
-  firebase: { sign_in_second_factor: "totp" },
+  firebase: PASSWORD_ONLY,
   ...overrides,
 });
 
@@ -171,6 +185,8 @@ beforeEach(() => {
   stub.whileVerifying = () => undefined;
   stub.failure = null;
   stub.accountClaims = {};
+  stub.accountHash = undefined;
+  stub.lookedUp.length = 0;
   stub.documents = {};
   stub.read.length = 0;
   resetRateLimits();
@@ -181,48 +197,103 @@ afterEach(() => {
 });
 
 describe("a route on the live site", () => {
-  describe("second factor", () => {
-    it.each<[string, unknown]>([
-      ["no firebase claim", undefined],
-      ["a firebase claim with no second factor", {}],
-      ["a firebase claim that names only the sign-in provider", { sign_in_provider: "password" }],
-      ["an empty second factor", { sign_in_second_factor: "" }],
-      ["a second factor that is not a string", { sign_in_second_factor: true }],
-    ])("lets a pledge through whose token has %s: sign-in is email and password only", async (_label, firebase) => {
-      stub.claims = pledgeClaims({ firebase });
-      for (const role of ["any", "pledge"] as const) {
+  // Sign-in is a UCI email and a password. No route asks for anything more, and nothing a
+  // token says of a second factor makes any difference to what it is let through to.
+  describe("sign-in with an email and a password only", () => {
+    const CALLERS: ReadonlyArray<["admin" | "active" | "pledge", (overrides?: Record<string, unknown>) => Record<string, unknown>, AuthedUser]> = [
+      ["admin", adminClaims, { uid: "admin1", email: "chair.one@uci.edu", role: "admin" }],
+      ["active", activeClaims, { uid: "active1", email: "priya.shah@uci.edu", role: "active" }],
+      ["pledge", pledgeClaims, { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }],
+    ];
+    /** Everything a token might say of the sign-in under `firebase`. */
+    const SIGN_INS: ReadonlyArray<[string, unknown]> = [
+      ["names only the password provider", PASSWORD_ONLY],
+      ["has no firebase claim", undefined],
+      ["has an empty firebase claim", {}],
+      ["carries a second factor from an authenticator app", WITH_SECOND_FACTOR],
+      ["carries a second factor by text message", { sign_in_provider: "password", sign_in_second_factor: "phone" }],
+      ["has an empty second factor", { sign_in_provider: "password", sign_in_second_factor: "" }],
+      ["has a second factor that is not a string", { sign_in_second_factor: true }],
+    ];
+
+    it.each(SIGN_INS)("lets each of the three roles through to its own routes and the shared ones when the token %s", async (_label, firebase) => {
+      for (const [role, claimsOf, user] of CALLERS) {
+        stub.claims = claimsOf({ firebase });
+        for (const need of ["any", role] as const) {
+          const { handler, reached } = route(need);
+          const result = await send(handler);
+          expect(result.status, `${role} on a route for ${need}`).toBe(200);
+          expect(result.body, `${role} on a route for ${need}`).toEqual({ ok: true, uid: user.uid });
+          expect(reached.map((call) => call.user), `${role} on a route for ${need}`).toEqual([user]);
+        }
+      }
+    });
+
+    it.each(SIGN_INS)("holds each of them to its role all the same when the token %s", async (_label, firebase) => {
+      for (const [role, claimsOf] of CALLERS) {
+        stub.claims = claimsOf({ firebase });
+        for (const need of (["admin", "active", "pledge"] as const).filter((candidate) => candidate !== role)) {
+          const { handler, reached } = route(need);
+          const refused = await send(handler);
+          expect(refused.status, `${role} on a route for ${need}`).toBe(403);
+          expect(refused.body, `${role} on a route for ${need}`).toEqual({ error: "You don't have permission to do that.", code: "forbidden" });
+          expect(reached).toEqual([]);
+        }
+      }
+    });
+
+    it("never answers mfa_required, for reads or writes, for any role", async () => {
+      for (const [role, claimsOf] of CALLERS) {
+        stub.claims = claimsOf();
         const { handler, reached } = route(role);
-        const result = await send(handler);
-        expect(result.status).toBe(200);
-        expect(reached.map((call) => call.user.uid)).toEqual(["pledge1"]);
+        for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"] as const) {
+          const result = await send(handler, method);
+          expect({ role, method, status: result.status }).toEqual({ role, method, status: 200 });
+          expect(result.body.code).not.toBe("mfa_required");
+        }
+        expect(reached).toHaveLength(5);
       }
-      // No second factor is asked for, and none is a way past the role either.
-      const { handler, reached } = route("admin");
-      const refused = await send(handler);
-      expect({ status: refused.status, code: refused.body.code }).toEqual({ status: 403, code: "forbidden" });
-      expect(reached).toEqual([]);
     });
 
-    it("lets an allow-listed admin through whose token has no second factor", async () => {
-      stub.claims = adminClaims({ firebase: { sign_in_provider: "password" } });
-      const { handler, reached } = route("admin");
-      const result = await send(handler);
-      expect(result.status).toBe(200);
-      expect(reached.map((call) => call.user.uid)).toEqual(["admin1"]);
-    });
-
-    it("never answers mfa_required, for reads or writes", async () => {
-      stub.claims = pledgeClaims({ firebase: {} });
-      const { handler, reached } = route("pledge");
-      for (const method of ["GET", "POST", "PUT", "PATCH", "DELETE"] as const) {
-        const result = await send(handler, method);
-        expect({ method, status: result.status }).toEqual({ method, status: 200 });
-        expect(result.body.code).not.toBe("mfa_required");
+    it("has no refusal that asks for a second factor, whatever is wrong with the token", async () => {
+      const wrong: Array<Record<string, unknown>> = [
+        pledgeClaims({ auth_time: (NOW - 13 * HOUR) / 1000 }),
+        pledgeClaims({ email_verified: false }),
+        pledgeClaims({ role: "viewer" }),
+        pledgeClaims({ email: "someone.else@uci.edu" }),
+        activeClaims({ issued: undefined }),
+        adminClaims({ email: "former.chair@uci.edu" }),
+        pledgeClaims({ ...TEMP }),
+        activeClaims(issued(TIMING.temporaryPasswordMs + SECOND)),
+      ];
+      const codes = new Set<string>();
+      for (const claims of wrong) {
+        for (const firebase of [PASSWORD_ONLY, undefined, {}, WITH_SECOND_FACTOR]) {
+          stub.claims = { ...claims, firebase };
+          for (const need of ["any", "admin", "active", "pledge"] as const) {
+            const { handler, reached } = route(need);
+            const result = await send(handler, "POST");
+            expect(result.status).toBeGreaterThanOrEqual(401);
+            expect(result.body.code).not.toBe("mfa_required");
+            expect(result.body.error).not.toMatch(/two-step|second factor|verification|passcode|authenticator|duo/i);
+            expect(reached).toEqual([]);
+            codes.add(result.body.code);
+          }
+        }
       }
-      expect(reached).toHaveLength(5);
+      // Each is refused for what is wrong with it, with or without a second factor on the sign-in.
+      expect([...codes].sort()).toEqual([
+        "email_not_allowed",
+        "email_unverified",
+        "forbidden",
+        "no_role",
+        "password_change_required",
+        "session_expired",
+        "temporary_password_expired",
+      ]);
     });
 
-    it("runs the handler, as the user in the token, when the token carries one", async () => {
+    it("runs the handler as the user in the token", async () => {
       const { handler, reached } = route("pledge");
       const result = await send(handler);
       expect(result.status).toBe(200);
@@ -230,8 +301,8 @@ describe("a route on the live site", () => {
       expect(reached).toEqual([{ user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }, nowMs: NOW, body: undefined }]);
     });
 
-    it("runs an admin route for an allow-listed admin with one", async () => {
-      stub.claims = adminClaims({ firebase: { sign_in_second_factor: "phone" } });
+    it("runs an admin route for an allow-listed admin", async () => {
+      stub.claims = adminClaims();
       const { handler, reached } = route("admin");
       expect((await send(handler, "POST")).status).toBe(200);
       expect(reached).toEqual([{ user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin" }, nowMs: NOW, body: {} }]);
@@ -254,7 +325,7 @@ describe("a route on the live site", () => {
       const old = (NOW - 13 * HOUR) / 1000;
       for (const claims of [
         adminClaims({ auth_time: old }),
-        pledgeClaims({ auth_time: old, firebase: undefined }),
+        activeClaims({ auth_time: old }),
         pledgeClaims({ auth_time: old, email: "avery.chen@gmail.com" }),
         adminClaims({ auth_time: old, email: "former.chair@uci.edu" }),
         pledgeClaims({ auth_time: undefined }),
@@ -303,12 +374,6 @@ describe("a route on the live site", () => {
         }
       },
     );
-
-    it("reports the email before the missing second factor", async () => {
-      stub.claims = pledgeClaims({ email: "avery.chen@gmail.com", firebase: {} });
-      const { handler } = route("pledge");
-      expect((await send(handler)).body.code).toBe("email_not_allowed");
-    });
   });
 
   describe("admin allow-list", () => {
@@ -339,7 +404,7 @@ describe("a route on the live site", () => {
       expect(reached).toHaveLength(2);
     });
 
-    it("refuses a pledge with a second factor on an admin route", async () => {
+    it("refuses a pledge on an admin route", async () => {
       const { handler, reached } = route("admin");
       const result = await send(handler, "POST");
       expect(result.status).toBe(403);
@@ -347,7 +412,7 @@ describe("a route on the live site", () => {
       expect(reached).toEqual([]);
     });
 
-    it("refuses an admin with a second factor on a pledge route", async () => {
+    it("refuses an admin on a pledge route", async () => {
       stub.claims = adminClaims();
       const { handler, reached } = route("pledge");
       const result = await send(handler);
@@ -357,9 +422,9 @@ describe("a route on the live site", () => {
   });
 
   // The emulator-backed tests run every review route with a real active's token, but never
-  // with the second factor or the issued address required. Those two are checked here.
+  // with the issued address required. That is checked here.
   describe("active members", () => {
-    it("runs a route for actives as the active in the token, when the token carries a second factor", async () => {
+    it("runs a route for actives as the active in the token", async () => {
       stub.claims = activeClaims();
       const { handler, reached } = route("active");
       const result = await send(handler);
@@ -395,20 +460,6 @@ describe("a route on the live site", () => {
         expect(result.body).toEqual({ error: "You don't have permission to do that.", code: "forbidden" });
       }
       expect(reached).toEqual([]);
-    });
-
-    it.each<[string, unknown]>([
-      ["no firebase claim", undefined],
-      ["a firebase claim that names only the sign-in provider", { sign_in_provider: "password" }],
-      ["an empty second factor", { sign_in_second_factor: "" }],
-    ])("lets an active through whose token has %s: no second factor is asked for", async (_label, firebase) => {
-      stub.claims = activeClaims({ firebase });
-      for (const role of ["any", "active"] as const) {
-        const { handler, reached } = route(role);
-        const result = await send(handler);
-        expect(result.status).toBe(200);
-        expect(reached).toHaveLength(1);
-      }
     });
 
     it.each<[string, Record<string, unknown>]>([
@@ -460,30 +511,27 @@ describe("a route on the live site", () => {
     });
   });
 
-  // The emulator-backed tests take an account from a temporary password to its own, but in
-  // emulator mode no route asks for a second factor. Here one is required, so this is where
-  // the one exception to it is checked: a route marked for choosing a password, and only for
-  // an account whose token says it is still on a temporary one.
+  // The emulator-backed tests take an account from a temporary password to its own, with the
+  // emulators' clock and without the issued address required. Here the one thing such an
+  // account may do is checked on the live site, to the millisecond: a route marked for choosing
+  // a password, and only for an account whose token says it is still on a temporary one.
   describe("an account still on a temporary password", () => {
     const CHANGE_REQUIRED = { error: "Choose your own password to continue.", code: "password_change_required" };
-    const MFA_REQUIRED = { error: "Two-step verification is required.", code: "mfa_required" };
-    /** As Firebase issues it for a first sign-in with a password and no second factor. */
-    const PASSWORD_ONLY = { sign_in_provider: "password" };
     const METHODS = ["GET", "POST", "PUT", "PATCH", "DELETE"] as const;
     const KINDS_OF_ROUTE = ["any", "pledge", "active", "admin"] as const;
 
     const temporary: ReadonlyArray<[string, () => Record<string, unknown>, AuthedUser]> = [
-      ["a pledge", () => pledgeClaims({ ...TEMP, firebase: PASSWORD_ONLY }), { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }],
-      ["an active", () => activeClaims({ ...TEMP, firebase: PASSWORD_ONLY }), { uid: "active1", email: "priya.shah@uci.edu", role: "active" }],
+      ["a pledge", () => pledgeClaims({ ...TEMP }), { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }],
+      ["an active", () => activeClaims({ ...TEMP }), { uid: "active1", email: "priya.shah@uci.edu", role: "active" }],
     ];
 
-    it.each(temporary)("lets %s without a second factor through a route for choosing a password, as themselves", async (_label, claims, user) => {
+    it.each(temporary)("lets %s through a route for choosing a password, as themselves", async (_label, claims, user) => {
       stub.claims = claims();
       const { handler, reached } = route("any", { passwordSetup: true });
       const result = await send(handler, "POST");
       expect(result.status).toBe(200);
       expect(result.body).toEqual({ ok: true, uid: user.uid });
-      // The handler is told who it is and nothing about the password or the missing factor.
+      // The handler is told who it is and nothing about the password.
       expect(reached).toEqual([{ user, nowMs: NOW, body: {} }]);
     });
 
@@ -504,8 +552,10 @@ describe("a route on the live site", () => {
       }
     });
 
-    it("refuses them there with a second factor as well: it is the password that is missing", async () => {
-      for (const claims of [pledgeClaims({ ...TEMP }), activeClaims({ ...TEMP }), adminClaims({ ...TEMP })]) {
+    // It is the password that is missing. Whatever the sign-in says of a second factor, and
+    // whoever the token says the account is, nothing else opens until it is replaced.
+    it("refuses an admin whose token carries the flag in the same way, and a token that carries a second factor", async () => {
+      for (const claims of [adminClaims({ ...TEMP }), pledgeClaims({ ...TEMP, firebase: WITH_SECOND_FACTOR }), activeClaims({ ...TEMP, firebase: undefined })]) {
         stub.claims = claims;
         for (const role of KINDS_OF_ROUTE) {
           const { handler, reached } = route(role);
@@ -517,40 +567,29 @@ describe("a route on the live site", () => {
       }
     });
 
-    // Nobody is asked for a second factor, so for everyone else this route is
-    // gated like any other: by sign-in and by role.
-    it("treats everyone else on that route as on any other, with or without a second factor", async () => {
+    // For everyone else this route is gated like any other: by sign-in and by role.
+    it("treats everyone else on that route as on any other", async () => {
       for (const claims of [
-        pledgeClaims({ firebase: PASSWORD_ONLY }),
-        activeClaims({ firebase: {} }),
-        adminClaims({ firebase: undefined }),
+        pledgeClaims(),
+        activeClaims(),
+        adminClaims(),
         // A flag that is not exactly true is no flag at all.
-        pledgeClaims({ temp: "true", firebase: PASSWORD_ONLY }),
-        activeClaims({ temp: 1, firebase: PASSWORD_ONLY }),
-        pledgeClaims({ temp: false, firebase: PASSWORD_ONLY }),
+        pledgeClaims({ temp: "true" }),
+        activeClaims({ temp: 1 }),
+        pledgeClaims({ temp: false }),
       ]) {
         stub.claims = claims;
         const { handler, reached } = route("any", { passwordSetup: true });
         for (const method of ["GET", "POST"] as const) {
           const result = await send(handler, method);
           expect(result.status, JSON.stringify(claims)).toBe(200);
-          expect(result.body.code, JSON.stringify(claims)).not.toBe(MFA_REQUIRED.code);
         }
-        expect(reached).toHaveLength(2);
-      }
-    });
-
-    it("lets an account with its own password and a second factor through that route like any other", async () => {
-      for (const claims of [pledgeClaims(), activeClaims(), adminClaims()]) {
-        stub.claims = claims;
-        const { handler, reached } = route("any", { passwordSetup: true });
-        expect((await send(handler, "POST")).status).toBe(200);
-        expect(reached.map((call) => call.user.uid)).toEqual([claims.uid]);
+        expect(reached.map((call) => call.user.uid)).toEqual([claims.uid, claims.uid]);
       }
     });
 
     it("holds a route for choosing a password to its role all the same", async () => {
-      stub.claims = pledgeClaims({ ...TEMP, firebase: PASSWORD_ONLY });
+      stub.claims = pledgeClaims({ ...TEMP });
       for (const role of ["admin", "active"] as const) {
         const { handler, reached } = route(role, { passwordSetup: true });
         const result = await send(handler, "POST");
@@ -573,7 +612,7 @@ describe("a route on the live site", () => {
       // Whether the temporary password is still good, has run out, or never said when it was issued:
       // each of these is what is wrong with the account first.
       for (const password of [TEMP, issued(TIMING.temporaryPasswordMs + SECOND), { temp: true }]) {
-        stub.claims = pledgeClaims({ ...password, firebase: PASSWORD_ONLY, ...overrides });
+        stub.claims = pledgeClaims({ ...password, ...overrides });
         for (const more of [{ passwordSetup: true }, {}]) {
           const { handler, reached } = route("any", more);
           const result = await send(handler, "POST");
@@ -584,7 +623,7 @@ describe("a route on the live site", () => {
     });
 
     it("gives no way in to an admin claim that is not on the list, temporary password or not", async () => {
-      stub.claims = adminClaims({ ...TEMP, uid: "rogue", email: "former.chair@uci.edu", firebase: PASSWORD_ONLY });
+      stub.claims = adminClaims({ ...TEMP, uid: "rogue", email: "former.chair@uci.edu" });
       for (const more of [{ passwordSetup: true }, {}]) {
         const { handler, reached } = route("any", more);
         const result = await send(handler, "POST");
@@ -595,7 +634,7 @@ describe("a route on the live site", () => {
     });
 
     it("still refuses a revoked or disabled account there, and still checks for both", async () => {
-      stub.claims = pledgeClaims({ ...TEMP, firebase: PASSWORD_ONLY });
+      stub.claims = pledgeClaims({ ...TEMP });
       const { handler, reached } = route("any", { passwordSetup: true });
       for (const [thrown, code] of [
         ["auth/id-token-revoked", "session_revoked"],
@@ -615,7 +654,7 @@ describe("a route on the live site", () => {
     });
 
     it("holds that route to the ceiling for changes: 30 a minute, and the 31st is refused", async () => {
-      stub.claims = pledgeClaims({ ...TEMP, firebase: PASSWORD_ONLY });
+      stub.claims = pledgeClaims({ ...TEMP });
       const { handler, reached } = route("any", { passwordSetup: true });
       for (let index = 0; index < RATE_LIMITS.writesPerMinute; index += 1) expect((await send(handler, "POST")).status).toBe(200);
       const refused = await send(handler, "POST");
@@ -624,7 +663,7 @@ describe("a route on the live site", () => {
     });
 
     it("does not count the requests it refuses against the account", async () => {
-      stub.claims = pledgeClaims({ ...TEMP, firebase: PASSWORD_ONLY });
+      stub.claims = pledgeClaims({ ...TEMP });
       const elsewhere = route("any");
       for (let index = 0; index < RATE_LIMITS.writesPerMinute + 5; index += 1) expect((await send(elsewhere.handler, "POST")).status).toBe(403);
       // The whole allowance for changes is still there for choosing the password.
@@ -640,7 +679,7 @@ describe("a route on the live site", () => {
 
       it("lets the account choose a password exactly 72 hours on, and refuses it one second later, and one millisecond later", async () => {
         expect(LIMIT).toBe(72 * HOUR);
-        stub.claims = pledgeClaims({ ...issued(LIMIT), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(LIMIT) });
         const { handler, reached } = choosing();
         expect((await send(handler, "POST")).status).toBe(200);
 
@@ -652,7 +691,7 @@ describe("a route on the live site", () => {
 
         // And one issued a second earlier, at the first moment.
         vi.setSystemTime(NOW);
-        stub.claims = pledgeClaims({ ...issued(LIMIT + SECOND), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(LIMIT + SECOND) });
         const later = await send(handler, "POST");
         expect(later.status).toBe(403);
         expect(later.body).toEqual(EXPIRED);
@@ -676,7 +715,7 @@ describe("a route on the live site", () => {
         }
       });
 
-      it("refuses them with a second factor as well, and an admin whose token carries the flag", async () => {
+      it("refuses an admin whose token carries the flag as well, however long ago the password ran out", async () => {
         for (const claims of [pledgeClaims(issued(LIMIT + SECOND)), activeClaims(issued(LIMIT + HOUR)), adminClaims(issued(30 * 24 * HOUR))]) {
           stub.claims = claims;
           for (const more of [{}, { passwordSetup: true }]) {
@@ -699,7 +738,7 @@ describe("a route on the live site", () => {
         ["nought", 0],
         ["a negative number", -5],
       ])("counts the password as expired when the time it was issued is %s", async (_label, tempAt) => {
-        stub.claims = pledgeClaims({ temp: true, tempAt, firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ temp: true, tempAt });
         for (const more of [{ passwordSetup: true }, {}]) {
           const { handler, reached } = route("any", more);
           const result = await send(handler, "POST");
@@ -713,7 +752,7 @@ describe("a route on the live site", () => {
       // Anything further ahead is not a time the portal wrote, and must not mean "never expires".
       it("accepts a time exactly five minutes ahead of the clock, and refuses one a second, or a millisecond, further", async () => {
         const { handler, reached } = choosing();
-        stub.claims = pledgeClaims({ ...issued(-5 * MINUTE), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(-5 * MINUTE) });
         expect((await send(handler, "POST")).status).toBe(200);
         expect((await send(route("any").handler, "POST")).body).toEqual({ error: "Choose your own password to continue.", code: "password_change_required" });
 
@@ -723,7 +762,7 @@ describe("a route on the live site", () => {
         vi.setSystemTime(NOW);
 
         for (const ahead of [5 * MINUTE + SECOND, HOUR, 365 * 24 * HOUR]) {
-          stub.claims = pledgeClaims({ ...issued(-ahead), firebase: PASSWORD_ONLY });
+          stub.claims = pledgeClaims({ ...issued(-ahead) });
           for (const target of [handler, route("any").handler]) {
             const result = await send(target, "POST");
             expect(result.status, `${ahead} ms ahead`).toBe(403);
@@ -735,7 +774,7 @@ describe("a route on the live site", () => {
 
       it("counts a time written in milliseconds by mistake as expired", async () => {
         for (const tempAt of [NOW, NOW - HOUR, NOW - 60_000]) {
-          stub.claims = pledgeClaims({ temp: true, tempAt, firebase: PASSWORD_ONLY });
+          stub.claims = pledgeClaims({ temp: true, tempAt });
           const { handler, reached } = choosing();
           const result = await send(handler, "POST");
           expect(result.status).toBe(403);
@@ -746,7 +785,7 @@ describe("a route on the live site", () => {
 
       it("judges it by when the request arrived, not by when its token finished being verified", async () => {
         // The three days are up as this request arrives; verifying the token then takes five seconds.
-        stub.claims = pledgeClaims({ ...issued(LIMIT), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(LIMIT) });
         stub.whileVerifying = () => vi.setSystemTime(NOW + 5_000);
         const { handler, reached } = choosing();
         expect((await send(handler, "POST")).status).toBe(200);
@@ -754,11 +793,11 @@ describe("a route on the live site", () => {
       });
 
       it("does not count the requests it refuses against the account", async () => {
-        stub.claims = pledgeClaims({ ...issued(LIMIT + SECOND), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(LIMIT + SECOND) });
         const { handler } = choosing();
         for (let index = 0; index < RATE_LIMITS.writesPerMinute + 5; index += 1) expect((await send(handler, "POST")).status).toBe(403);
         // Given a new temporary password, the account has its whole allowance to choose its own with.
-        stub.claims = pledgeClaims({ ...issued(MINUTE), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...issued(MINUTE) });
         expect((await send(handler, "POST")).status).toBe(200);
       });
 
@@ -766,7 +805,7 @@ describe("a route on the live site", () => {
         const RAN_OUT = issued(LIMIT + SECOND);
 
         it("reports a sign-in more than 12 hours old first, with 401", async () => {
-          stub.claims = pledgeClaims({ ...RAN_OUT, auth_time: (NOW - 13 * HOUR) / SECOND, firebase: PASSWORD_ONLY });
+          stub.claims = pledgeClaims({ ...RAN_OUT, auth_time: (NOW - 13 * HOUR) / SECOND });
           for (const more of [{ passwordSetup: true }, {}]) {
             const result = await send(route("any", more).handler, "POST");
             expect(result.status).toBe(401);
@@ -774,8 +813,8 @@ describe("a route on the live site", () => {
           }
         });
 
-        it("says the password has expired before it asks for a new one, for a second factor, or says the route is somebody else's", async () => {
-          for (const claims of [pledgeClaims({ ...RAN_OUT, firebase: PASSWORD_ONLY }), activeClaims({ ...RAN_OUT, firebase: {} }), pledgeClaims(RAN_OUT)]) {
+        it("says the password has expired before it asks for a new one, or says the route is somebody else's", async () => {
+          for (const claims of [pledgeClaims(RAN_OUT), activeClaims(RAN_OUT), adminClaims(RAN_OUT), pledgeClaims({ ...RAN_OUT, firebase: WITH_SECOND_FACTOR })]) {
             stub.claims = claims;
             for (const role of KINDS_OF_ROUTE) {
               for (const more of [{}, { passwordSetup: true }]) {
@@ -791,7 +830,7 @@ describe("a route on the live site", () => {
 
         it("says so with 403 before it would turn away a sign-in too old to choose a password with", async () => {
           for (const msAgo of [TIMING.passwordSetupMs + SECOND, HOUR, TIMING.maxSessionAgeMs]) {
-            stub.claims = pledgeClaims({ ...RAN_OUT, auth_time: (NOW - msAgo) / SECOND, firebase: PASSWORD_ONLY });
+            stub.claims = pledgeClaims({ ...RAN_OUT, auth_time: (NOW - msAgo) / SECOND });
             const result = await send(choosing().handler, "POST");
             expect(result.status, `${msAgo} ms`).toBe(403);
             expect(result.body, `${msAgo} ms`).toEqual(EXPIRED);
@@ -830,7 +869,7 @@ describe("a route on the live site", () => {
 
       it("is only about choosing a password: an older sign-in is still told to choose one on every other route", async () => {
         for (const msAgo of [LIMIT + SECOND, HOUR, 11 * HOUR, TIMING.maxSessionAgeMs]) {
-          stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(msAgo), firebase: PASSWORD_ONLY });
+          stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(msAgo) });
           for (const role of KINDS_OF_ROUTE) {
             const { handler, reached } = route(role);
             const result = await send(handler);
@@ -864,19 +903,19 @@ describe("a route on the live site", () => {
       });
 
       it("turns the sign-in away before it says the route is somebody else's, and after it has checked the address", async () => {
-        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT + SECOND), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT + SECOND) });
         for (const role of ["admin", "active"] as const) {
           const result = await send(route(role, { passwordSetup: true }).handler, "POST");
           expect(result.status).toBe(401);
           expect(result.body).toEqual(SESSION_EXPIRED);
         }
-        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT + SECOND), email: "someone.else@uci.edu", firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT + SECOND), email: "someone.else@uci.edu" });
         const moved = await send(route("any", { passwordSetup: true }).handler, "POST");
         expect({ status: moved.status, code: moved.body.code }).toEqual({ status: 403, code: "email_not_allowed" });
       });
 
       it("judges the sign-in by when the request arrived", async () => {
-        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT), firebase: PASSWORD_ONLY });
+        stub.claims = pledgeClaims({ ...TEMP, auth_time: signedIn(LIMIT) });
         stub.whileVerifying = () => vi.setSystemTime(NOW + 5_000);
         const { handler, reached } = route("any", { passwordSetup: true });
         expect((await send(handler, "POST")).status).toBe(200);
@@ -1067,11 +1106,123 @@ async function realRoutes(): Promise<RealRoute[]> {
 const REAL_ROUTES = await realRoutes();
 const CHOOSE_PASSWORD = "POST /password";
 
-describe("the portal's own routes on the live site, for an account still on a temporary password", () => {
-  const sendTo = async (target: RealRoute): Promise<{ status: number; body: ApiErrorBody & Record<string, unknown> }> => {
-    const response = await target.handler(request(target.method), { params: Promise.resolve(target.params) });
-    return { status: response.status, body: (await response.json()) as ApiErrorBody & Record<string, unknown> };
+const sendTo = async (target: RealRoute): Promise<{ status: number; body: ApiErrorBody & Record<string, unknown> }> => {
+  const response = await target.handler(request(target.method), { params: Promise.resolve(target.params) });
+  return { status: response.status, body: (await response.json()) as ApiErrorBody & Record<string, unknown> };
+};
+
+// Every handler the portal has, called as each of the three roles with a token from a sign-in
+// with an email and a password. What a handler then does is not looked at here: with nothing
+// behind it to read from or write to, most can only fail. What is looked at is whether the
+// request got past the gate, and that is told from the account's allowance of requests, which
+// a request is counted against only once the gate has let it through.
+describe("the portal's own routes on the live site, for a sign-in with an email and a password", () => {
+  const ROLES = ["admin", "active", "pledge"] as const;
+  type CallerRole = (typeof ROLES)[number];
+  const CALLERS: Record<CallerRole, (overrides?: Record<string, unknown>) => Record<string, unknown>> = {
+    admin: adminClaims,
+    active: activeClaims,
+    pledge: pledgeClaims,
   };
+  /** The routes every role is let through to. Every other route is one role's alone. */
+  const SHARED = ["GET /me", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /sign-out"];
+  /** Who a route is for, going by the folder it is in: /admin for admins, /review for actives. */
+  const needOf = (label: string): "any" | CallerRole => {
+    const folder = label.slice(label.indexOf("/") + 1).split("/")[0];
+    if (folder === "admin") return "admin";
+    if (folder === "review") return "active";
+    return SHARED.includes(label) ? "any" : "pledge";
+  };
+  const mayCall = (role: CallerRole, label: string): boolean => needOf(label) === "any" || needOf(label) === role;
+  const NOT_YOURS = { error: "You don't have permission to do that.", code: "forbidden" };
+
+  /**
+   * How many of the account's requests for this minute have been used. The gate comes
+   * before the count, so after one request this is 1 if the gate let it through and 0 if not.
+   */
+  const counted = (uid: string): number => {
+    let left = 0;
+    // A whole minute's worth is asked for: all of it is still there, or all but what was used.
+    for (let index = 0; index < RATE_LIMITS.perMinute; index += 1) if (allowRequest(uid, NOW)) left += 1;
+    return RATE_LIMITS.perMinute - left;
+  };
+
+  let muted: Array<{ mockRestore: () => void }> = [];
+
+  beforeEach(() => {
+    // A handler with nothing behind it fails, and says so in the log. That is not what is being looked at.
+    muted = [vi.spyOn(console, "error").mockImplementation(() => undefined), vi.spyOn(console, "warn").mockImplementation(() => undefined)];
+  });
+
+  afterEach(() => {
+    for (const spy of muted) spy.mockRestore();
+  });
+
+  it("are forty, none of them for a second factor, and each either one role's or everyone's", () => {
+    const labels = REAL_ROUTES.map((candidate) => candidate.label);
+    expect(labels).toHaveLength(40);
+    expect(labels.filter((label) => /mfa|factor|totp|passcode|two-step|enrol/i.test(label))).toEqual([]);
+    expect(labels).not.toContain("POST /admin/pledges/[uid]/reset-mfa");
+    expect(labels).not.toContain("POST /admin/actives/[uid]/reset-mfa");
+    expect(labels.filter((label) => needOf(label) === "any").sort()).toEqual(SHARED);
+    expect(labels.filter((label) => needOf(label) === "active").sort()).toEqual(["GET /review/forms/[formId]", "GET /review/overview"]);
+    expect(labels.filter((label) => needOf(label) === "pledge")).toHaveLength(6);
+    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(27);
+  });
+
+  it("can tell a request the gate let through from one it did not", async () => {
+    const me = REAL_ROUTES.find((candidate) => candidate.label === "GET /me");
+    if (!me) throw new Error("GET /me was not found among the routes.");
+    expect(counted("pledge1")).toBe(0);
+    resetRateLimits();
+    await sendTo(me);
+    expect(counted("pledge1")).toBe(1);
+    // Refused by the gate, for a sign-in that is too old: nothing is counted.
+    resetRateLimits();
+    stub.claims = pledgeClaims({ auth_time: (NOW - 13 * HOUR) / SECOND });
+    expect((await sendTo(me)).body.code).toBe("session_expired");
+    expect(counted("pledge1")).toBe(0);
+  });
+
+  it.each(REAL_ROUTES)("$label lets it through for the role the route is for, and for no other", async (target) => {
+    for (const role of ROLES) {
+      // Whatever the token says of a second factor: nothing, as here, or that there was one.
+      for (const firebase of [PASSWORD_ONLY, undefined, WITH_SECOND_FACTOR]) {
+        resetRateLimits();
+        stub.read.length = 0;
+        stub.lookedUp.length = 0;
+        stub.claims = CALLERS[role]({ firebase });
+        const uid = String(stub.claims.uid);
+        const result = await sendTo(target);
+        const label = `${role}, with ${JSON.stringify(firebase)}`;
+
+        expect(result.body.code, label).not.toBe("mfa_required");
+        expect(JSON.stringify(result.body), label).not.toMatch(/two-step|second factor|verification|passcode|authenticator|duo/i);
+        if (mayCall(role, target.label)) {
+          expect(counted(uid), label).toBe(1);
+        } else {
+          expect(result.status, label).toBe(403);
+          expect(result.body, label).toEqual(NOT_YOURS);
+          expect(counted(uid), label).toBe(0);
+          // Refused before the handler ran: it looked nothing up.
+          expect(stub.read, label).toEqual([]);
+          expect(stub.lookedUp, label).toEqual([]);
+        }
+      }
+    }
+  });
+
+  it("leaves every role with routes of its own that a password alone opens", () => {
+    for (const role of ROLES) {
+      const own = REAL_ROUTES.filter((candidate) => needOf(candidate.label) === role);
+      expect(own.length, role).toBeGreaterThanOrEqual(2);
+      expect(own.every((candidate) => mayCall(role, candidate.label)), role).toBe(true);
+      expect(REAL_ROUTES.filter((candidate) => mayCall(role, candidate.label)), role).toHaveLength(own.length + SHARED.length);
+    }
+  });
+});
+
+describe("the portal's own routes on the live site, for an account still on a temporary password", () => {
   const choosePassword = (): RealRoute => {
     const found = REAL_ROUTES.find((candidate) => candidate.label === CHOOSE_PASSWORD);
     if (!found) throw new Error(`${CHOOSE_PASSWORD} was not found among the routes.`);
@@ -1098,8 +1249,8 @@ describe("the portal's own routes on the live site, for an account still on a te
   const PROFILE = "users/pledge1";
 
   beforeEach(() => {
-    // A first sign-in with the password a chair handed out: no second factor yet.
-    stub.claims = pledgeClaims({ ...TEMP, firebase: { sign_in_provider: "password" } });
+    // A first sign-in with the password a chair handed out.
+    stub.claims = pledgeClaims({ ...TEMP });
     stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu", ...TEMP };
     // Their profile, with the fingerprint of the password they were handed.
     stub.documents = {
@@ -1108,7 +1259,7 @@ describe("the portal's own routes on the live site, for an account still on a te
   });
 
   it("finds every route, and the one for choosing a password among them", () => {
-    expect(REAL_ROUTES.length).toBeGreaterThanOrEqual(42);
+    expect(REAL_ROUTES.length).toBeGreaterThanOrEqual(40);
     expect(new Set(REAL_ROUTES.map((candidate) => candidate.label)).size).toBe(REAL_ROUTES.length);
     expect(REAL_ROUTES.map((candidate) => candidate.label)).toEqual(
       expect.arrayContaining([CHOOSE_PASSWORD, "GET /me", "POST /onboarding", "POST /sign-out", "GET /dashboard", "GET /review/overview", "GET /admin/pledges"]),
@@ -1122,8 +1273,8 @@ describe("the portal's own routes on the live site, for an account still on a te
       expect(result.status).toBe(403);
       expect(result.body).toEqual({ error: "Choose your own password to continue.", code: "password_change_required" });
 
-      // And the same for an active, and for either of them once they have a second factor.
-      for (const claims of [activeClaims({ ...TEMP, firebase: {} }), pledgeClaims({ ...TEMP }), activeClaims({ ...TEMP })]) {
+      // And the same for an active, and for either of them whatever the token says of a second factor.
+      for (const claims of [activeClaims({ ...TEMP }), pledgeClaims({ ...TEMP, firebase: undefined }), activeClaims({ ...TEMP, firebase: WITH_SECOND_FACTOR })]) {
         stub.claims = claims;
         const again = await sendTo(target);
         expect({ status: again.status, code: again.body.code }).toEqual({ status: 403, code: "password_change_required" });
@@ -1132,11 +1283,11 @@ describe("the portal's own routes on the live site, for an account still on a te
   );
 
   it.each(REAL_ROUTES)("$label refuses it with 403 temporary_password_expired once the three days are up", async (target) => {
-    // A pledge and an active, with and without a second factor, a second past the limit and with no time at all.
+    // A pledge and an active, a second past the limit, a month past it and with no time at all.
     for (const claims of [
-      pledgeClaims({ ...issued(TIMING.temporaryPasswordMs + SECOND), firebase: { sign_in_provider: "password" } }),
-      activeClaims({ ...issued(TIMING.temporaryPasswordMs + SECOND), firebase: {} }),
-      pledgeClaims(issued(30 * 24 * HOUR)),
+      pledgeClaims(issued(TIMING.temporaryPasswordMs + SECOND)),
+      activeClaims(issued(TIMING.temporaryPasswordMs + SECOND)),
+      pledgeClaims({ ...issued(30 * 24 * HOUR), firebase: WITH_SECOND_FACTOR }),
       activeClaims({ temp: true }),
     ]) {
       stub.claims = claims;
@@ -1144,8 +1295,9 @@ describe("the portal's own routes on the live site, for an account still on a te
       expect(result.status).toBe(403);
       expect(result.body).toEqual(EXPIRED);
     }
-    // Before anything about the account was read.
+    // Before anything about the account was read: neither its profile nor the account itself.
     expect(stub.read).toEqual([]);
+    expect(stub.lookedUp).toEqual([]);
   });
 
   it("POST /password is the one it reaches: the request gets as far as being judged on the password it sent", async () => {
@@ -1157,14 +1309,14 @@ describe("the portal's own routes on the live site, for an account still on a te
   });
 
   it("POST /password turns away a sign-in more than 15 minutes old, with 401, before it reads anything", async () => {
-    stub.claims = pledgeClaims({ ...TEMP, auth_time: (NOW - TIMING.passwordSetupMs - SECOND) / SECOND, firebase: { sign_in_provider: "password" } });
+    stub.claims = pledgeClaims({ ...TEMP, auth_time: (NOW - TIMING.passwordSetupMs - SECOND) / SECOND });
     const result = await choose({ password: "quiet-harbor-lantern-47" });
     expect(result.status).toBe(401);
     expect(result.body).toEqual(SESSION_EXPIRED);
     expect(stub.read).toEqual([]);
 
     // Exactly 15 minutes old, it is judged on its password like any other.
-    stub.claims = pledgeClaims({ ...TEMP, auth_time: (NOW - TIMING.passwordSetupMs) / SECOND, firebase: { sign_in_provider: "password" } });
+    stub.claims = pledgeClaims({ ...TEMP, auth_time: (NOW - TIMING.passwordSetupMs) / SECOND });
     expect((await choose({ password: "short" })).body).toEqual(weak("Use at least 10 characters."));
   });
 
@@ -1177,8 +1329,60 @@ describe("the portal's own routes on the live site, for an account still on a te
       expect(result.status, String(tempAt)).toBe(403);
       expect(result.body, String(tempAt)).toEqual(EXPIRED);
     }
+    // The account was asked each time, and that settled it: the profile was not read.
+    expect(stub.lookedUp).toEqual(["pledge1", "pledge1", "pledge1", "pledge1", "pledge1"]);
+    expect(stub.read).toEqual([]);
     // Exactly at the limit on the account, the request goes on to the password.
     stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu", ...issued(TIMING.temporaryPasswordMs) };
+    expect((await choose({ password: "short" })).body).toEqual(weak("Use at least 10 characters."));
+    expect(stub.read).toEqual([PROFILE]);
+  });
+
+  // Firebase changes an account's password for whoever is signed in to it, and signs in whoever
+  // has a temporary password however long ago it ran out. A password changed that way is not one
+  // a chair issued, so it is no reason to let an expired account choose its own here.
+  it("POST /password refuses an expired account whatever has become of its password since, and reads no profile to decide", async () => {
+    const RAN_OUT = issued(TIMING.temporaryPasswordMs + SECOND);
+    const HASH_AT_ISSUE = "lSrfV15cpx95/sZS2W9c9Kp6i/LVgQNDNC/qzrCnh1SAyZvqmZqAjTdn3aoItz+VHjoZilo78198JAdRuid5lQ==";
+    const HASH_SINCE = "b3RoZXItaGFzaC1mb3ItdGhlLXNhbWUtYWNjb3VudA==";
+    // A profile that says, beside the fingerprint, how the password was stored when it was issued.
+    const marked = { ...fingerprint(ISSUED), account: "754a92e9278c560f2a862c43ce719de9dc2417bb65d65b94718ed7db5376093f", accountHash: HASH_AT_ISSUE };
+    const profiles: Array<Record<string, unknown>> = [fingerprint(ISSUED), marked].map((temporaryPassword) => ({
+      email: "avery.chen@uci.edu",
+      displayName: "Rowan Ellis",
+      role: "pledge",
+      status: "active",
+      temporaryPassword,
+    }));
+    const bodies = [{ password: "quiet-harbor-lantern-47" }, { password: "short" }, { password: ISSUED }, {}];
+    let asked = 0;
+
+    for (const profile of profiles) {
+      stub.documents = { [PROFILE]: profile };
+      for (const accountHash of [HASH_SINCE, HASH_AT_ISSUE, "", null, undefined]) {
+        stub.accountHash = accountHash;
+        // The account says it ran out, whether the token is from before that or after.
+        stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu", ...RAN_OUT };
+        for (const inToken of [RAN_OUT, TEMP]) {
+          stub.claims = pledgeClaims({ ...inToken });
+          for (const body of bodies) {
+            resetRateLimits();
+            const result = await choose(body);
+            expect(result.status, JSON.stringify({ accountHash, inToken, body })).toBe(403);
+            expect(result.body, JSON.stringify({ accountHash, inToken, body })).toEqual(EXPIRED);
+            asked += 1;
+          }
+        }
+      }
+    }
+    expect(asked).toBe(2 * 5 * 2 * 4);
+    // No profile was read for any of them. The account was looked up only for a token that was still in time.
+    expect(stub.read).toEqual([]);
+    expect(stub.lookedUp).toHaveLength(asked / 2);
+
+    // The same account in time is judged on its password, changed or not.
+    stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu", ...TEMP };
+    stub.accountHash = HASH_SINCE;
     expect((await choose({ password: "short" })).body).toEqual(weak("Use at least 10 characters."));
   });
 
@@ -1221,14 +1425,9 @@ describe("the portal's own routes on the live site, for an account still on a te
     expect(JSON.stringify(result.body)).not.toContain(password);
   });
 
-  it("POST /password answers everyone else, second factor or not, that there is nothing to do", async () => {
+  it("POST /password answers everyone else that there is nothing to do", async () => {
     stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu" };
-    for (const claims of [
-      pledgeClaims({ firebase: { sign_in_provider: "password" } }),
-      activeClaims({ firebase: {} }),
-      adminClaims({ firebase: undefined }),
-      pledgeClaims({ temp: "true", firebase: {} }),
-    ]) {
+    for (const claims of [pledgeClaims(), activeClaims(), adminClaims(), pledgeClaims({ temp: "true" }), pledgeClaims({ firebase: WITH_SECOND_FACTOR })]) {
       stub.claims = claims;
       const result = await sendTo(choosePassword());
       expect(result.status).toBe(409);
@@ -1236,13 +1435,13 @@ describe("the portal's own routes on the live site, for an account still on a te
     }
   });
 
-  it("POST /password tells an account that already has its own password, and a second factor, that there is nothing to do", async () => {
+  it("POST /password tells an account that already has its own password that there is nothing to do, in these words", async () => {
     stub.claims = pledgeClaims();
     stub.accountClaims = { role: "pledge", issued: "avery.chen@uci.edu" };
     const result = await sendTo(choosePassword());
     expect(result.status).toBe(409);
     expect(result.body).toEqual({
-      error: "This account already has its own password. Use Forgot password to change it.",
+      error: "This account already has its own password. Ask an active or an admin if it needs changing.",
       code: "not_required",
     });
   });

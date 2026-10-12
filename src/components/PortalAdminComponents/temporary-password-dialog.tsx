@@ -65,8 +65,9 @@ export const TemporaryPassword: React.FC<TemporaryPasswordProps> = (props) => {
         {password}
       </p>
       <p className="mt-3 text-sm text-muted-foreground">
-        Pass this to {name} yourself. It works for 3 days, and their next sign-in makes them replace
-        it with their own. It is shown once, so copy it now.
+        Give this to {name} in person, or send it to their own UCI address, never to whoever asked
+        for it. It works for 3 days, and their next sign-in makes them replace it. It is shown once,
+        so copy it now.
       </p>
       {copyFailed ? (
         <p role="alert" className="mt-2 text-sm text-danger-ink">

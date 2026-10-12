@@ -2,14 +2,15 @@
  * One-time setup of the real Firebase project for the Founder's Education portal.
  *
  *   npm run portal:setup                       apply settings and create the admins
- *   npm run portal:setup -- --reset-credentials   also reset every admin's password and two-step
+ *   npm run portal:setup -- --reset-credentials   also reset every admin's password
  *
  * It reads the same variables as the site (see .env.example) from .env.local:
  * FIREBASE_PROJECT_ID, FIREBASE_CLIENT_EMAIL, FIREBASE_PRIVATE_KEY and
  * PORTAL_ADMIN_EMAILS. It is safe to run more than once.
  *
  * What it does:
- *   1. Keeps multi-factor sign-in off. The portal signs in with email and password.
+ *   1. Keeps multi-factor sign-in off, and removes any authenticator left on an
+ *      account. The portal signs in with email and password.
  *   2. Turns off self sign-up and self-deletion, so only admins create accounts.
  *   3. Turns on email-enumeration protection and a minimum password length.
  *   4. Creates the admin accounts and prints a set-password link for each.
@@ -88,6 +89,33 @@ async function enableSecuritySettings() {
   out("  Self sign-up and self-deletion: off");
 }
 
+/**
+ * The portal has no screen for a second sign-in step, so an authenticator left
+ * on an account from an earlier version would lock its owner out. A failure
+ * here is reported and does not stop the rest of the setup.
+ */
+async function removeAuthenticators() {
+  let cleared = 0;
+  let failed = 0;
+  let pageToken;
+  do {
+    const page = await auth.listUsers(1000, pageToken);
+    for (const account of page.users) {
+      if ((account.multiFactor?.enrolledFactors.length ?? 0) === 0) continue;
+      // One account that cannot be changed does not stop the rest being checked.
+      try {
+        await auth.updateUser(account.uid, { multiFactor: { enrolledFactors: null } });
+        cleared += 1;
+      } catch {
+        failed += 1;
+      }
+    }
+    pageToken = page.pageToken;
+  } while (pageToken);
+  if (cleared > 0) out(`  Removed an authenticator from ${cleared} account(s)`);
+  if (failed > 0) out(`  Could not remove an authenticator from ${failed} account(s). Clear them in the Firebase console.`);
+}
+
 async function ensureAdmin(email) {
   let record;
   let existed = true;
@@ -151,6 +179,12 @@ try {
       "Check that the project has been upgraded to Firebase Authentication with Identity Platform\n" +
       "(Firebase console > Authentication > Sign-in method > Advanced) and that the service account can edit it.",
   );
+}
+
+try {
+  await removeAuthenticators();
+} catch (error) {
+  out(`  Could not check accounts for a leftover authenticator: ${error?.message ?? error}`);
 }
 
 out("\nAdmins");

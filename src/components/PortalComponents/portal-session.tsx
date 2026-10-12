@@ -160,9 +160,8 @@ const PortalSessionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       return;
     }
     const stopListening = onSessionEnded((error) => {
-      // Someone who has not chosen their own password or set up two-step
-      // verification finishes that on the sign-in page.
-      if (error.code === "mfa_required" || error.code === "password_change_required") {
+      // Someone who has not chosen their own password yet does that on the sign-in page.
+      if (error.code === "password_change_required") {
         router.replace(`/login?next=${encodeURIComponent(currentPath.current)}`);
       }
       else void signOut("ended");

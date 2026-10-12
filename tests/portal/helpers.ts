@@ -134,10 +134,22 @@ export async function issueTemporaryPasswordAgo(uid: string, msAgo: number): Pro
   await testAuth().setCustomUserClaims(uid, { ...claims, tempAt: Math.floor((Date.now() - msAgo) / 1000) });
 }
 
-/** The fingerprint a profile keeps of the temporary password its account was last given, if any. */
-export async function storedFingerprint(uid: string): Promise<{ salt: unknown; hash: unknown } | null> {
+/**
+ * What a profile keeps of a temporary password the portal issued, for `toEqual`: a salt and
+ * a hash of the password. Exactly these, and nothing of how Firebase stores the account's own.
+ */
+export const A_KEPT_FINGERPRINT = {
+  salt: expect.stringMatching(/^[0-9a-f]{32}$/),
+  hash: expect.stringMatching(/^[0-9a-f]{64}$/),
+};
+
+/**
+ * The fingerprint a profile keeps of the temporary password its account was last given, if
+ * any: every field of it, so that one with a field too many or too few does not pass for one.
+ */
+export async function storedFingerprint(uid: string): Promise<Record<string, unknown> | null> {
   const kept = (await docData(`users/${uid}`))?.temporaryPassword;
-  return isRecord(kept) ? { salt: kept.salt, hash: kept.hash } : null;
+  return isRecord(kept) ? { ...kept } : null;
 }
 
 /** Every salt and hash the portal has stored, to search what it sends for. */
@@ -147,6 +159,28 @@ export async function everyStoredFingerprint(): Promise<string[]> {
     const kept: unknown = doc.get("temporaryPassword");
     return isRecord(kept) ? [String(kept.salt), String(kept.hash)] : [];
   });
+}
+
+/**
+ * Sets a password through a reset link the portal had no part in, as when "Reset password"
+ * is used on the account in the Firebase console: a reset code is made for the address and
+ * redeemed as the reset page redeems one. True when the code was taken. Unlike the portal's
+ * own "Get password link", nothing on the account but its password changes.
+ */
+export async function setPasswordByResetLink(email: string, newPassword: string): Promise<boolean> {
+  const link = await testAuth().generatePasswordResetLink(email);
+  const oobCode = new URL(link).searchParams.get("oobCode") ?? "";
+  return redeemResetCode(oobCode, newPassword);
+}
+
+/**
+ * Changes a signed-in account's password through Firebase itself, with nothing but the
+ * session's own ID token: what `updatePassword` does in the browser SDK. No link is emailed
+ * and no mailbox is involved. True when Firebase took the new password.
+ */
+export async function changeOwnPassword(session: Session, newPassword: string): Promise<boolean> {
+  const { ok } = await postIdentity("update", { idToken: session.token, password: newPassword, returnSecureToken: true });
+  return ok;
 }
 
 /**
@@ -357,6 +391,43 @@ export async function signInEarlyInASecond(email: string, password: string = DEM
   throw new Error(`Could not sign in as ${email} early enough in a clock second.`);
 }
 
+// ── A second factor, which the portal does not use ───────────────────────────
+
+/**
+ * A second factor as the Admin SDK attaches one to an account. The emulator
+ * can hold one that works by text message. It has no authenticator-app kind.
+ */
+export const A_SECOND_FACTOR = { uid: "factor1", phoneNumber: "+15555550100", displayName: "Phone", factorId: "phone" };
+
+/** How many second factors an account has attached. */
+export async function secondFactorsOf(uid: string): Promise<number> {
+  return (await testAuth().getUser(uid)).multiFactor?.enrolledFactors.length ?? 0;
+}
+
+/**
+ * Attaches a second factor to an account through Firebase itself, behind the
+ * portal's back. The portal has no way to do this, and no screen that asks for one.
+ */
+export async function attachSecondFactor(uid: string): Promise<void> {
+  await testAuth().updateUser(uid, { multiFactor: { enrolledFactors: [A_SECOND_FACTOR] } });
+  if ((await secondFactorsOf(uid)) !== 1) throw new Error(`The emulator did not keep a second factor on ${uid}.`);
+}
+
+/** Takes every second factor off an account through Firebase itself, to leave it as it was found. */
+export async function detachSecondFactors(uid: string): Promise<void> {
+  await testAuth().updateUser(uid, { multiFactor: { enrolledFactors: null } });
+}
+
+/**
+ * True when the right email and password get no sign-in, only a challenge for
+ * a second step: what Firebase answers for an account with a second factor
+ * attached. The portal has no second step, so such an account cannot get in.
+ */
+export async function signInStopsAtSecondFactor(email: string, password: string = DEMO_PASSWORD): Promise<boolean> {
+  const { ok, body } = await postIdentity("signInWithPassword", { email, password, returnSecureToken: true });
+  return ok && isRecord(body) && typeof body.mfaPendingCredential === "string" && body.idToken === undefined;
+}
+
 /** The Auth emulator's error code for a sign-in that is expected to fail, e.g. "USER_DISABLED". */
 export async function signInFailure(email: string, password: string = DEMO_PASSWORD): Promise<string> {
   const { ok, body } = await postIdentity("signInWithPassword", { email, password, returnSecureToken: true });
@@ -479,6 +550,10 @@ export function fingerprintLeak(body: unknown, handsOutATemporaryPassword: boole
   for (const [key, value] of keysWithin(body)) {
     if (key === "salt" || key === "hash") return `it has a "${key}"`;
     if (key !== "temporaryPassword") continue;
+    // The portal keeps nothing of the account's own password beside the fingerprint. Were it to,
+    // under `account`, that would be no more for sending than the rest. The name is harmless
+    // anywhere else, so it is looked for only here, and said first so that it goes by its own name.
+    if (isRecord(value) && "account" in value) return 'its "temporaryPassword" has an "account"';
     if (!handsOutATemporaryPassword) return 'it has a "temporaryPassword", and is not from a route that hands one out';
     if (value !== null && !(typeof value === "string" && TEMPORARY_PASSWORD.test(value))) {
       return 'its "temporaryPassword" is not a temporary password';

@@ -1,7 +1,7 @@
 import { FieldPath, FieldValue, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { applyHeartbeat } from "../activity";
 import { sanitizeDraftAnswers, validateAnswers } from "../answers";
-import { ID_PATTERN, TIMING } from "../constants";
+import { ID_PATTERN } from "../constants";
 import { evaluateForm, lateAfterMs, type EvaluatedForm, type FormLike } from "../form-state";
 import { countAnswerable } from "../form-schema";
 import { isRecord } from "../parse";
@@ -160,7 +160,6 @@ export async function getMe({ admin, user, now }: Caller): Promise<MeDto> {
     createdAt: profile ? iso(profile.createdAt) : null,
     team: isPledge ? await myTeam(cols, user.uid, profile.teamId) : null,
     onboardedAt: isMember && profile.onboardedAt ? iso(profile.onboardedAt) : null,
-    mfaEnforced: false,
     serverNow: now.toISOString(),
   };
 }
@@ -168,8 +167,8 @@ export async function getMe({ admin, user, now }: Caller): Promise<MeDto> {
 /**
  * Replaces a temporary password with one the person chose. This is the only
  * thing an account on a temporary password can do, and the only account that
- * can do it: everyone else changes their password through the emailed link,
- * which proves they still hold the mailbox.
+ * can do it: for everyone else an admin issues a new temporary password or a
+ * one-time link.
  */
 export async function replaceTemporaryPassword(
   { admin, user, now }: Caller,
@@ -182,7 +181,7 @@ export async function replaceTemporaryPassword(
     throw new HttpError(
       409,
       "not_required",
-      "This account already has its own password. Use Forgot password to change it.",
+      "This account already has its own password. Ask an active or an admin if it needs changing.",
     );
   }
   if (temporaryPasswordExpired(claims.tempAt, now.getTime())) {

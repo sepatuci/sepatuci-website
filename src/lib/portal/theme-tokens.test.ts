@@ -370,12 +370,11 @@ function uses(pattern: RegExp): Use[] {
 const located = (found: Use[]): string[] => found.map((use) => `${use.file}:${use.line} ${use.utility}`);
 
 /**
- * The only fixed neutrals the portal means to have, each with how many times
- * it appears. Anything else, and any extra copy of these, fails.
+ * The only fixed neutral the portal means to have, with how many times it
+ * appears. Anything else, and any extra copy of it, fails. There was a second,
+ * the white backing of a QR code, which went with the page that showed one.
  */
 const ALLOWED_NEUTRALS: Record<string, number> = {
-  // A QR code has to be dark on white to scan, in either theme.
-  "src/components/PortalAuthComponents/enroll-steps.tsx bg-white": 1,
   // The thumb of a switch, on its accent or grey track.
   "src/components/PortalComponents/primitives.tsx bg-white": 1,
 };
@@ -463,16 +462,18 @@ describe("the portal's components use the theme tokens", () => {
     expect(located(uses(WRITTEN_OUT_COLOUR))).toEqual([]);
   });
 
-  it("uses fixed black or white only in the two places that are meant to be the same in both themes", () => {
+  it("uses fixed black or white only in the one place that is meant to be the same in both themes", () => {
     const counted: Record<string, number> = {};
     for (const use of uses(NEUTRAL_UTILITY)) {
       const key = `${use.file} ${use.utility}`;
       counted[key] = (counted[key] ?? 0) + 1;
     }
     expect(counted).toEqual(ALLOWED_NEUTRALS);
-    expect(Object.keys(counted)).toHaveLength(2);
-    // Both are backings, not text: nothing in the portal is written in fixed black or white.
+    expect(Object.keys(counted)).toHaveLength(1);
+    // It is a backing, not text: nothing in the portal is written in fixed black or white.
     expect(located(uses(NEUTRAL_UTILITY)).filter((use) => !use.endsWith(" bg-white"))).toEqual([]);
+    // And none of the sign-in pages has one: the QR code that needed a white backing is not shown any more.
+    expect(located(uses(NEUTRAL_UTILITY)).filter((use) => use.startsWith("src/components/PortalAuthComponents/") || use.startsWith("src/app/login/"))).toEqual([]);
   });
 
   it("draws the mark in the progress grid in the page's colour, on a solid status fill and nowhere else", () => {

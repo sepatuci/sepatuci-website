@@ -149,8 +149,7 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
               {created.emailed
                 ? "We emailed them a link to set their password. It expires in about an hour."
                 : "The email couldn't be sent from here, so pass the link below to them yourself."}{" "}
-              If the link expires, they can get a fresh one from &quot;Forgot password?&quot; on the
-              sign-in page.
+              If the link expires, give them a new one from their page.
             </p>
           )}
           {created.inviteLink ? (

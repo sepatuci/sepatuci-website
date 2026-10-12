@@ -83,4 +83,3 @@ export function isLocalId(value: unknown): value is string {
 export const PORTAL_NAME = "Founder's Education Portal";
 export const PROGRAM_NAME = "Founder's Education";
 export const ORG_NAME = "Sigma Eta Pi at UC Irvine";
-export const TOTP_ISSUER = "SEP at UCI";

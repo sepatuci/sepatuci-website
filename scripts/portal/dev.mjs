@@ -57,7 +57,6 @@ const lines = [
   "  Signing in asks them to choose a password, then shows their welcome.",
   "  jordan.patel has a password already and still has the tour to do.",
   "",
-  "  Two-step verification is skipped here because the emulator cannot do it.",
   "  Password-reset links are printed in this terminal instead of being emailed.",
   "",
 ];

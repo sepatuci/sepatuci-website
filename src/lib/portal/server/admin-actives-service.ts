@@ -7,7 +7,6 @@ import type {
   InviteLinkDto,
   UserStatus,
 } from "../types";
-import type { PortalAdmin } from "./admin";
 import {
   authRecords,
   createMember,
@@ -16,7 +15,6 @@ import {
   lastSignIn,
   onTemporaryPassword,
   removeMember,
-  resetMemberMfa,
   updateMember,
 } from "./admin-pledges-service";
 import type { Caller } from "./pledge-service";
@@ -29,12 +27,10 @@ import { collections, iso, type UserDoc } from "./store";
  */
 
 function toActiveRow(
-  admin: PortalAdmin,
   uid: string,
   profile: UserDoc,
   record: UserRecord | undefined,
 ): ActiveRowDto {
-  const mfaEnrolled = (record?.multiFactor?.enrolledFactors.length ?? 0) > 0;
   const lastSignInAt = lastSignIn(record);
   const status: UserStatus =
     profile.status === "disabled" || record?.disabled === true ? "disabled" : "active";
@@ -42,9 +38,9 @@ function toActiveRow(
   let accountState: AccountState = "active";
   if (status === "disabled") accountState = "disabled";
   else if (onTemporaryPassword(record)) accountState = "invited";
-  // "Invited" means they have never reached the portal: no sign-in, no second
-  // factor, and they have not been through the welcome.
-  else if (!mfaEnrolled && lastSignInAt === null && profile.onboardedAt === null) {
+  // "Invited" means they have never reached the portal: no sign-in, and they
+  // have not been through the welcome.
+  else if (lastSignInAt === null && profile.onboardedAt === null) {
     accountState = "invited";
   }
 
@@ -55,7 +51,6 @@ function toActiveRow(
     status,
     signInBlocked: record ? record.disabled : status === "disabled",
     accountState,
-    mfaEnrolled,
     createdAt: iso(profile.createdAt),
     lastSignInAt,
   };
@@ -68,7 +63,7 @@ export async function listActives({ admin, now }: Caller): Promise<ActivesDto> {
     snapshot.docs.map((doc) => doc.id),
   );
   const actives = snapshot.docs
-    .map((doc) => toActiveRow(admin, doc.id, doc.data(), records.get(doc.id)))
+    .map((doc) => toActiveRow(doc.id, doc.data(), records.get(doc.id)))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
   return { serverNow: now.toISOString(), actives };
 }
@@ -80,7 +75,7 @@ export async function createActive(
 ): Promise<CreateActiveResultDto> {
   const created = await createMember(caller, body, origin, "active");
   return {
-    active: toActiveRow(caller.admin, created.record.uid, created.profile, created.record),
+    active: toActiveRow(created.record.uid, created.profile, created.record),
     inviteLink: created.inviteLink,
     temporaryPassword: created.temporaryPassword,
   };
@@ -94,9 +89,6 @@ export const removeActive = (
   uid: string,
   confirmEmail: string | null,
 ): Promise<{ ok: true }> => removeMember(caller, uid, confirmEmail, "active");
-
-export const resetActiveMfa = (caller: Caller, uid: string): Promise<{ ok: true }> =>
-  resetMemberMfa(caller, uid, "active");
 
 export const issueActiveTemporaryPassword = (caller: Caller, uid: string) =>
   issueTemporaryPassword(caller, uid, "active");

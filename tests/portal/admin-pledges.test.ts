@@ -1,14 +1,13 @@
 /**
  * Admin management of pledge accounts and punishments. Tests run in order from
  * a fresh seed: read-only checks first, then creation, then the changes that
- * disable, reset and finally remove seeded pledges.
+ * disable and finally remove seeded pledges.
  */
 import { Timestamp } from "firebase-admin/firestore";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { GET as getResponses } from "@/app/api/portal/admin/forms/[formId]/responses/route";
 import { POST as createInviteLink } from "@/app/api/portal/admin/pledges/[uid]/invite-link/route";
 import { POST as addPunishment } from "@/app/api/portal/admin/pledges/[uid]/punishments/route";
-import { POST as resetMfa } from "@/app/api/portal/admin/pledges/[uid]/reset-mfa/route";
 import { DELETE as removePledge, GET as getPledgeDetail, PATCH as updatePledge } from "@/app/api/portal/admin/pledges/[uid]/route";
 import { POST as issuePassword } from "@/app/api/portal/admin/pledges/[uid]/temporary-password/route";
 import { GET as getOverview, POST as createPledge } from "@/app/api/portal/admin/pledges/route";
@@ -35,6 +34,7 @@ import {
   ADMIN_ONE,
   ADMIN_TWO,
   AVERY,
+  A_KEPT_FINGERPRINT,
   CASEY,
   DANA,
   JORDAN,
@@ -48,10 +48,12 @@ import {
   SLOW_TEST_MS,
   TEAM_ATLAS,
   TEMPORARY_PASSWORD,
+  attachSecondFactor,
   call,
   countAll,
   countSessions,
   countWhere,
+  detachSecondFactors,
   docData,
   docExists,
   everyStoredFingerprint,
@@ -134,11 +136,27 @@ describe("overview", () => {
       email: CASEY,
       accountState: "invited",
       lastSignInAt: null,
-      mfaEnrolled: false,
       submitted: {},
       activePunishments: 0,
       activity: { firstSeenAt: null, lastSeenAt: null, totalActiveSeconds: 0, sessionCount: 0, currentSessionStartedAt: null },
     });
+  });
+
+  // Sign-in is a password alone. A second factor attached to an account through Firebase is not
+  // something the portal set up, and says nothing of whether its owner has ever reached the portal.
+  it("goes by nothing but a visit or a sign-in: a second factor attached through Firebase leaves that pledge invited, and is not shown", async () => {
+    const before = await rowOf(caseyUid);
+    await attachSecondFactor(caseyUid);
+    try {
+      const row = await rowOf(caseyUid);
+      expect(row).toEqual(before);
+      expect(row.accountState).toBe("invited");
+      expect(row).not.toHaveProperty("mfaEnrolled");
+      expect((await detailOf(caseyUid)).pledge).toEqual(before);
+    } finally {
+      await detachSecondFactors(caseyUid);
+    }
+    expect(await rowOf(caseyUid)).toEqual(before);
   });
 
   it("carries each pledge's submissions, lateness, time on site and active punishments", async () => {
@@ -433,7 +451,6 @@ describe("creating a pledge", () => {
       pledgeClass: "Mu",
       status: "active",
       accountState: "invited",
-      mfaEnrolled: false,
       lastSignInAt: null,
       submitted: {},
       activePunishments: 0,
@@ -608,7 +625,6 @@ describe("admin accounts cannot be changed from inside the portal", () => {
     ["disable", () => patch(uid, { status: "disabled" })],
     ["rename", () => patch(uid, { displayName: "Renamed" })],
     ["remove", () => remove(uid, email)],
-    ["reset two-step", () => call(resetMfa, { uid }, { method: "POST", token: admin.token })],
     ["create a set-password link", () => call(createInviteLink, { uid }, { method: "POST", token: admin.token })],
     ["issue a temporary password", () => call(issuePassword, { uid }, { method: "POST", token: admin.token })],
     ["punish", () => call(addPunishment, { uid }, { method: "POST", token: admin.token, body: { title: "Nope" } })],
@@ -867,40 +883,6 @@ describe("disabling and re-enabling", () => {
         await testDb().doc(`users/${record.uid}`).delete();
       }
     });
-  });
-});
-
-describe("resetting two-step verification", () => {
-  it(
-    "signs the pledge out everywhere, keeps their account and data, and audits the reset",
-    async () => {
-      const before = await signIn(MAYA);
-      ok(await call(getMe, {}, { token: before.token }));
-      await sleep(1100);
-
-      expect(ok(await call(resetMfa, { uid: maya.uid }, { method: "POST", token: admin.token }))).toEqual({ ok: true });
-
-      refused(await call(getMe, {}, { token: before.token }), 401, "session_revoked");
-      refused(await call(getMe, {}, { token: maya.token }), 401, "session_revoked");
-
-      const record = await testAuth().getUser(maya.uid);
-      expect(record.disabled).toBe(false);
-      expect(record.multiFactor?.enrolledFactors ?? []).toEqual([]);
-      expect(await countWhere("submissions", "uid", maya.uid)).toBe(2);
-      expect(await latestAudit()).toMatchObject({
-        action: "pledge.reset_mfa",
-        targetId: maya.uid,
-        summary: `Reset two-step verification for ${MAYA}`,
-      });
-
-      const fresh = await signIn(MAYA);
-      ok(await call(getMe, {}, { token: fresh.token }));
-    },
-    SLOW_TEST_MS,
-  );
-
-  it("is not found for an unknown uid", async () => {
-    refused(await call(resetMfa, { uid: "nobody123" }, { method: "POST", token: admin.token }), 404, "not_found");
   });
 });
 
@@ -1166,7 +1148,7 @@ describe("accounts that only partly look like pledges", () => {
 
     refused(await patch(record.uid, { status: "disabled" }), 403, "cannot_modify_admin");
     refused(await remove(record.uid, email), 403, "cannot_modify_admin");
-    refused(await call(resetMfa, { uid: record.uid }, { method: "POST", token: admin.token }), 403, "cannot_modify_admin");
+    refused(await call(createInviteLink, { uid: record.uid }, { method: "POST", token: admin.token }), 403, "cannot_modify_admin");
     refused(await call(issuePassword, { uid: record.uid }, { method: "POST", token: admin.token }), 403, "cannot_modify_admin");
     const after = await testAuth().getUser(record.uid);
     expect(after.disabled).toBe(false);
@@ -1209,7 +1191,7 @@ describe("audit trail", () => {
 // A profile keeps a fingerprint of the temporary password its account was given, as a salt
 // and a hash. An admin's pages are built from the profiles, and are sent none of it.
 describe("a pledge who is on a temporary password", () => {
-  const FINGERPRINT = { salt: expect.stringMatching(/^[0-9a-f]{32}$/), hash: expect.stringMatching(/^[0-9a-f]{64}$/) };
+  const FINGERPRINT = A_KEPT_FINGERPRINT;
   let uid = "";
   let handedOut = "";
 
@@ -1233,7 +1215,9 @@ describe("a pledge who is on a temporary password", () => {
 
   it("is shown to an admin in the overview, on their page, among the responses and in the log with none of it", async () => {
     const kept = await everyStoredFingerprint();
+    // A salt and a hash for each account that is on a temporary password here.
     expect(kept.length).toBeGreaterThanOrEqual(2);
+    expect(kept.length % 2).toBe(0);
     const sent: Array<[string, Awaited<ReturnType<typeof call>>]> = [
       ["GET /admin/pledges", await call(getOverview, {}, { token: admin.token })],
       ["GET /admin/pledges/[uid]", await call(getPledgeDetail, { uid }, { token: admin.token })],
