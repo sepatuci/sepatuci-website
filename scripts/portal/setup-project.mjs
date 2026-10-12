@@ -9,7 +9,7 @@
  * PORTAL_ADMIN_EMAILS. It is safe to run more than once.
  *
  * What it does:
- *   1. Turns on two-step verification with authenticator apps (Duo Mobile).
+ *   1. Keeps multi-factor sign-in off. The portal signs in with email and password.
  *   2. Turns off self sign-up and self-deletion, so only admins create accounts.
  *   3. Turns on email-enumeration protection and a minimum password length.
  *   4. Creates the admin accounts and prints a set-password link for each.
@@ -57,10 +57,9 @@ const db = getFirestore(app);
 
 async function enableSecuritySettings() {
   await auth.projectConfigManager().updateProjectConfig({
-    multiFactorConfig: {
-      state: "ENABLED",
-      providerConfigs: [{ state: "ENABLED", totpProviderConfig: { adjacentIntervals: 1 } }],
-    },
+    // Off on purpose. Left on, any signed-in account could add an authenticator
+    // through Firebase directly, and the portal has no screen to ask for its code.
+    multiFactorConfig: { state: "DISABLED" },
     emailPrivacyConfig: { enableImprovedEmailPrivacy: true },
     passwordPolicyConfig: {
       enforcementState: "ENFORCE",
@@ -68,7 +67,7 @@ async function enableSecuritySettings() {
       constraints: { minLength: PASSWORD_MIN_LENGTH },
     },
   });
-  out("  Two-step verification (authenticator app), email privacy and password policy: on");
+  out("  Multi-factor sign-in: off. Email privacy and password policy: on");
 
   // Self sign-up and self-deletion have no Admin SDK setting, so this goes to the REST API.
   const { access_token: accessToken } = await credential.getAccessToken();
@@ -150,7 +149,7 @@ try {
   fail(
     `Could not apply the security settings: ${error?.message ?? error}\n\n` +
       "Check that the project has been upgraded to Firebase Authentication with Identity Platform\n" +
-      "(Firebase console > Authentication > Settings) and that the service account can edit it.",
+      "(Firebase console > Authentication > Sign-in method > Advanced) and that the service account can edit it.",
   );
 }
 
