@@ -26,7 +26,28 @@
     --input: 10 8% 9%;
     --ring: 263 83% 57%;
     --radius: 0.75rem;
-    
+
+    /* Portal tokens. Each status colour has four parts: the solid colour for
+       fills, a subtle background, a border, and "ink" for text. */
+    --field: 10 8% 9%;
+    --overlay: 0 0% 0% / 0.7;
+    --accent-subtle: 263 45% 13%;
+    --accent-border: 263 45% 30%;
+    --accent-ink: 252 95% 85%;
+    --success: 160 84% 39%;
+    --success-subtle: 164 60% 8%;
+    --success-border: 160 55% 22%;
+    --success-ink: 156 72% 67%;
+    --warning: 43 96% 56%;
+    --warning-subtle: 32 70% 9%;
+    --warning-border: 38 65% 26%;
+    --warning-ink: 46 97% 65%;
+    --danger: 0 84% 60%;
+    --danger-subtle: 0 55% 10%;
+    --danger-border: 0 55% 28%;
+    --danger-ink: 0 91% 76%;
+    --auth-backdrop: radial-gradient(ellipse at top, #0f0528 0%, #000000 55%);
+
     --spacing-xs: 0.25rem;
     --spacing-sm: 0.5rem;
     --spacing-md: 1rem;
@@ -69,6 +90,68 @@
     --border: 10 8% 14%;
     --input: 10 8% 9%;
     --ring: 263 83% 57%;
+  }
+
+  /* The sign-in pages and the portal, in light mode. The attribute is only on
+     <html> while one of those pages is showing, so the public site, which is
+     dark only, never sees any of this. Dark mode is the :root values above. */
+  html[data-portal-theme] {
+    color-scheme: dark;
+    /* The border of buttons and controls, strong enough to see on a card. */
+    --input: 10 6% 40%;
+  }
+  html[data-portal-theme="light"] {
+    color-scheme: light;
+    --background: 240 20% 98%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
+    --primary: 240 10% 10%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 240 9% 94%;
+    --secondary-foreground: 240 10% 15%;
+    --muted: 240 9% 95%;
+    --muted-foreground: 240 5% 38%;
+    --accent: 263 83% 57%;
+    --accent-foreground: 0 0% 100%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 240 8% 87%;
+    --input: 240 6% 54%;
+    --ring: 263 83% 57%;
+    --field: 0 0% 100%;
+    --overlay: 240 10% 10% / 0.45;
+    --accent-subtle: 262 90% 96%;
+    --accent-border: 262 75% 84%;
+    --accent-ink: 263 70% 45%;
+    --success: 161 94% 30%;
+    --success-subtle: 152 70% 95%;
+    --success-border: 152 50% 76%;
+    --success-ink: 163 94% 22%;
+    --warning: 32 95% 44%;
+    --warning-subtle: 48 96% 91%;
+    --warning-border: 40 80% 68%;
+    --warning-ink: 23 82% 29%;
+    --danger: 0 72% 51%;
+    --danger-subtle: 0 86% 97%;
+    --danger-border: 0 75% 85%;
+    --danger-ink: 0 74% 40%;
+    --auth-backdrop: radial-gradient(ellipse at top, hsl(262 90% 94%) 0%, hsl(240 20% 98%) 60%);
+  }
+
+  /* The only logo is a white mark. On a light page it is shown in black. */
+  html[data-portal-theme="light"] .portal-logo {
+    filter: brightness(0);
+  }
+  /* Both icons of the theme switch are in the page; the theme picks which shows. */
+  html[data-portal-theme="light"] .portal-when-dark,
+  html[data-portal-theme="dark"] .portal-when-light {
+    display: none;
+  }
+  .portal-auth-backdrop {
+    background: var(--auth-backdrop);
   }
 }
 

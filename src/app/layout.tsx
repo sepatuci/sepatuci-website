@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import { GeistSans } from "geist/font/sans";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next";
-import { SpeedInsights } from "@vercel/speed-insights/next"
+import AnalyticsClient from "@/components/AnalyticsClient";
+import { THEME_BOOT_SCRIPT } from "@/lib/portal/theme";
+import HideOnPortal from "@/components/HideOnPortal";
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer";
 import SplashScreen from "@/components/SplashScreenClient";
@@ -13,7 +14,7 @@ export const metadata: Metadata = {
     default: "SEP at UCI | Premier Entrepreneurship Fraternity",
     template: "%s | SEP at UCI"
   },
-  description: "UCI's startup community for student founders. Launch your startup at UC Irvine with 40+ entrepreneurs. 20+ startups launched, $1M+ funding raised. Open to all majors.",
+  description: "UCI's startup community for student founders. Launch your startup at UC Irvine with 40+ entrepreneurs. 30+ startups launched, $7M+ funding raised. Open to all majors.",
   keywords: ["UCI startups", "startup clubs UCI", "UCI entrepreneurship", "student founders UCI", "Irvine startup incubator", "UCI founder community", "Sigma Eta Pi", "SEP UCI", "how to start a startup at UCI", "UCI business fraternity"],
   authors: [{ name: "SEP at UCI" }],
   creator: "SEP at UCI",
@@ -93,21 +94,31 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang='en'>
+    <html lang='en' suppressHydrationWarning>
         <head>
           {/* Synchronous mask: on every real page load (refresh / direct URL)
               clear splashSeen and hide body content so the splash is the first
               thing painted. SPA navigations never re-run this script, so the
-              already-mounted SplashScreen component (visible=false) stays hidden. */}
+              already-mounted SplashScreen component (visible=false) stays hidden.
+              The sign-in and portal pages skip the splash, and mark it as seen
+              so the landing page still appears when someone navigates back to it. */}
           <script dangerouslySetInnerHTML={{__html:
             `try{` +
+            `var p=location.pathname;` +
+            `if(p==='/login'||p.indexOf('/login/')===0||p==='/portal'||p.indexOf('/portal/')===0){` +
+            `sessionStorage.setItem('splashSeen','true');` +
+            `}else{` +
             `sessionStorage.removeItem('splashSeen');` +
             `var s=document.createElement('style');` +
             `s.id='splash-mask';` +
             `s.textContent='body>*:not([data-splash-screen]){opacity:0!important;pointer-events:none}';` +
             `document.head.appendChild(s);` +
+            `}` +
             `}catch(e){}`
           }} />
+          {/* Sets light or dark mode on the sign-in and portal pages before
+              anything is painted. It does nothing on the public pages. */}
+          <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -115,11 +126,10 @@ export default function RootLayout({
         </head>
         <body className={GeistSans.className}>
           <SplashScreen />
-          <Navbar/>
+          <HideOnPortal><Navbar/></HideOnPortal>
         <main>{children}</main>
-        <Footer/>
-        <Analytics />
-        <SpeedInsights />
+        <HideOnPortal><Footer/></HideOnPortal>
+        <AnalyticsClient />
       </body>
     </html>
   );

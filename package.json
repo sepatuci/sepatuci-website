@@ -2,11 +2,19 @@
   "name": "test-website",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=20.9"
+  },
   "scripts": {
     "dev": "bun --bun next dev",
     "build": "next build",
     "start": "bun --bun next start",
     "lint": "next lint",
+    "typecheck": "next typegen && tsc --noEmit",
+    "test": "vitest run src",
+    "test:portal": "firebase emulators:exec --project demo-sep-portal --only auth,firestore \"vitest run tests/portal --no-file-parallelism\"",
+    "portal:dev": "firebase emulators:exec --project demo-sep-portal --only auth,firestore --ui \"node scripts/portal/dev.mjs\"",
+    "portal:setup": "node --env-file=.env.local scripts/portal/setup-project.mjs",
     "blog:reset": "node server/reset.mjs",
     "start:api": "node api/posts.js",
     "start:cron": "node server/cron.mjs"
@@ -35,13 +43,16 @@
     "@vercel/speed-insights": "^1.3.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^13.10.0",
     "flowbite-react": "^0.10.2",
     "framer-motion": "^11.18.2",
     "geist": "^1.5.1",
     "gsap": "^3.15.0",
     "lucide-react": "^0.428.0",
     "mini-svg-data-uri": "^1.4.4",
-    "next": "^16.1.6",
+    "next": "^16.3.8",
+    "qrcode.react": "^4.2.0",
     "react": "^19.2.3",
     "react-countup": "^6.5.3",
     "react-dom": "^19.2.3",
@@ -64,6 +75,7 @@
     "lighthouse": "^13.0.1",
     "postcss": "^8.5.6",
     "tailwindcss": "^3.4.19",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.11"
   }
 }

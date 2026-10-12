@@ -166,9 +166,9 @@ export default function LandingHero() {
 
   // Stats count-up (fires once on scroll)
   useStatCountup(statsRef, [
-    { ref: countStartupsRef, end: 20 },
-    { ref: countFundingRef,  end: 1  },
-    { ref: countMajorsRef,   end: 15 },
+    { ref: countStartupsRef, end: 30 },
+    { ref: countFundingRef,  end: 7  },
+    { ref: countMajorsRef,   end: 20 },
   ]);
 
   // Photo fade-in on scroll — staggered, fires once

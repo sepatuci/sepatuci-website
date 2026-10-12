@@ -1,0 +1,1347 @@
+import { describe, expect, it } from "vitest";
+import { TIMING } from "../constants";
+import {
+  TEMPORARY_EXPIRED,
+  evaluateGate,
+  temporaryPasswordExpired,
+  type GateClaims,
+  type GateNeed,
+  type GateOptions,
+  type GateResult,
+} from "./gate";
+
+const ADMINS = ["chair.one@uci.edu", "chair.two@uci.edu"] as const;
+
+/** The server clock for every check in this file. */
+const NOW = Date.UTC(2026, 9, 1, 12, 0, 0);
+const SECOND = 1000;
+const MINUTE = 60_000;
+const HOUR = 3_600_000;
+/** `auth_time` is in seconds, as Firebase sends it. */
+const signedIn = (msAgo: number): number => (NOW - msAgo) / SECOND;
+/** `tempAt` is in seconds too: when a chair issued the temporary password. */
+const issuedAt = (msAgo: number): number => (NOW - msAgo) / SECOND;
+/** What an account carries while it is on a temporary password a chair issued an hour ago. */
+const TEMP: Pick<GateClaims, "temp" | "tempAt"> = { temp: true, tempAt: issuedAt(HOUR) };
+
+/** A fully signed-in pledge on the live site: verified email, role claim, second factor, signed in a minute ago. */
+const pledge = (overrides: Partial<GateClaims> = {}): GateClaims => ({
+  uid: "pledge1",
+  email: "avery.chen@uci.edu",
+  email_verified: true,
+  role: "pledge",
+  issued: "avery.chen@uci.edu",
+  auth_time: signedIn(60 * SECOND),
+  firebase: { sign_in_second_factor: "totp" },
+  ...overrides,
+});
+
+const admin = (overrides: Partial<GateClaims> = {}): GateClaims => ({
+  uid: "admin1",
+  email: "chair.one@uci.edu",
+  email_verified: true,
+  role: "admin",
+  auth_time: signedIn(60 * SECOND),
+  firebase: { sign_in_second_factor: "totp" },
+  ...overrides,
+});
+
+/** A fully signed-in active member on the live site: the same as a pledge in everything but the role. */
+const active = (overrides: Partial<GateClaims> = {}): GateClaims => ({
+  uid: "active1",
+  email: "priya.shah@uci.edu",
+  email_verified: true,
+  role: "active",
+  issued: "priya.shah@uci.edu",
+  auth_time: signedIn(60 * SECOND),
+  firebase: { sign_in_second_factor: "totp" },
+  ...overrides,
+});
+
+const NEEDS: readonly GateNeed[] = ["any", "admin", "active", "pledge"];
+
+const live = (need: GateNeed = "any", overrides: Partial<GateOptions> = {}): GateOptions => ({
+  need,
+  mfaRequired: true,
+  adminEmails: ADMINS,
+  nowMs: NOW,
+  issuedRequired: true,
+  ...overrides,
+});
+
+function denied(result: GateResult): { status: number; code: string; message: string } {
+  if (result.ok) throw new Error(`Expected a refusal, but ${result.user.email} was let through.`);
+  return { status: result.status, code: result.code, message: result.message };
+}
+
+const SESSION_EXPIRED = {
+  status: 401,
+  code: "session_expired",
+  message: "Your session has expired. Sign in again.",
+};
+
+describe("evaluateGate", () => {
+  describe("letting people through", () => {
+    it("admits a pledge with a verified email, role and second factor", () => {
+      expect(evaluateGate(pledge(), live("pledge"))).toEqual({
+        ok: true,
+        user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" },
+      });
+    });
+
+    it("admits an allow-listed admin with a verified email, role and second factor", () => {
+      expect(evaluateGate(admin(), live("admin"))).toEqual({
+        ok: true,
+        user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin" },
+      });
+    });
+
+    it("admits either role to a route that any signed-in user may call", () => {
+      expect(evaluateGate(pledge(), live("any"))).toMatchObject({ ok: true, user: { role: "pledge" } });
+      expect(evaluateGate(admin(), live("any"))).toMatchObject({ ok: true, user: { role: "admin" } });
+    });
+
+    it("returns the email lower-cased", () => {
+      const result = evaluateGate(pledge({ email: "Avery.Chen@UCI.edu" }), live());
+      expect(result).toMatchObject({ ok: true, user: { email: "avery.chen@uci.edu" } });
+    });
+
+    it("matches an admin against the allowlist without regard to the case of the token's email", () => {
+      expect(evaluateGate(admin({ email: "Chair.One@UCI.EDU" }), live("admin"))).toMatchObject({
+        ok: true,
+        user: { email: "chair.one@uci.edu", role: "admin" },
+      });
+    });
+
+    it("returns only uid, email and role, whatever else the token carries", () => {
+      const claims = { ...pledge(), admin: true, name: "Avery", picture: "x" } as GateClaims;
+      const result = evaluateGate(claims, live());
+      expect(result).toEqual({ ok: true, user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" } });
+    });
+  });
+
+  describe("session age", () => {
+    it("admits a sign-in that is exactly 12 hours old, and refuses it one millisecond later", () => {
+      expect(TIMING.maxSessionAgeMs).toBe(12 * HOUR);
+      const claims = pledge({ auth_time: signedIn(TIMING.maxSessionAgeMs) });
+      expect(evaluateGate(claims, live()).ok).toBe(true);
+      expect(denied(evaluateGate(claims, live("any", { nowMs: NOW + 1 })))).toEqual(SESSION_EXPIRED);
+    });
+
+    it("refuses with 401, not 403, so the client signs the user out rather than showing an error", () => {
+      const result = evaluateGate(pledge({ auth_time: signedIn(13 * HOUR) }), live());
+      expect(denied(result)).toEqual(SESSION_EXPIRED);
+    });
+
+    it("measures age from when the person signed in, however recently the token was refreshed", () => {
+      // A refreshed token carries a new iat and exp, and the same auth_time.
+      const refreshed = { ...pledge({ auth_time: signedIn(12 * HOUR + SECOND) }), iat: NOW / SECOND, exp: NOW / SECOND + 3600 };
+      expect(denied(evaluateGate(refreshed as GateClaims, live())).code).toBe("session_expired");
+    });
+
+    it("applies to admins and pledges alike, on every kind of route", () => {
+      const old = signedIn(TIMING.maxSessionAgeMs + SECOND);
+      for (const need of ["any", "pledge", "admin"] as const) {
+        expect(denied(evaluateGate(pledge({ auth_time: old }), live(need)))).toEqual(SESSION_EXPIRED);
+        expect(denied(evaluateGate(admin({ auth_time: old }), live(need)))).toEqual(SESSION_EXPIRED);
+      }
+    });
+
+    it("applies in emulator mode too, where the second factor is skipped", () => {
+      const emulator = live("any", { mfaRequired: false });
+      expect(denied(evaluateGate(pledge({ auth_time: signedIn(13 * HOUR) }), emulator))).toEqual(SESSION_EXPIRED);
+    });
+
+    it.each<[string, unknown]>([
+      ["no auth_time claim", undefined],
+      ["a null auth_time", null],
+      ["an auth_time that is a numeric string", String(signedIn(60 * SECOND))],
+      ["an auth_time that is a date string", new Date(NOW - 60 * SECOND).toISOString()],
+      ["an auth_time that is an object", { seconds: signedIn(60 * SECOND) }],
+      ["an auth_time that is a boolean", true],
+      ["an auth_time that is not a number at all", Number.NaN],
+      ["an infinite auth_time", Number.POSITIVE_INFINITY],
+      ["a negative infinite auth_time", Number.NEGATIVE_INFINITY],
+    ])("refuses a token with %s", (_label, authTime) => {
+      for (const claims of [pledge({ auth_time: authTime }), admin({ auth_time: authTime })]) {
+        expect(denied(evaluateGate(claims, live()))).toEqual(SESSION_EXPIRED);
+      }
+    });
+
+    it("reads auth_time as seconds: a value in milliseconds is not mistaken for a fresh sign-in from 1970", () => {
+      // 13 hours ago, in seconds, is refused; the same instant must not pass by being read in another unit.
+      expect(denied(evaluateGate(pledge({ auth_time: signedIn(13 * HOUR) }), live())).code).toBe("session_expired");
+      expect(denied(evaluateGate(pledge({ auth_time: 0 }), live())).code).toBe("session_expired");
+    });
+  });
+
+  describe("email", () => {
+    it.each<[string, Partial<GateClaims>]>([
+      ["no email claim", { email: undefined }],
+      ["an empty email", { email: "" }],
+      ["an email that is not a string", { email: 42 as unknown as string }],
+      ["an unverified email", { email_verified: false }],
+      ["no email_verified claim", { email_verified: undefined }],
+      ["email_verified as the string \"true\"", { email_verified: "true" as unknown as boolean }],
+      ["email_verified as 1", { email_verified: 1 as unknown as boolean }],
+    ])("refuses a token with %s", (_label, overrides) => {
+      expect(denied(evaluateGate(pledge(overrides), live()))).toEqual({
+        status: 403,
+        code: "email_unverified",
+        message: "This account doesn't have access to the portal.",
+      });
+    });
+
+    it("refuses an allow-listed admin whose email is not verified", () => {
+      expect(denied(evaluateGate(admin({ email_verified: false }), live("admin"))).code).toBe("email_unverified");
+    });
+  });
+
+  describe("pledge email domain", () => {
+    it.each<[string, string]>([
+      ["a Gmail address", "avery.chen@gmail.com"],
+      ["a UCI subdomain", "avery.chen@ics.uci.edu"],
+      ["a domain that only starts with uci.edu", "avery.chen@uci.edu.evil.example"],
+      ["a domain that only ends with uci.edu", "avery.chen@notuci.edu"],
+      ["two at signs", "avery.chen@evil.example@uci.edu"],
+      ["a space in the local part", "avery chen@uci.edu"],
+      ["a trailing space", "avery.chen@uci.edu "],
+      ["a trailing newline", "avery.chen@uci.edu\n"],
+      ["no local part", "@uci.edu"],
+    ])("refuses a pledge whose email is %s", (_label, email) => {
+      for (const need of ["any", "pledge"] as const) {
+        expect(denied(evaluateGate(pledge({ email }), live(need)))).toEqual({
+          status: 403,
+          code: "email_not_allowed",
+          message: "This account doesn't have access to the portal.",
+        });
+      }
+    });
+
+    it("refuses it in emulator mode too", () => {
+      const emulator = live("pledge", { mfaRequired: false });
+      expect(denied(evaluateGate(pledge({ email: "avery.chen@gmail.com" }), emulator)).code).toBe("email_not_allowed");
+    });
+
+    it("admits a UCI address whatever its case, because it is lower-cased first", () => {
+      expect(evaluateGate(pledge({ email: "AVERY.CHEN@UCI.EDU" }), live("pledge"))).toMatchObject({
+        ok: true,
+        user: { email: "avery.chen@uci.edu" },
+      });
+    });
+
+    it("does not apply to admins: an allow-listed admin outside UCI is admitted", () => {
+      const outside = admin({ email: "advisor@example.org" });
+      const options = live("admin", { adminEmails: ["advisor@example.org"] });
+      expect(evaluateGate(outside, options)).toEqual({
+        ok: true,
+        user: { uid: "admin1", email: "advisor@example.org", role: "admin" },
+      });
+    });
+
+    it("does not let the admin list stand in for the domain: a listed non-UCI address with the pledge role is refused", () => {
+      const listed = pledge({ email: "advisor@example.org" });
+      const options = live("any", { adminEmails: ["advisor@example.org"] });
+      expect(denied(evaluateGate(listed, options)).code).toBe("email_not_allowed");
+    });
+  });
+
+  // The address an account was created with is recorded on it by the server. A
+  // pledge can repoint their own sign-in through Firebase, even to another UCI
+  // mailbox, and the account is then no longer the one that was issued.
+  describe("the address a pledge account was issued with", () => {
+    it("admits a pledge whose sign-in address is still the issued one, whatever the case", () => {
+      for (const issued of ["avery.chen@uci.edu", "Avery.Chen@UCI.edu"]) {
+        expect(evaluateGate(pledge({ issued }), live("pledge"))).toMatchObject({ ok: true });
+      }
+    });
+
+    it.each(["avery.chen+elsewhere@uci.edu", "someone.else@uci.edu"])(
+      "refuses a pledge whose sign-in has moved to %s, on every kind of route",
+      (email) => {
+        for (const need of ["any", "pledge"] as const) {
+          expect(denied(evaluateGate(pledge({ email, issued: "avery.chen@uci.edu" }), live(need)))).toEqual({
+            status: 403,
+            code: "email_not_allowed",
+            message: "This account doesn't have access to the portal.",
+          });
+        }
+      },
+    );
+
+    it("refuses it in emulator mode too, and before the second factor is looked at", () => {
+      const moved = pledge({ email: "avery.chen+elsewhere@uci.edu", issued: "avery.chen@uci.edu", firebase: undefined });
+      expect(denied(evaluateGate(moved, live("pledge", { mfaRequired: false }))).code).toBe("email_not_allowed");
+      expect(denied(evaluateGate(moved, live("pledge"))).code).toBe("email_not_allowed");
+    });
+
+    // On the live site every pledge account is made by the portal, so one with
+    // no record of its issued address is not one of ours.
+    it.each<[string, unknown]>([
+      ["no record of it", undefined],
+      ["a null", null],
+      ["a number", 7],
+      ["a list", ["avery.chen@uci.edu"]],
+      ["an empty string", ""],
+    ])("refuses a pledge account with %s on the live site", (_label, issued) => {
+      expect(denied(evaluateGate(pledge({ issued }), live("pledge"))).code).toBe("email_not_allowed");
+    });
+
+    it.each<[string, unknown]>([
+      ["no record of it", undefined],
+      ["a null", null],
+      ["a number", 7],
+    ])("falls back to the UCI rule alone in the emulators for a hand-made account with %s", (_label, issued) => {
+      const emulator = live("pledge", { mfaRequired: false, issuedRequired: false });
+      expect(evaluateGate(pledge({ issued }), emulator)).toMatchObject({ ok: true });
+      expect(denied(evaluateGate(pledge({ issued, email: "avery.chen@gmail.com" }), emulator)).code).toBe(
+        "email_not_allowed",
+      );
+    });
+
+    it("does not apply to admins, who are held to the allow-list", () => {
+      expect(evaluateGate(admin({ issued: "someone.else@uci.edu" }), live("admin"))).toMatchObject({ ok: true });
+    });
+  });
+
+  describe("role", () => {
+    it.each<[string, unknown]>([
+      ["no role claim", undefined],
+      ["a null role", null],
+      ["an unknown role", "superuser"],
+      ["the right role in the wrong case", "Admin"],
+      ["a role with padding", " pledge"],
+      ["a list of roles", ["admin"]],
+      ["a role object", { admin: true }],
+      ["a boolean", true],
+    ])("refuses a token with %s", (_label, role) => {
+      expect(denied(evaluateGate(pledge({ role }), live()))).toEqual({
+        status: 403,
+        code: "no_role",
+        message: "This account doesn't have access to the portal.",
+      });
+    });
+  });
+
+  describe("admin allowlist", () => {
+    it("refuses an admin claim whose email is not on the list, even on a route open to anyone", () => {
+      const rogue = admin({ uid: "rogue", email: "former.chair@uci.edu" });
+      for (const need of ["any", "admin", "pledge"] as const) {
+        expect(denied(evaluateGate(rogue, live(need)))).toEqual({
+          status: 403,
+          code: "forbidden",
+          message: "This account doesn't have access to the portal.",
+        });
+      }
+    });
+
+    it("refuses every admin when the list is empty", () => {
+      expect(denied(evaluateGate(admin(), live("admin", { adminEmails: [] }))).code).toBe("forbidden");
+    });
+
+    it("revokes an admin as soon as their address leaves the list", () => {
+      expect(evaluateGate(admin({ email: "chair.two@uci.edu" }), live("admin")).ok).toBe(true);
+      const afterRemoval = live("admin", { adminEmails: ["chair.one@uci.edu"] });
+      expect(denied(evaluateGate(admin({ email: "chair.two@uci.edu" }), afterRemoval)).code).toBe("forbidden");
+    });
+
+    it("requires an exact address, not a lookalike", () => {
+      for (const email of ["chair.one@uci.edu.evil.example", "xchair.one@uci.edu", "chair.one+x@uci.edu", "chair.one@uci.ed"]) {
+        expect(denied(evaluateGate(admin({ email }), live("admin"))).code).toBe("forbidden");
+      }
+    });
+
+    it("does not make a pledge an admin just because their address is on the list", () => {
+      const listedPledge = pledge({ email: "chair.one@uci.edu", issued: "chair.one@uci.edu" });
+      expect(evaluateGate(listedPledge, live("any"))).toMatchObject({ ok: true, user: { role: "pledge" } });
+      expect(denied(evaluateGate(listedPledge, live("admin"))).code).toBe("forbidden");
+    });
+
+    it("does not apply the list to pledges", () => {
+      expect(evaluateGate(pledge(), live("pledge", { adminEmails: [] })).ok).toBe(true);
+    });
+  });
+
+  describe("second factor", () => {
+    it.each<[string, GateClaims["firebase"]]>([
+      ["no firebase claim", undefined],
+      ["no second factor", {}],
+      ["an empty second factor", { sign_in_second_factor: "" }],
+      ["a second factor that is not a string", { sign_in_second_factor: true }],
+      ["a null second factor", { sign_in_second_factor: null }],
+    ])("refuses a token with %s when one is required", (_label, firebase) => {
+      for (const claims of [pledge({ firebase }), admin({ firebase })]) {
+        expect(denied(evaluateGate(claims, live()))).toEqual({
+          status: 403,
+          code: "mfa_required",
+          message: "Two-step verification is required.",
+        });
+      }
+    });
+
+    it.each(["totp", "phone"])("accepts a %s second factor", (factor) => {
+      expect(evaluateGate(pledge({ firebase: { sign_in_second_factor: factor } }), live()).ok).toBe(true);
+    });
+
+    it("admits a token with no second factor only when it is not required (the emulator)", () => {
+      const emulator = live("any", { mfaRequired: false });
+      expect(evaluateGate(pledge({ firebase: undefined }), emulator).ok).toBe(true);
+      expect(evaluateGate(admin({ firebase: {} }), emulator).ok).toBe(true);
+    });
+  });
+
+  describe("role needed by the route", () => {
+    it("refuses a pledge on an admin route", () => {
+      expect(denied(evaluateGate(pledge(), live("admin")))).toEqual({
+        status: 403,
+        code: "forbidden",
+        message: "You don't have permission to do that.",
+      });
+    });
+
+    it("refuses an admin on a pledge route", () => {
+      expect(denied(evaluateGate(admin(), live("pledge")))).toEqual({
+        status: 403,
+        code: "forbidden",
+        message: "You don't have permission to do that.",
+      });
+    });
+
+    it("still enforces the route's role when the second factor is not required", () => {
+      const emulator = (need: GateNeed) => live(need, { mfaRequired: false });
+      expect(denied(evaluateGate(pledge(), emulator("admin"))).code).toBe("forbidden");
+      expect(denied(evaluateGate(admin(), emulator("pledge"))).code).toBe("forbidden");
+    });
+  });
+
+  describe("order of checks", () => {
+    const expired = signedIn(TIMING.maxSessionAgeMs + SECOND);
+
+    it.each<[string, GateClaims, GateNeed]>([
+      ["an unverified email", pledge({ auth_time: expired, email_verified: false }), "any"],
+      ["a missing email", pledge({ auth_time: expired, email: undefined }), "any"],
+      ["a missing role", pledge({ auth_time: expired, role: undefined }), "any"],
+      ["an admin claim that is not on the list", admin({ auth_time: expired, email: "former.chair@uci.edu" }), "admin"],
+      ["a pledge email outside UCI", pledge({ auth_time: expired, email: "avery.chen@gmail.com" }), "pledge"],
+      ["a missing second factor", pledge({ auth_time: expired, firebase: undefined }), "any"],
+      ["the wrong role for the route", pledge({ auth_time: expired }), "admin"],
+      ["nothing but a uid", { uid: "x" }, "admin"],
+    ])("reports an expired session before %s", (_label, claims, need) => {
+      expect(denied(evaluateGate(claims, live(need)))).toEqual(SESSION_EXPIRED);
+    });
+
+    it("reports an unverified email before the role, the lists and the second factor", () => {
+      const claims: GateClaims = { uid: "x", email: "x@gmail.com", email_verified: false, auth_time: signedIn(60 * SECOND) };
+      expect(denied(evaluateGate(claims, live("admin"))).code).toBe("email_unverified");
+    });
+
+    it("reports a missing role before the allowlist, the email domain or the second factor", () => {
+      const claims: GateClaims = { uid: "x", email: "x@gmail.com", email_verified: true, auth_time: signedIn(60 * SECOND) };
+      expect(denied(evaluateGate(claims, live("admin"))).code).toBe("no_role");
+    });
+
+    it("reports an unlisted admin before a missing second factor", () => {
+      const rogue = admin({ email: "former.chair@uci.edu", firebase: undefined });
+      expect(denied(evaluateGate(rogue, live("admin"))).code).toBe("forbidden");
+    });
+
+    it("reports an unlisted admin as forbidden, not as a disallowed email, even when it is outside UCI", () => {
+      const rogue = admin({ email: "former.chair@gmail.com" });
+      expect(denied(evaluateGate(rogue, live("admin")))).toEqual({
+        status: 403,
+        code: "forbidden",
+        message: "This account doesn't have access to the portal.",
+      });
+    });
+
+    it("reports a pledge email outside UCI before a missing second factor", () => {
+      const outside = pledge({ email: "avery.chen@gmail.com", firebase: undefined });
+      expect(denied(evaluateGate(outside, live("pledge"))).code).toBe("email_not_allowed");
+    });
+
+    it("reports a pledge email outside UCI before a wrong role for the route", () => {
+      expect(denied(evaluateGate(pledge({ email: "avery.chen@gmail.com" }), live("admin"))).code).toBe("email_not_allowed");
+    });
+
+    it("reports a missing second factor before a wrong role, so a half-signed-in user learns nothing about routes", () => {
+      expect(denied(evaluateGate(pledge({ firebase: undefined }), live("admin"))).code).toBe("mfa_required");
+    });
+  });
+
+  // The third role: active members, who read the pledges' work and change nothing.
+  describe("active members", () => {
+    const FORBIDDEN = {
+      status: 403,
+      code: "forbidden",
+      message: "You don't have permission to do that.",
+    };
+    const NOT_ALLOWED = {
+      status: 403,
+      code: "email_not_allowed",
+      message: "This account doesn't have access to the portal.",
+    };
+
+    it("admits an active on a route for actives, as an active and with nothing but uid, email and role", () => {
+      expect(evaluateGate(active(), live("active"))).toEqual({
+        ok: true,
+        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active" },
+      });
+    });
+
+    it("admits an active on a route that any signed-in user may call", () => {
+      expect(evaluateGate(active(), live("any"))).toEqual({
+        ok: true,
+        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active" },
+      });
+    });
+
+    it.each(["admin", "pledge"] as const)("refuses an active on a route for the %s role", (need) => {
+      expect(denied(evaluateGate(active(), live(need)))).toEqual(FORBIDDEN);
+    });
+
+    it("refuses an admin and a pledge on a route for actives", () => {
+      expect(denied(evaluateGate(admin(), live("active")))).toEqual(FORBIDDEN);
+      expect(denied(evaluateGate(pledge(), live("active")))).toEqual(FORBIDDEN);
+    });
+
+    it("lets each of the three roles onto its own routes and the shared ones, and onto no other", () => {
+      const callers: Array<[GateNeed, GateClaims]> = [
+        ["admin", admin()],
+        ["active", active()],
+        ["pledge", pledge()],
+      ];
+      for (const [role, claims] of callers) {
+        for (const need of NEEDS) {
+          const result = evaluateGate(claims, live(need));
+          const expected = need === "any" || need === role;
+          expect(result.ok, `${role} on a route for ${need}`).toBe(expected);
+          if (result.ok) expect(result.user.role).toBe(role);
+          else expect(denied(result)).toEqual(FORBIDDEN);
+        }
+      }
+    });
+
+    it("still enforces the route's role for an active when the second factor is not required", () => {
+      const emulator = (need: GateNeed) => live(need, { mfaRequired: false });
+      expect(evaluateGate(active({ firebase: undefined }), emulator("active")).ok).toBe(true);
+      expect(denied(evaluateGate(active({ firebase: undefined }), emulator("admin")))).toEqual(FORBIDDEN);
+      expect(denied(evaluateGate(active({ firebase: undefined }), emulator("pledge")))).toEqual(FORBIDDEN);
+    });
+
+    it.each<[string, string]>([
+      ["a Gmail address", "priya.shah@gmail.com"],
+      ["a UCI subdomain", "priya.shah@ics.uci.edu"],
+      ["a domain that only starts with uci.edu", "priya.shah@uci.edu.evil.example"],
+      ["a domain that only ends with uci.edu", "priya.shah@notuci.edu"],
+      ["two at signs", "priya.shah@evil.example@uci.edu"],
+      ["a trailing space", "priya.shah@uci.edu "],
+      ["no local part", "@uci.edu"],
+    ])("refuses an active whose email is %s, on every kind of route", (_label, email) => {
+      // Issued to the same address, so the only thing wrong with it is the domain.
+      for (const need of NEEDS) {
+        expect(denied(evaluateGate(active({ email, issued: email }), live(need))), need).toEqual(NOT_ALLOWED);
+      }
+    });
+
+    it("refuses a non-UCI active in emulator mode too", () => {
+      const emulator = live("active", { mfaRequired: false, issuedRequired: false });
+      expect(denied(evaluateGate(active({ email: "priya.shah@gmail.com", issued: undefined }), emulator))).toEqual(NOT_ALLOWED);
+    });
+
+    it("admits an active whose sign-in address is still the issued one, whatever the case", () => {
+      for (const issued of ["priya.shah@uci.edu", "Priya.Shah@UCI.edu"]) {
+        expect(evaluateGate(active({ issued }), live("active"))).toMatchObject({ ok: true, user: { role: "active" } });
+      }
+      expect(evaluateGate(active({ email: "PRIYA.SHAH@UCI.EDU" }), live("active"))).toMatchObject({
+        ok: true,
+        user: { email: "priya.shah@uci.edu" },
+      });
+    });
+
+    it.each(["priya.shah+elsewhere@uci.edu", "someone.else@uci.edu"])(
+      "refuses an active whose sign-in has moved to %s, on every kind of route",
+      (email) => {
+        for (const need of NEEDS) {
+          const moved = active({ email, issued: "priya.shah@uci.edu" });
+          expect(denied(evaluateGate(moved, live(need))), need).toEqual(NOT_ALLOWED);
+        }
+      },
+    );
+
+    it("refuses a moved active in emulator mode too, and before the second factor is looked at", () => {
+      const moved = active({ email: "someone.else@uci.edu", issued: "priya.shah@uci.edu", firebase: undefined });
+      expect(denied(evaluateGate(moved, live("active", { mfaRequired: false }))).code).toBe("email_not_allowed");
+      expect(denied(evaluateGate(moved, live("active"))).code).toBe("email_not_allowed");
+    });
+
+    it.each<[string, unknown]>([
+      ["no record of it", undefined],
+      ["a null", null],
+      ["a number", 7],
+      ["a list", ["priya.shah@uci.edu"]],
+      ["an empty string", ""],
+    ])("refuses an active account with %s for its issued address on the live site", (_label, issued) => {
+      expect(denied(evaluateGate(active({ issued }), live("active")))).toEqual(NOT_ALLOWED);
+    });
+
+    it("falls back to the UCI rule alone in the emulators for a hand-made active with no issued address", () => {
+      const emulator = live("active", { mfaRequired: false, issuedRequired: false });
+      expect(evaluateGate(active({ issued: undefined }), emulator)).toMatchObject({ ok: true, user: { role: "active" } });
+    });
+
+    it("does not make an active an admin just because their address is on the admin list", () => {
+      const listed = active({ email: "chair.one@uci.edu", issued: "chair.one@uci.edu" });
+      expect(evaluateGate(listed, live("any"))).toMatchObject({ ok: true, user: { role: "active" } });
+      expect(evaluateGate(listed, live("active"))).toMatchObject({ ok: true, user: { role: "active" } });
+      expect(denied(evaluateGate(listed, live("admin")))).toEqual(FORBIDDEN);
+      expect(denied(evaluateGate(listed, live("pledge")))).toEqual(FORBIDDEN);
+    });
+
+    it("does not let the admin list stand in for the domain or the issued address of an active", () => {
+      const options = (need: GateNeed) => live(need, { adminEmails: ["advisor@example.org", "chair.one@uci.edu"] });
+      const outside = active({ email: "advisor@example.org", issued: "advisor@example.org" });
+      expect(denied(evaluateGate(outside, options("any")))).toEqual(NOT_ALLOWED);
+      expect(denied(evaluateGate(outside, options("admin")))).toEqual(NOT_ALLOWED);
+      // An active's account repointed at an admin's mailbox is still a moved account, not an admin.
+      const repointed = active({ email: "chair.one@uci.edu", issued: "priya.shah@uci.edu" });
+      expect(denied(evaluateGate(repointed, options("admin")))).toEqual(NOT_ALLOWED);
+      expect(denied(evaluateGate(repointed, options("any")))).toEqual(NOT_ALLOWED);
+    });
+
+    it("does not hold actives to the admin list", () => {
+      expect(evaluateGate(active(), live("active", { adminEmails: [] })).ok).toBe(true);
+    });
+
+    it("requires a second factor from an active on the live site", () => {
+      for (const firebase of [undefined, {}, { sign_in_second_factor: "" }]) {
+        expect(denied(evaluateGate(active({ firebase }), live("active")))).toEqual({
+          status: 403,
+          code: "mfa_required",
+          message: "Two-step verification is required.",
+        });
+      }
+    });
+
+    it("expires an active's sign-in after 12 hours, on every kind of route", () => {
+      const old = signedIn(TIMING.maxSessionAgeMs + SECOND);
+      for (const need of NEEDS) {
+        expect(denied(evaluateGate(active({ auth_time: old }), live(need)))).toEqual(SESSION_EXPIRED);
+      }
+      expect(evaluateGate(active({ auth_time: signedIn(TIMING.maxSessionAgeMs) }), live("active")).ok).toBe(true);
+    });
+
+    it("refuses an active whose email is not verified", () => {
+      expect(denied(evaluateGate(active({ email_verified: false }), live("active"))).code).toBe("email_unverified");
+    });
+
+    it.each<[string, unknown]>([
+      ["the right role in the wrong case", "Active"],
+      ["the plural", "actives"],
+      ["a role with padding", " active"],
+      ["a list holding the role", ["active"]],
+      ["a made-up read-only role", "viewer"],
+    ])("does not take %s for the active role", (_label, role) => {
+      expect(denied(evaluateGate(active({ role }), live("any"))).code).toBe("no_role");
+      expect(denied(evaluateGate(active({ role }), live("active"))).code).toBe("no_role");
+    });
+
+    it("reports an active's address outside UCI, and a missing second factor, before a wrong role for the route", () => {
+      const outside = active({ email: "priya.shah@gmail.com", issued: "priya.shah@gmail.com" });
+      expect(denied(evaluateGate(outside, live("admin"))).code).toBe("email_not_allowed");
+      expect(denied(evaluateGate(active({ firebase: undefined }), live("admin"))).code).toBe("mfa_required");
+      expect(denied(evaluateGate(active({ firebase: undefined }), live("pledge"))).code).toBe("mfa_required");
+    });
+  });
+
+  // An account that an admin started on a temporary password. Until the person
+  // has replaced it, the one thing the account may do is replace it.
+  describe("an account still on a temporary password", () => {
+    const CHANGE_REQUIRED = {
+      status: 403,
+      code: "password_change_required",
+      message: "Choose your own password to continue.",
+    };
+    const MFA_REQUIRED = { status: 403, code: "mfa_required", message: "Two-step verification is required." };
+    const FORBIDDEN = { status: 403, code: "forbidden", message: "You don't have permission to do that." };
+    const NO_ACCESS = "This account doesn't have access to the portal.";
+    const EXPIRED = {
+      status: 403,
+      code: "temporary_password_expired",
+      message: "That temporary password has expired. Ask a chair for a new one.",
+    };
+
+    type Caller = "admin" | "active" | "pledge";
+    const CALLERS: ReadonlyArray<[Caller, (overrides?: Partial<GateClaims>) => GateClaims]> = [
+      ["admin", admin],
+      ["active", active],
+      ["pledge", pledge],
+    ];
+    const WITH_FACTOR: GateClaims["firebase"] = { sign_in_second_factor: "totp" };
+    /** What a token says about the second factor when the sign-in had none. */
+    const NO_FACTOR: ReadonlyArray<GateClaims["firebase"]> = [undefined, {}, { sign_in_second_factor: "" }];
+    /** The route for choosing a password, and every other route. */
+    const choosing = (need: GateNeed = "any", overrides: Partial<GateOptions> = {}): GateOptions =>
+      live(need, { passwordSetup: true, ...overrides });
+    /** The local emulators: no second factor, and accounts made by hand allowed. */
+    const emulator = (need: GateNeed, overrides: Partial<GateOptions> = {}): GateOptions =>
+      live(need, { mfaRequired: false, issuedRequired: false, ...overrides });
+
+    it("is refused every route that is not for choosing a password, whoever it is and whatever the route is for", () => {
+      for (const [role, claimsOf] of CALLERS) {
+        for (const need of NEEDS) {
+          for (const firebase of [WITH_FACTOR, ...NO_FACTOR]) {
+            const claims = claimsOf({ ...TEMP, firebase });
+            for (const options of [live(need), live(need, { passwordSetup: false }), emulator(need), emulator(need, { passwordSetup: false })]) {
+              expect(denied(evaluateGate(claims, options)), `${role} on a route for ${need}`).toEqual(CHANGE_REQUIRED);
+            }
+          }
+        }
+      }
+    });
+
+    it("is let through the route for choosing a password without a second factor, on the live site", () => {
+      for (const [role, claimsOf] of CALLERS) {
+        for (const firebase of NO_FACTOR) {
+          const claims = claimsOf({ ...TEMP, firebase });
+          const result = evaluateGate(claims, choosing("any"));
+          // As themselves, and with nothing about the password in what the route is given.
+          expect(result, role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+        }
+      }
+    });
+
+    it("is let through that route with a second factor too, and in the emulators", () => {
+      for (const [role, claimsOf] of CALLERS) {
+        expect(evaluateGate(claimsOf({ ...TEMP }), choosing("any")), role).toMatchObject({ ok: true, user: { role } });
+        expect(evaluateGate(claimsOf({ ...TEMP, firebase: undefined }), emulator("any", { passwordSetup: true })), role).toMatchObject({
+          ok: true,
+          user: { role },
+        });
+      }
+    });
+
+    // The route skips the second factor for these accounts and for nobody else.
+    // If it did so for everyone it would be a way round two-step verification.
+    it("does not excuse anyone else from the second factor on that route", () => {
+      for (const [role, claimsOf] of CALLERS) {
+        for (const firebase of NO_FACTOR) {
+          expect(denied(evaluateGate(claimsOf({ firebase }), choosing("any"))), role).toEqual(MFA_REQUIRED);
+          expect(denied(evaluateGate(claimsOf({ firebase }), choosing(role))), role).toEqual(MFA_REQUIRED);
+        }
+        expect(evaluateGate(claimsOf(), choosing("any")), role).toMatchObject({ ok: true, user: { role } });
+      }
+    });
+
+    it("changes nothing for an account that is not on a temporary password: the route's flag alone does nothing", () => {
+      let compared = 0;
+      for (const [role, claimsOf] of CALLERS) {
+        for (const need of NEEDS) {
+          for (const firebase of [WITH_FACTOR, ...NO_FACTOR]) {
+            for (const base of [live(need), emulator(need)]) {
+              const claims = claimsOf({ firebase });
+              const plain = evaluateGate(claims, base);
+              expect(evaluateGate(claims, { ...base, passwordSetup: true }), `${role} on a route for ${need}`).toEqual(plain);
+              expect(evaluateGate(claims, { ...base, passwordSetup: false }), `${role} on a route for ${need}`).toEqual(plain);
+              compared += 1;
+            }
+          }
+        }
+      }
+      expect(compared).toBe(3 * 4 * 4 * 2);
+    });
+
+    it("still holds the route for choosing a password to the role it is for", () => {
+      for (const [role, claimsOf] of CALLERS) {
+        for (const need of NEEDS) {
+          const result = evaluateGate(claimsOf({ ...TEMP, firebase: undefined }), choosing(need));
+          if (need === "any" || need === role) expect(result, `${role} on a route for ${need}`).toMatchObject({ ok: true, user: { role } });
+          else expect(denied(result), `${role} on a route for ${need}`).toEqual(FORBIDDEN);
+        }
+      }
+    });
+
+    // Every combination, with what is expected written out as plain rules in the
+    // order the gate applies them.
+    it("gives the same answer as those rules for every role, route, flag, second factor, age of the password and age of the sign-in", () => {
+      /** When the temporary password was issued: an hour ago, exactly three days ago, a second more, or never said. */
+      const ISSUED: ReadonlyArray<[string, unknown, boolean]> = [
+        ["an hour ago", issuedAt(HOUR), false],
+        ["exactly three days ago", issuedAt(TIMING.temporaryPasswordMs), false],
+        ["three days and a second ago", issuedAt(TIMING.temporaryPasswordMs + SECOND), true],
+        ["never said", undefined, true],
+      ];
+      /** When they signed in: a minute ago, exactly fifteen minutes ago, or a second more. */
+      const SIGNED_IN: ReadonlyArray<[string, number, boolean]> = [
+        ["a minute ago", signedIn(MINUTE), false],
+        ["exactly fifteen minutes ago", signedIn(TIMING.passwordSetupMs), false],
+        ["fifteen minutes and a second ago", signedIn(TIMING.passwordSetupMs + SECOND), true],
+      ];
+
+      let checked = 0;
+      const seen = new Set<string>();
+      for (const [role, claimsOf] of CALLERS) {
+        for (const need of NEEDS) {
+          for (const temp of [true, false]) {
+            for (const passwordSetup of [true, false, undefined]) {
+              for (const mfaRequired of [true, false]) {
+                for (const hasFactor of [true, false]) {
+                  for (const [issued, tempAt, ranOut] of ISSUED) {
+                    for (const [since, authTime, stale] of SIGNED_IN) {
+                      // An account with its own password may still carry a stray time. It means nothing there.
+                      const claims = claimsOf({ ...(temp ? { temp: true } : {}), tempAt, auth_time: authTime, firebase: hasFactor ? WITH_FACTOR : {} });
+                      const result = evaluateGate(claims, live(need, { mfaRequired, passwordSetup }));
+                      const label = JSON.stringify({ role, need, temp, passwordSetup, mfaRequired, hasFactor, issued, since });
+
+                      const choosingPassword = temp && passwordSetup === true;
+                      let expected: string;
+                      if (temp && ranOut) expected = "temporary_password_expired";
+                      else if (temp && !choosingPassword) expected = "password_change_required";
+                      else if (temp && stale) expected = "session_expired";
+                      else if (mfaRequired && !hasFactor && !choosingPassword) expected = "mfa_required";
+                      else if (need !== "any" && need !== role) expected = "forbidden";
+                      else expected = "ok";
+
+                      if (expected === "ok") expect(result, label).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+                      else if (expected === "temporary_password_expired") expect(denied(result), label).toEqual(EXPIRED);
+                      else if (expected === "password_change_required") expect(denied(result), label).toEqual(CHANGE_REQUIRED);
+                      else if (expected === "session_expired") expect(denied(result), label).toEqual(SESSION_EXPIRED);
+                      else if (expected === "mfa_required") expect(denied(result), label).toEqual(MFA_REQUIRED);
+                      else expect(denied(result), label).toEqual(FORBIDDEN);
+                      seen.add(expected);
+                      checked += 1;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+      expect(checked).toBe(3 * 4 * 2 * 3 * 2 * 2 * 4 * 3);
+      expect(seen).toEqual(new Set(["ok", "temporary_password_expired", "password_change_required", "session_expired", "mfa_required", "forbidden"]));
+    });
+
+    // A temporary password is good for three days from when a chair issued it.
+    describe("three days after it was issued", () => {
+      const LIMIT = TIMING.temporaryPasswordMs;
+      const bothRoutes = (need: GateNeed = "any"): GateOptions[] => [live(need), choosing(need), emulator(need), emulator(need, { passwordSetup: true })];
+
+      it("lasts 72 hours, and choosing a password has to follow the sign-in within 15 minutes", () => {
+        expect(TIMING.temporaryPasswordMs).toBe(72 * HOUR);
+        expect(TIMING.passwordSetupMs).toBe(15 * MINUTE);
+        expect(TEMPORARY_EXPIRED).toBe("That temporary password has expired. Ask a chair for a new one.");
+      });
+
+      it("still works exactly 72 hours on, and has expired one second later, and one millisecond later", () => {
+        const atLimit = issuedAt(LIMIT);
+        expect(temporaryPasswordExpired(atLimit, NOW)).toBe(false);
+        expect(temporaryPasswordExpired(issuedAt(LIMIT + SECOND), NOW)).toBe(true);
+        expect(temporaryPasswordExpired(atLimit, NOW + 1)).toBe(true);
+        expect(temporaryPasswordExpired(issuedAt(LIMIT - SECOND), NOW)).toBe(false);
+
+        for (const [role, claimsOf] of CALLERS) {
+          // At the limit: the account can still choose a password, and still do nothing else.
+          const claims = claimsOf({ temp: true, tempAt: atLimit, firebase: undefined });
+          expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+          expect(denied(evaluateGate(claims, live())), role).toEqual(CHANGE_REQUIRED);
+          // The same token a millisecond later, and one issued a second earlier.
+          expect(denied(evaluateGate(claims, choosing("any", { nowMs: NOW + 1 }))), role).toEqual(EXPIRED);
+          expect(denied(evaluateGate(claims, live("any", { nowMs: NOW + 1 }))), role).toEqual(EXPIRED);
+          expect(denied(evaluateGate(claimsOf({ temp: true, tempAt: issuedAt(LIMIT + SECOND) }), choosing())), role).toEqual(EXPIRED);
+        }
+      });
+
+      it("is refused on every route once it has expired, the one for choosing a password included, whoever it is", () => {
+        let checked = 0;
+        for (const [role, claimsOf] of CALLERS) {
+          for (const need of NEEDS) {
+            for (const firebase of [WITH_FACTOR, ...NO_FACTOR]) {
+              for (const tempAt of [issuedAt(LIMIT + SECOND), issuedAt(LIMIT + HOUR), issuedAt(30 * 24 * HOUR)]) {
+                for (const options of bothRoutes(need)) {
+                  const result = evaluateGate(claimsOf({ temp: true, tempAt, firebase }), options);
+                  expect(denied(result), `${role} on a route for ${need}`).toEqual(EXPIRED);
+                  checked += 1;
+                }
+              }
+            }
+          }
+        }
+        expect(checked).toBe(3 * 4 * 4 * 3 * 4);
+      });
+
+      it("is 403, not 401: signing in again with the same password would change nothing", () => {
+        const result = evaluateGate(pledge({ temp: true, tempAt: issuedAt(LIMIT + SECOND) }), choosing());
+        expect(result).toEqual({ ok: false, ...EXPIRED });
+      });
+
+      it.each<[string, unknown]>([
+        ["no time at all, as on an account flagged before the limit existed", undefined],
+        ["a null", null],
+        ["a numeric string", String(issuedAt(HOUR))],
+        ["a date string", new Date(NOW - HOUR).toISOString()],
+        ["a Date", new Date(NOW - HOUR)],
+        ["an object", { seconds: issuedAt(HOUR) }],
+        ["a list holding the time", [issuedAt(HOUR)]],
+        ["true", true],
+        ["false", false],
+        ["something that is not a number", Number.NaN],
+        ["infinity", Number.POSITIVE_INFINITY],
+        ["minus infinity", Number.NEGATIVE_INFINITY],
+        ["nought", 0],
+        ["a negative number", -1],
+      ])("counts as expired when the time is %s", (_label, tempAt) => {
+        expect(temporaryPasswordExpired(tempAt, NOW)).toBe(true);
+        for (const [role, claimsOf] of CALLERS) {
+          for (const options of bothRoutes()) {
+            expect(denied(evaluateGate(claimsOf({ temp: true, tempAt, firebase: undefined }), options)), role).toEqual(EXPIRED);
+          }
+        }
+      });
+
+      it("reads the time in seconds, with or without a fraction", () => {
+        expect(temporaryPasswordExpired(issuedAt(71 * HOUR), NOW)).toBe(false);
+        expect(temporaryPasswordExpired(issuedAt(73 * HOUR), NOW)).toBe(true);
+        expect(temporaryPasswordExpired(issuedAt(LIMIT) + 0.25, NOW)).toBe(false);
+        expect(temporaryPasswordExpired(issuedAt(LIMIT) - 0.25, NOW)).toBe(true);
+      });
+
+      // Two servers' clocks need not agree to the second, so a password issued by one may reach
+      // another a moment "before" it was issued. Up to five minutes ahead, it has not expired.
+      describe("a time ahead of the server's clock", () => {
+        const SLACK = 5 * MINUTE;
+
+        it.each<[string, number]>([
+          ["this very moment", 0],
+          ["a second from now", SECOND],
+          ["a minute from now", MINUTE],
+          ["a second short of five minutes from now", SLACK - SECOND],
+          ["exactly five minutes from now", SLACK],
+        ])("has not expired when it was issued %s", (_label, ahead) => {
+          const tempAt = issuedAt(-ahead);
+          expect(temporaryPasswordExpired(tempAt, NOW)).toBe(false);
+          for (const [role, claimsOf] of CALLERS) {
+            const claims = claimsOf({ temp: true, tempAt, firebase: undefined });
+            expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+            expect(denied(evaluateGate(claims, live())), role).toEqual(CHANGE_REQUIRED);
+          }
+        });
+
+        // Further ahead than that is not a time the portal wrote, and must never mean "does not expire".
+        it.each<[string, number]>([
+          ["five minutes and a second from now", SLACK + SECOND],
+          ["six minutes from now", 6 * MINUTE],
+          ["an hour from now", HOUR],
+          ["three days from now", TIMING.temporaryPasswordMs],
+          ["a year from now", 365 * 24 * HOUR],
+          ["a thousand years from now", 1000 * 365 * 24 * HOUR],
+        ])("counts as expired when it was issued %s, on every route", (_label, ahead) => {
+          const tempAt = issuedAt(-ahead);
+          expect(temporaryPasswordExpired(tempAt, NOW)).toBe(true);
+          for (const [role, claimsOf] of CALLERS) {
+            for (const need of NEEDS) {
+              for (const options of bothRoutes(need)) {
+                expect(denied(evaluateGate(claimsOf({ temp: true, tempAt, firebase: undefined }), options)), `${role} on a route for ${need}`).toEqual(EXPIRED);
+              }
+            }
+          }
+        });
+
+        it("turns at five minutes to the millisecond: the same time is refused by a clock one millisecond further behind", () => {
+          const tempAt = issuedAt(-SLACK);
+          expect(temporaryPasswordExpired(tempAt, NOW)).toBe(false);
+          expect(temporaryPasswordExpired(tempAt, NOW - 1)).toBe(true);
+          expect(temporaryPasswordExpired(tempAt, NOW + 1)).toBe(false);
+
+          const claims = pledge({ temp: true, tempAt, firebase: undefined });
+          expect(evaluateGate(claims, choosing()).ok).toBe(true);
+          expect(denied(evaluateGate(claims, choosing("any", { nowMs: NOW - 1 })))).toEqual(EXPIRED);
+          expect(denied(evaluateGate(claims, live("any", { nowMs: NOW - 1 })))).toEqual(EXPIRED);
+        });
+
+        it("counts a time written in milliseconds by mistake as expired, not as one that never will", () => {
+          // What Date.now() gives, where seconds were wanted: read as seconds it is tens of thousands of years off.
+          for (const inMilliseconds of [NOW, NOW - HOUR, NOW - TIMING.temporaryPasswordMs - SECOND, NOW + HOUR, Date.UTC(2020, 0, 1)]) {
+            expect(temporaryPasswordExpired(inMilliseconds, NOW), String(inMilliseconds)).toBe(true);
+            for (const [role, claimsOf] of CALLERS) {
+              for (const options of bothRoutes()) {
+                expect(denied(evaluateGate(claimsOf({ temp: true, tempAt: inMilliseconds, firebase: undefined }), options)), role).toEqual(EXPIRED);
+              }
+            }
+          }
+          // The same instants in seconds are what they say they are.
+          expect(temporaryPasswordExpired((NOW - HOUR) / SECOND, NOW)).toBe(false);
+          expect(temporaryPasswordExpired((NOW - TIMING.temporaryPasswordMs - SECOND) / SECOND, NOW)).toBe(true);
+        });
+
+        it("is no way to stretch the three days: at most five minutes are gained", () => {
+          // Issued "five minutes from now", the password is still gone three days after that time.
+          const tempAt = issuedAt(-SLACK);
+          expect(temporaryPasswordExpired(tempAt, NOW + SLACK + TIMING.temporaryPasswordMs)).toBe(false);
+          expect(temporaryPasswordExpired(tempAt, NOW + SLACK + TIMING.temporaryPasswordMs + 1)).toBe(true);
+        });
+      });
+
+      it("goes by the request's own clock, not by anything else in the token", () => {
+        const claims = { ...pledge({ temp: true, tempAt: issuedAt(LIMIT + SECOND), firebase: undefined }), iat: NOW / SECOND, exp: NOW / SECOND + 3600 } as GateClaims;
+        expect(denied(evaluateGate(claims, choosing()))).toEqual(EXPIRED);
+        // The same claims three days and a second earlier were fine.
+        expect(evaluateGate({ ...claims, auth_time: signedIn(LIMIT + 2 * SECOND) }, choosing("any", { nowMs: NOW - LIMIT - SECOND })).ok).toBe(true);
+      });
+    });
+
+    // The password has to be chosen soon after signing in, so a screen left open on
+    // a shared computer is no use to the next person along.
+    describe("fifteen minutes after signing in", () => {
+      const LIMIT = TIMING.passwordSetupMs;
+
+      it("lets the account choose a password on a sign-in exactly 15 minutes old, and not one second or one millisecond older", () => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const firebase of [WITH_FACTOR, ...NO_FACTOR]) {
+            const atLimit = claimsOf({ ...TEMP, auth_time: signedIn(LIMIT), firebase });
+            for (const options of [choosing(), emulator("any", { passwordSetup: true })]) {
+              expect(evaluateGate(atLimit, options), role).toEqual({ ok: true, user: { uid: atLimit.uid, email: atLimit.email, role } });
+              expect(denied(evaluateGate(atLimit, { ...options, nowMs: NOW + 1 })), role).toEqual(SESSION_EXPIRED);
+              expect(denied(evaluateGate(claimsOf({ ...TEMP, auth_time: signedIn(LIMIT + SECOND), firebase }), options)), role).toEqual(SESSION_EXPIRED);
+            }
+            expect(evaluateGate(claimsOf({ ...TEMP, auth_time: signedIn(LIMIT - SECOND), firebase }), choosing()).ok, role).toBe(true);
+          }
+        }
+      });
+
+      it("answers 401, with the same words as any expired session, so the browser asks them to sign in again", () => {
+        const result = evaluateGate(pledge({ ...TEMP, auth_time: signedIn(16 * MINUTE), firebase: undefined }), choosing());
+        expect(result).toEqual({ ok: false, status: 401, code: "session_expired", message: "Your session has expired. Sign in again." });
+      });
+
+      it("is only about choosing a password: on any other route the answer is still to choose one", () => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const need of NEEDS) {
+            for (const msAgo of [LIMIT + SECOND, 16 * MINUTE, HOUR, 11 * HOUR, TIMING.maxSessionAgeMs]) {
+              const claims = claimsOf({ ...TEMP, auth_time: signedIn(msAgo) });
+              for (const options of [live(need), live(need, { passwordSetup: false }), emulator(need)]) {
+                expect(denied(evaluateGate(claims, options)), `${role} on a route for ${need}`).toEqual(CHANGE_REQUIRED);
+              }
+            }
+          }
+        }
+      });
+
+      it("does not apply to an account with its own password, on that route or any other", () => {
+        let compared = 0;
+        for (const [role, claimsOf] of CALLERS) {
+          for (const need of NEEDS) {
+            for (const msAgo of [LIMIT + SECOND, 16 * MINUTE, HOUR, 11 * HOUR, TIMING.maxSessionAgeMs]) {
+              for (const base of [live(need), emulator(need)]) {
+                const fresh = evaluateGate(claimsOf(), base);
+                const claims = claimsOf({ auth_time: signedIn(msAgo) });
+                expect(evaluateGate(claims, { ...base, passwordSetup: true }), `${role} on a route for ${need}`).toEqual(fresh);
+                expect(evaluateGate(claims, base), `${role} on a route for ${need}`).toEqual(fresh);
+                compared += 1;
+              }
+            }
+          }
+          // Signed in eleven hours ago, with a second factor: let through the route for choosing a password like any other.
+          expect(evaluateGate(claimsOf({ auth_time: signedIn(11 * HOUR) }), choosing("any")), role).toMatchObject({ ok: true, user: { role } });
+        }
+        expect(compared).toBe(3 * 4 * 5 * 2);
+      });
+
+      it("is not reset by a refreshed token: it is the sign-in that is timed", () => {
+        const refreshed = { ...pledge({ ...TEMP, auth_time: signedIn(LIMIT + SECOND), firebase: undefined }), iat: NOW / SECOND, exp: NOW / SECOND + 3600 } as GateClaims;
+        expect(denied(evaluateGate(refreshed, choosing()))).toEqual(SESSION_EXPIRED);
+      });
+
+      it("counts a sign-in dated a moment ahead of the server's clock as fresh", () => {
+        const ahead = pledge({ ...TEMP, auth_time: signedIn(-5 * SECOND), firebase: undefined });
+        expect(evaluateGate(ahead, choosing()).ok).toBe(true);
+      });
+    });
+
+    // An account with its own password may still carry the time its last temporary
+    // one was issued, or anything else under that name. Without the flag it means nothing.
+    describe("the time on an account that is not on a temporary password", () => {
+      const TIMES: ReadonlyArray<[string, unknown]> = [
+        ["three days and a second ago", issuedAt(TIMING.temporaryPasswordMs + SECOND)],
+        ["a year ago", issuedAt(365 * 24 * HOUR)],
+        ["an hour ago", issuedAt(HOUR)],
+        ["an hour from now", issuedAt(-HOUR)],
+        ["nought", 0],
+        ["text", "yesterday"],
+        ["null", null],
+        ["not a number", Number.NaN],
+      ];
+
+      it.each(TIMES)("is ignored when it is %s: the account uses the portal as usual", (_label, tempAt) => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const need of NEEDS) {
+            for (const more of [{}, { passwordSetup: true }, { mfaRequired: false }]) {
+              for (const temp of [undefined, false, "true", 1, null]) {
+                const usual = evaluateGate(claimsOf(), live(need, more));
+                expect(evaluateGate(claimsOf({ temp, tempAt }), live(need, more)), `${role} on a route for ${need}`).toEqual(usual);
+              }
+            }
+          }
+          expect(evaluateGate(claimsOf({ tempAt }), live(role)), role).toMatchObject({ ok: true, user: { role } });
+        }
+      });
+
+      it.each(TIMES)("does not excuse the account from a second factor when it is %s", (_label, tempAt) => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const firebase of NO_FACTOR) {
+            expect(denied(evaluateGate(claimsOf({ tempAt, firebase }), choosing("any"))), role).toEqual(MFA_REQUIRED);
+            expect(denied(evaluateGate(claimsOf({ tempAt, tempNew: true, firebase } as Partial<GateClaims>), live("any"))), role).toEqual(MFA_REQUIRED);
+          }
+        }
+      });
+    });
+
+    describe("order of checks", () => {
+      const expired = signedIn(TIMING.maxSessionAgeMs + SECOND);
+      const BOTH_KINDS_OF_ROUTE: ReadonlyArray<[string, (need?: GateNeed) => GateOptions]> = [
+        ["an ordinary route", (need = "any") => live(need)],
+        ["the route for choosing a password", (need = "any") => choosing(need)],
+      ];
+
+      it.each(BOTH_KINDS_OF_ROUTE)("reports an expired session first, with 401, on %s", (_label, options) => {
+        for (const [role, claimsOf] of CALLERS) {
+          expect(denied(evaluateGate(claimsOf({ ...TEMP, auth_time: expired }), options())), role).toEqual(SESSION_EXPIRED);
+          expect(denied(evaluateGate(claimsOf({ ...TEMP, auth_time: undefined }), options())), role).toEqual(SESSION_EXPIRED);
+        }
+        // And before the temporary password is looked at, however long ago that ran out.
+        for (const tempAt of [issuedAt(TIMING.temporaryPasswordMs + HOUR), undefined, "soon"]) {
+          expect(denied(evaluateGate(pledge({ temp: true, tempAt, auth_time: expired }), options()))).toEqual(SESSION_EXPIRED);
+        }
+        // Exactly at the limit is still a sign-in, and gets the answer for a temporary password.
+        const atLimit = pledge({ ...TEMP, auth_time: signedIn(TIMING.maxSessionAgeMs) });
+        expect(denied(evaluateGate(atLimit, live()))).toEqual(CHANGE_REQUIRED);
+        expect(denied(evaluateGate({ ...atLimit, tempAt: issuedAt(TIMING.temporaryPasswordMs + SECOND) }, options()))).toEqual(EXPIRED);
+      });
+
+      it.each(BOTH_KINDS_OF_ROUTE)("reports an unverified email, and a missing role, before the temporary password on %s", (_label, options) => {
+        expect(denied(evaluateGate(pledge({ ...TEMP, email_verified: false }), options())).code).toBe("email_unverified");
+        expect(denied(evaluateGate(active({ ...TEMP, email: undefined }), options())).code).toBe("email_unverified");
+        expect(denied(evaluateGate(pledge({ ...TEMP, role: undefined }), options())).code).toBe("no_role");
+        expect(denied(evaluateGate(active({ ...TEMP, role: "viewer" }), options())).code).toBe("no_role");
+      });
+
+      it.each(BOTH_KINDS_OF_ROUTE)("refuses an admin who is not on the list as forbidden, not as needing a new password, on %s", (_label, options) => {
+        const rogue = admin({ ...TEMP, uid: "rogue", email: "former.chair@uci.edu", firebase: undefined });
+        for (const need of NEEDS) {
+          expect(denied(evaluateGate(rogue, options(need))), need).toEqual({ status: 403, code: "forbidden", message: NO_ACCESS });
+        }
+        expect(denied(evaluateGate(admin({ ...TEMP }), { ...options("admin"), adminEmails: [] })).code).toBe("forbidden");
+      });
+
+      it.each(BOTH_KINDS_OF_ROUTE)("refuses an address outside UCI as not allowed, on %s", (_label, options) => {
+        for (const email of ["avery.chen@gmail.com", "avery.chen@ics.uci.edu", "avery.chen@uci.edu.evil.example"]) {
+          for (const claims of [pledge({ ...TEMP, email, issued: email }), active({ ...TEMP, email, issued: email, firebase: undefined })]) {
+            for (const need of NEEDS) {
+              expect(denied(evaluateGate(claims, options(need))), `${email} on a route for ${need}`).toEqual({
+                status: 403,
+                code: "email_not_allowed",
+                message: NO_ACCESS,
+              });
+            }
+          }
+        }
+      });
+
+      it.each(BOTH_KINDS_OF_ROUTE)("refuses a sign-in that is no longer at the address it was issued to, on %s", (_label, options) => {
+        const moved: GateClaims[] = [
+          pledge({ ...TEMP, email: "someone.else@uci.edu" }),
+          pledge({ ...TEMP, issued: "someone.else@uci.edu", firebase: undefined }),
+          active({ ...TEMP, email: "priya.shah+elsewhere@uci.edu" }),
+          active({ ...TEMP, email: "chair.one@uci.edu", firebase: undefined }),
+          // On the live site an account with no record of the address is not one the portal made.
+          pledge({ ...TEMP, issued: undefined }),
+          active({ ...TEMP, issued: null }),
+          pledge({ ...TEMP, issued: "" }),
+        ];
+        for (const claims of moved) {
+          expect(denied(evaluateGate(claims, options())), JSON.stringify(claims)).toEqual({
+            status: 403,
+            code: "email_not_allowed",
+            message: NO_ACCESS,
+          });
+        }
+      });
+
+      it("refuses those in the emulators as well, where an account made by hand may have no issued address", () => {
+        for (const passwordSetup of [true, false]) {
+          const options = emulator("any", { passwordSetup });
+          expect(denied(evaluateGate(pledge({ ...TEMP, email: "avery.chen@gmail.com", issued: undefined }), options)).code).toBe("email_not_allowed");
+          expect(denied(evaluateGate(pledge({ ...TEMP, email: "someone.else@uci.edu" }), options)).code).toBe("email_not_allowed");
+        }
+        // A hand-made account with a UCI address and the flag is treated like any other on a temporary password.
+        const handMade = pledge({ ...TEMP, issued: undefined, firebase: undefined });
+        expect(denied(evaluateGate(handMade, emulator("any")))).toEqual(CHANGE_REQUIRED);
+        expect(evaluateGate(handMade, emulator("any", { passwordSetup: true })).ok).toBe(true);
+      });
+
+      it("asks for a new password before it asks for a second factor, so the two are set up in that order", () => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const firebase of NO_FACTOR) {
+            expect(denied(evaluateGate(claimsOf({ ...TEMP, firebase }), live())), role).toEqual(CHANGE_REQUIRED);
+          }
+        }
+      });
+
+      it("asks for a new password before it says a route is somebody else's, so the account learns nothing about routes", () => {
+        expect(denied(evaluateGate(pledge({ ...TEMP }), live("admin")))).toEqual(CHANGE_REQUIRED);
+        expect(denied(evaluateGate(pledge({ ...TEMP }), live("active")))).toEqual(CHANGE_REQUIRED);
+        expect(denied(evaluateGate(active({ ...TEMP }), live("admin")))).toEqual(CHANGE_REQUIRED);
+        expect(denied(evaluateGate(active({ ...TEMP }), live("pledge")))).toEqual(CHANGE_REQUIRED);
+        expect(denied(evaluateGate(admin({ ...TEMP }), live("pledge")))).toEqual(CHANGE_REQUIRED);
+      });
+
+      // Everything above comes before the three days are looked at, and everything below after.
+      describe("for a temporary password that has expired", () => {
+        const RAN_OUT: Pick<GateClaims, "temp" | "tempAt"> = { temp: true, tempAt: issuedAt(TIMING.temporaryPasswordMs + SECOND) };
+
+        it.each(BOTH_KINDS_OF_ROUTE)("reports an unverified email, and a missing role, first on %s", (_label, options) => {
+          expect(denied(evaluateGate(pledge({ ...RAN_OUT, email_verified: false }), options())).code).toBe("email_unverified");
+          expect(denied(evaluateGate(active({ ...RAN_OUT, email: undefined }), options())).code).toBe("email_unverified");
+          expect(denied(evaluateGate(pledge({ ...RAN_OUT, role: undefined }), options())).code).toBe("no_role");
+          expect(denied(evaluateGate(active({ ...RAN_OUT, role: "viewer" }), options())).code).toBe("no_role");
+        });
+
+        it.each(BOTH_KINDS_OF_ROUTE)("refuses an admin who is not on the list as forbidden first, on %s", (_label, options) => {
+          const rogue = admin({ ...RAN_OUT, uid: "rogue", email: "former.chair@uci.edu", firebase: undefined });
+          for (const need of NEEDS) {
+            expect(denied(evaluateGate(rogue, options(need))), need).toEqual({ status: 403, code: "forbidden", message: NO_ACCESS });
+          }
+        });
+
+        it.each(BOTH_KINDS_OF_ROUTE)("refuses an address outside UCI, or one the account was not issued to, first, on %s", (_label, options) => {
+          const notAllowed: GateClaims[] = [
+            pledge({ ...RAN_OUT, email: "avery.chen@gmail.com", issued: "avery.chen@gmail.com" }),
+            active({ ...RAN_OUT, email: "priya.shah@ics.uci.edu", issued: "priya.shah@ics.uci.edu", firebase: undefined }),
+            pledge({ ...RAN_OUT, email: "someone.else@uci.edu" }),
+            active({ ...RAN_OUT, issued: "someone.else@uci.edu" }),
+            pledge({ ...RAN_OUT, issued: undefined }),
+          ];
+          for (const claims of notAllowed) {
+            expect(denied(evaluateGate(claims, options())), JSON.stringify(claims)).toEqual({ status: 403, code: "email_not_allowed", message: NO_ACCESS });
+          }
+          // In the emulators a hand-made account has no issued address, and is told its password has expired.
+          expect(denied(evaluateGate(pledge({ ...RAN_OUT, issued: undefined }), { ...options(), mfaRequired: false, issuedRequired: false }))).toEqual(EXPIRED);
+        });
+
+        it("says so before it asks for a new password, on every route that is not for choosing one", () => {
+          for (const [role, claimsOf] of CALLERS) {
+            for (const need of NEEDS) {
+              expect(denied(evaluateGate(claimsOf({ ...RAN_OUT }), live(need))), `${role} on a route for ${need}`).toEqual(EXPIRED);
+            }
+          }
+        });
+
+        it("says so before it turns away a sign-in that is too old to choose a password with", () => {
+          for (const msAgo of [TIMING.passwordSetupMs + SECOND, HOUR, TIMING.maxSessionAgeMs]) {
+            const claims = pledge({ ...RAN_OUT, auth_time: signedIn(msAgo), firebase: undefined });
+            expect(denied(evaluateGate(claims, choosing())), `${msAgo} ms`).toEqual(EXPIRED);
+          }
+          // With the password still good, the same sign-ins are the ones turned away.
+          expect(denied(evaluateGate(pledge({ ...TEMP, auth_time: signedIn(HOUR), firebase: undefined }), choosing()))).toEqual(SESSION_EXPIRED);
+        });
+
+        it("says so before it asks for a second factor, and before it says a route is somebody else's", () => {
+          for (const [role, claimsOf] of CALLERS) {
+            for (const firebase of NO_FACTOR) {
+              for (const need of NEEDS) {
+                for (const options of [live(need), choosing(need)]) {
+                  expect(denied(evaluateGate(claimsOf({ ...RAN_OUT, firebase }), options)), `${role} on a route for ${need}`).toEqual(EXPIRED);
+                }
+              }
+            }
+          }
+        });
+      });
+
+      it("turns away a sign-in that is too old to choose a password with before it says the route is somebody else's", () => {
+        const stale = signedIn(TIMING.passwordSetupMs + SECOND);
+        expect(denied(evaluateGate(pledge({ ...TEMP, auth_time: stale, firebase: undefined }), choosing("admin")))).toEqual(SESSION_EXPIRED);
+        expect(denied(evaluateGate(active({ ...TEMP, auth_time: stale }), choosing("pledge")))).toEqual(SESSION_EXPIRED);
+        // Fresh, the same accounts are told the route is not theirs.
+        expect(denied(evaluateGate(pledge({ ...TEMP, firebase: undefined }), choosing("admin")))).toEqual(FORBIDDEN);
+        expect(denied(evaluateGate(active({ ...TEMP }), choosing("pledge")))).toEqual(FORBIDDEN);
+      });
+
+      it("checks the address before the age of the sign-in on the route for choosing a password", () => {
+        const stale = signedIn(TIMING.passwordSetupMs + SECOND);
+        expect(denied(evaluateGate(pledge({ ...TEMP, auth_time: stale, email: "someone.else@uci.edu" }), choosing())).code).toBe("email_not_allowed");
+        expect(denied(evaluateGate(pledge({ ...TEMP, auth_time: stale, email_verified: false }), choosing())).code).toBe("email_unverified");
+        expect(denied(evaluateGate(admin({ ...TEMP, auth_time: stale, email: "former.chair@uci.edu" }), choosing())).code).toBe("forbidden");
+      });
+    });
+
+    describe("a flag that is not exactly true", () => {
+      const NOT_TRUE: ReadonlyArray<[string, unknown]> = [
+        ["the text \"true\"", "true"],
+        ["the number 1", 1],
+        ["the text \"1\"", "1"],
+        ["the text \"yes\"", "yes"],
+        ["an object", { temp: true }],
+        ["a list holding true", [true]],
+        ["an empty list", []],
+        ["false", false],
+        ["0", 0],
+        ["null", null],
+        ["nothing", undefined],
+      ];
+
+      it.each(NOT_TRUE)("is ignored when it is %s: the account uses the portal as usual", (_label, temp) => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const need of NEEDS) {
+            const claims = claimsOf({ temp });
+            expect(evaluateGate(claims, live(need)), `${role} on a route for ${need}`).toEqual(evaluateGate(claimsOf(), live(need)));
+          }
+          expect(evaluateGate(claimsOf({ temp }), live(role)), role).toEqual({
+            ok: true,
+            user: { uid: claimsOf().uid, email: claimsOf().email, role },
+          });
+        }
+      });
+
+      it.each(NOT_TRUE)("does not excuse the account from a second factor when it is %s", (_label, temp) => {
+        for (const [role, claimsOf] of CALLERS) {
+          for (const firebase of NO_FACTOR) {
+            expect(denied(evaluateGate(claimsOf({ temp, firebase }), choosing("any"))), role).toEqual(MFA_REQUIRED);
+            expect(denied(evaluateGate(claimsOf({ temp, firebase }), live("any"))), role).toEqual(MFA_REQUIRED);
+          }
+        }
+      });
+    });
+  });
+
+  it("refuses with 403 for every reason except an expired session, which is 401", () => {
+    const refusals = [
+      evaluateGate(pledge({ ...TEMP }), live()),
+      evaluateGate(active({ ...TEMP, firebase: undefined }), live("active")),
+      evaluateGate(admin({ ...TEMP }), live("admin")),
+      evaluateGate(active({ email: "priya.shah@gmail.com" }), live()),
+      evaluateGate(active(), live("admin")),
+      evaluateGate(active(), live("pledge")),
+      evaluateGate(pledge(), live("active")),
+      evaluateGate(pledge({ email_verified: false }), live()),
+      evaluateGate(pledge({ role: undefined }), live()),
+      evaluateGate(admin({ email: "x@uci.edu" }), live()),
+      evaluateGate(pledge({ email: "avery.chen@gmail.com" }), live()),
+      evaluateGate(pledge({ firebase: undefined }), live()),
+      evaluateGate(pledge(), live("admin")),
+      // A temporary password that has run out, on any route and on the one for replacing it.
+      evaluateGate(pledge({ temp: true, tempAt: issuedAt(TIMING.temporaryPasswordMs + SECOND) }), live()),
+      evaluateGate(active({ temp: true, tempAt: undefined, firebase: undefined }), live("any", { passwordSetup: true })),
+    ];
+    for (const refusal of refusals) expect(denied(refusal).status).toBe(403);
+    expect(new Set(refusals.map((refusal) => denied(refusal).code))).toEqual(
+      new Set(["password_change_required", "temporary_password_expired", "email_not_allowed", "forbidden", "email_unverified", "no_role", "mfa_required"]),
+    );
+    // A sign-in that is too old, whether for the portal or for choosing a password.
+    const tooOld = [
+      evaluateGate(pledge({ auth_time: undefined }), live()),
+      evaluateGate(pledge({ auth_time: signedIn(TIMING.maxSessionAgeMs + SECOND) }), live()),
+      evaluateGate(pledge({ ...TEMP, auth_time: signedIn(TIMING.passwordSetupMs + SECOND) }), live("any", { passwordSetup: true })),
+    ];
+    for (const refusal of tooOld) expect(denied(refusal)).toEqual(SESSION_EXPIRED);
+  });
+});

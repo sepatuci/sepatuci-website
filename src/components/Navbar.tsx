@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import sepLogo from "../assets/logos/sep_logos/sep_white.png";
-import { Menu, X, ExternalLink } from 'lucide-react';
+import { Menu, X, ExternalLink, LogIn } from 'lucide-react';
 
 const Navbar: React.FC = () => {
   const [isOpen,    setIsOpen]    = useState(false);
@@ -64,11 +64,16 @@ const Navbar: React.FC = () => {
               </Link>
             ))}
 
+            <Link href="/login" className="ml-6 btn-secondary group flex items-center">
+              <LogIn className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
+              <span>Login</span>
+            </Link>
+
             <Link
               href="https://forms.gle/DjLngqaKkubLyyRu9"
               target="_blank"
               rel="noopener noreferrer"
-              className="ml-6"
+              className="ml-3"
             >
               <button className="btn-primary group flex items-center">
                 <span>Apply</span>
@@ -105,7 +110,15 @@ const Navbar: React.FC = () => {
                 {label}
               </Link>
             ))}
-            <div className="pt-4">
+            <div className="pt-4 space-y-3">
+              <Link
+                href="/login"
+                onClick={() => setIsOpen(false)}
+                className="w-full btn-secondary group flex items-center justify-center"
+              >
+                <LogIn className="w-4 h-4 mr-2 transition-transform duration-200 group-hover:scale-110" />
+                <span>Login</span>
+              </Link>
               <Link
                 href="https://forms.gle/DjLngqaKkubLyyRu9"
                 target="_blank"

@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Founder's Education portal.
+//
+// The browser never talks to Firestore directly. Every read and write goes
+// through the Next.js route handlers under /api/portal, which verify the
+// caller's Firebase ID token and use the Admin SDK (which bypasses these
+// rules). Denying everything here means a leaked web API key or a bug in
+// client code cannot expose or modify portal data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
