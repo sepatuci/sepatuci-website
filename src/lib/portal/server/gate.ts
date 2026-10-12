@@ -29,6 +29,12 @@ export interface GateClaims {
   temp?: unknown;
   /** When that password was issued, in seconds. It stops working three days later. */
   tempAt?: unknown;
+  /**
+   * True on an admin made from inside the portal, whose address is not on the
+   * configured list. Set by the server when another admin changes their role,
+   * and taken off again when they are made a pledge or an active.
+   */
+  granted?: unknown;
 }
 
 export interface GateOptions {
@@ -95,9 +101,14 @@ export function evaluateGate(claims: GateClaims, options: GateOptions): GateResu
   const role = claims.role;
   if (role !== "admin" && role !== "active" && role !== "pledge") return deny("no_role", NO_ACCESS);
 
-  // The admin claim alone is not enough: the address must also be on the
-  // configured list, so removing someone from the list revokes them at once.
-  if (role === "admin" && !options.adminEmails.includes(email)) return deny("forbidden", NO_ACCESS);
+  // The admin claim alone is not enough. Either the address is on the
+  // configured list, so removing someone from the list revokes them at once,
+  // or the account was made an admin from inside the portal, which only
+  // another admin can do and can undo.
+  const granted = claims.granted === true;
+  if (role === "admin" && !granted && !options.adminEmails.includes(email)) {
+    return deny("forbidden", NO_ACCESS);
+  }
 
   // Pledge and active accounts are only ever created with a UCI address, and
   // the one each was created with is recorded on the account. One that has since

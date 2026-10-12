@@ -1105,6 +1105,10 @@ async function realRoutes(): Promise<RealRoute[]> {
 
 const REAL_ROUTES = await realRoutes();
 const CHOOSE_PASSWORD = "POST /password";
+/** The one route that needs no sign-in: the code in a preview link is its credential. */
+const REDEEM_PREVIEW = "POST /preview/redeem";
+/** Every route a sign-in is judged on, which is every route but that one. */
+const SIGNED_IN_ROUTES = REAL_ROUTES.filter((candidate) => candidate.label !== REDEEM_PREVIEW);
 
 const sendTo = async (target: RealRoute): Promise<{ status: number; body: ApiErrorBody & Record<string, unknown> }> => {
   const response = await target.handler(request(target.method), { params: Promise.resolve(target.params) });
@@ -1127,7 +1131,8 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
   /** The routes every role is let through to. Every other route is one role's alone. */
   const SHARED = ["GET /me", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /sign-out"];
   /** Who a route is for, going by the folder it is in: /admin for admins, /review for actives. */
-  const needOf = (label: string): "any" | CallerRole => {
+  const needOf = (label: string): "any" | "public" | CallerRole => {
+    if (label === REDEEM_PREVIEW) return "public";
     const folder = label.slice(label.indexOf("/") + 1).split("/")[0];
     if (folder === "admin") return "admin";
     if (folder === "review") return "active";
@@ -1158,16 +1163,47 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
     for (const spy of muted) spy.mockRestore();
   });
 
-  it("are forty, none of them for a second factor, and each either one role's or everyone's", () => {
+  it("are forty-six, none of them for a second factor, and each one role's, everyone's, or the one that is anyone's", () => {
     const labels = REAL_ROUTES.map((candidate) => candidate.label);
-    expect(labels).toHaveLength(40);
+    expect(labels).toHaveLength(46);
     expect(labels.filter((label) => /mfa|factor|totp|passcode|two-step|enrol/i.test(label))).toEqual([]);
     expect(labels).not.toContain("POST /admin/pledges/[uid]/reset-mfa");
     expect(labels).not.toContain("POST /admin/actives/[uid]/reset-mfa");
     expect(labels.filter((label) => needOf(label) === "any").sort()).toEqual(SHARED);
     expect(labels.filter((label) => needOf(label) === "active").sort()).toEqual(["GET /review/forms/[formId]", "GET /review/overview"]);
     expect(labels.filter((label) => needOf(label) === "pledge")).toHaveLength(6);
-    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(27);
+    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(32);
+    expect(labels.filter((label) => needOf(label) === "public")).toEqual([REDEEM_PREVIEW]);
+    expect(SIGNED_IN_ROUTES).toHaveLength(45);
+  });
+
+  // The one route open to anyone is reached with no token at all, and its requests are
+  // counted against the caller's address and the route, never against an account.
+  it("let the route for a preview link through with no sign-in, and count it against nobody's account", async () => {
+    const redeem = REAL_ROUTES.find((candidate) => candidate.label === REDEEM_PREVIEW);
+    if (!redeem) throw new Error(`${REDEEM_PREVIEW} was not found among the routes.`);
+    resetRateLimits();
+    stub.claims = pledgeClaims();
+    stub.verified.length = 0;
+    const anonymous = new Request("http://localhost/api/portal/preview/redeem", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ code: "not-a-code" }),
+    });
+    const response = await redeem.handler(anonymous, { params: Promise.resolve({}) });
+    // Judged on the code it sent, which is not one: the request got through the wrapper.
+    expect(response.status).toBe(404);
+    expect(await response.json()).toEqual({
+      error: "This preview link has expired or was already used. Go back to the People page and start the preview again.",
+      code: "preview_code_invalid",
+    });
+    expect(stub.verified).toEqual([]);
+    expect(counted("pledge1")).toBe(0);
+    // With a token it is the same: the token is not looked at.
+    resetRateLimits();
+    expect((await sendTo(redeem)).status).toBe(404);
+    expect(stub.verified).toEqual([]);
+    expect(counted("pledge1")).toBe(0);
   });
 
   it("can tell a request the gate let through from one it did not", async () => {
@@ -1184,7 +1220,7 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
     expect(counted("pledge1")).toBe(0);
   });
 
-  it.each(REAL_ROUTES)("$label lets it through for the role the route is for, and for no other", async (target) => {
+  it.each(SIGNED_IN_ROUTES)("$label lets it through for the role the route is for, and for no other", async (target) => {
     for (const role of ROLES) {
       // Whatever the token says of a second factor: nothing, as here, or that there was one.
       for (const firebase of [PASSWORD_ONLY, undefined, WITH_SECOND_FACTOR]) {
@@ -1214,10 +1250,10 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
 
   it("leaves every role with routes of its own that a password alone opens", () => {
     for (const role of ROLES) {
-      const own = REAL_ROUTES.filter((candidate) => needOf(candidate.label) === role);
+      const own = SIGNED_IN_ROUTES.filter((candidate) => needOf(candidate.label) === role);
       expect(own.length, role).toBeGreaterThanOrEqual(2);
       expect(own.every((candidate) => mayCall(role, candidate.label)), role).toBe(true);
-      expect(REAL_ROUTES.filter((candidate) => mayCall(role, candidate.label)), role).toHaveLength(own.length + SHARED.length);
+      expect(SIGNED_IN_ROUTES.filter((candidate) => mayCall(role, candidate.label)), role).toHaveLength(own.length + SHARED.length);
     }
   });
 });
@@ -1264,9 +1300,11 @@ describe("the portal's own routes on the live site, for an account still on a te
     expect(REAL_ROUTES.map((candidate) => candidate.label)).toEqual(
       expect.arrayContaining([CHOOSE_PASSWORD, "GET /me", "POST /onboarding", "POST /sign-out", "GET /dashboard", "GET /review/overview", "GET /admin/pledges"]),
     );
+    // The one route that needs no sign-in is left out below: it has no sign-in to refuse.
+    expect(SIGNED_IN_ROUTES).toHaveLength(REAL_ROUTES.length - 1);
   });
 
-  it.each(REAL_ROUTES.filter((candidate) => candidate.label !== CHOOSE_PASSWORD))(
+  it.each(SIGNED_IN_ROUTES.filter((candidate) => candidate.label !== CHOOSE_PASSWORD))(
     "$label refuses it with 403 password_change_required",
     async (target) => {
       const result = await sendTo(target);
@@ -1282,7 +1320,7 @@ describe("the portal's own routes on the live site, for an account still on a te
     },
   );
 
-  it.each(REAL_ROUTES)("$label refuses it with 403 temporary_password_expired once the three days are up", async (target) => {
+  it.each(SIGNED_IN_ROUTES)("$label refuses it with 403 temporary_password_expired once the three days are up", async (target) => {
     // A pledge and an active, a second past the limit, a month past it and with no time at all.
     for (const claims of [
       pledgeClaims(issued(TIMING.temporaryPasswordMs + SECOND)),

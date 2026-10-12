@@ -1,13 +1,13 @@
 "use client";
 
 import { createContext, useCallback, useContext, useRef, useState } from "react";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { AlertCircle, Check, Copy, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import type { ApiError } from "@/lib/portal/client/api";
 import { PROGRAM_NAME } from "@/lib/portal/constants";
 import { formStateLabel } from "@/lib/portal/form-state";
-import type { FormState } from "@/lib/portal/types";
+import type { AccountState, FormState } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
 
 /** Small building blocks shared by every portal screen. */
@@ -82,6 +82,35 @@ export function stateTone(state: FormState, late: boolean): Tone {
 export const StateChip: React.FC<{ state: FormState; late: boolean }> = ({ state, late }) => (
   <Chip tone={stateTone(state, late)}>{formStateLabel(state, late)}</Chip>
 );
+
+/** What each account state is called on screen. "Active" is a role here, so a working account is "Set up". */
+export const ACCOUNT_CHIPS: Record<AccountState, { label: string; tone: Tone }> = {
+  active: { label: "Set up", tone: "success" },
+  invited: { label: "Invited", tone: "neutral" },
+  disabled: { label: "Disabled", tone: "danger" },
+};
+
+/** Shows a one-time link with a copy button. */
+export const LinkBox: React.FC<{ link: string }> = ({ link }) => {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
+  return (
+    <div className="mt-4 flex items-center gap-2 rounded-lg border border-border bg-muted/40 p-3">
+      <code className="min-w-0 flex-1 truncate font-mono text-xs text-foreground">{link}</code>
+      <Button variant="outline" size="sm" onClick={() => void copy()}>
+        {copied ? <Check className="mr-1.5 h-3.5 w-3.5" /> : <Copy className="mr-1.5 h-3.5 w-3.5" />}
+        {copied ? "Copied" : "Copy"}
+      </Button>
+    </div>
+  );
+};
 
 export const LoadingBlock: React.FC<{ label?: string }> = ({ label = "Loading" }) => (
   <div className="flex flex-col items-center gap-3 py-20 text-muted-foreground" role="status">

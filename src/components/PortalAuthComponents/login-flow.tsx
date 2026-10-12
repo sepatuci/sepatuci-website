@@ -2,17 +2,17 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, type Auth, type User } from "firebase/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { authErrorCode, describeAuthError } from "@/lib/portal/auth-errors";
-import { ApiError, apiFetch, errorMessage } from "@/lib/portal/client/api";
+import { ApiError, apiFetch, apiFetchPublic, errorMessage } from "@/lib/portal/client/api";
 import { getPortalAuth, isEmulatorPreview } from "@/lib/portal/client/firebase";
 import { TIMING } from "@/lib/portal/constants";
 import { looksTemporary, passwordProblem, type PasswordOwner } from "@/lib/portal/password";
 import { safeNextPath } from "@/lib/portal/safe-redirect";
-import type { MeDto } from "@/lib/portal/types";
+import type { MeDto, MemberRole, PreviewRedeemDto } from "@/lib/portal/types";
 import { PasswordFields } from "./password-fields";
 import SetupProgress from "./setup-progress";
 
@@ -51,11 +51,25 @@ const SETUP_TIMED_OUT =
 const HAS_SECOND_FACTOR =
   "This account has an extra sign-in step switched on that the portal doesn't use. Contact a Founder's Education admin to have it cleared.";
 
+// An admin's preview link ends in a one-time code. Only the code's own shape is
+// accepted, so nothing else after the # is ever sent anywhere.
+const PREVIEW_HASH = /^#preview=([A-Za-z0-9_-]{40,50})$/;
+const PREVIEW_NOTICE: Record<MemberRole, string> = {
+  pledge:
+    "This is a preview account that only you can see. Sign in to go through a new pledge's first visit.",
+  active:
+    "This is a preview account that only you can see. Sign in to go through a new active's first visit.",
+};
+const PREVIEW_FAILED =
+  "This preview link has expired or was already used. Go back to the People page and start the preview again.";
+
 const LoginFlow: React.FC = () => {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get("next");
-  const preview = isEmulatorPreview ? params.get("preview") : null;
+  // A local build against the emulators can show the choose-a-password step on
+  // its own, with nothing behind it. Not the admin's preview account above.
+  const demo = isEmulatorPreview ? params.get("preview") : null;
 
   const [step, setStep] = useState<Step>({ name: "checking" });
   const [notice, setNotice] = useState<string | null>(noticeFor(params.get("notice")));
@@ -76,6 +90,12 @@ const LoginFlow: React.FC = () => {
   // Set once a new password has been accepted. Whatever goes wrong afterwards,
   // the person is told to sign in with it, never that nothing happened.
   const saved = useRef(false);
+  // The preview code being traded in. A code works once, so the request is
+  // made once, however many times the first effect runs in development.
+  const previewRedeem = useRef<Promise<PreviewRedeemDto> | null>(null);
+  // True when the form was filled in from a preview link, so the browser is
+  // not offered the preview account's password to keep.
+  const [fromPreview, setFromPreview] = useState(false);
 
   /** Returns to the first screen, signed out, with a message. */
   const restart = useCallback(async (message: string | null, asNotice = false) => {
@@ -86,6 +106,7 @@ const LoginFlow: React.FC = () => {
     const passwordSaved = saved.current;
     saved.current = false;
     setPassword("");
+    setFromPreview(false);
     setNewPassword("");
     setConfirm("");
     setSaving(false);
@@ -119,8 +140,36 @@ const LoginFlow: React.FC = () => {
     [next, restart, router],
   );
 
+  /**
+   * Waits for an admin's one-time preview code to be traded for the preview
+   * account's sign-in, then fills the form with it. The admin is usually
+   * signed in to the portal already, so this tab signs out once the code is
+   * good: the preview account has to be the only sign-in it holds. A code that
+   * is refused leaves whoever is signed in alone.
+   */
+  const redeemPreview = async (auth: Auth, redeem: Promise<PreviewRedeemDto>, cancelled: () => boolean) => {
+    let sandbox: PreviewRedeemDto;
+    try {
+      sandbox = await redeem;
+    } catch {
+      if (cancelled()) return;
+      setError(PREVIEW_FAILED);
+      setStep({ name: "credentials" });
+      return;
+    }
+    if (cancelled()) return;
+    await auth.authStateReady();
+    if (auth.currentUser) await signOut(auth).catch(() => undefined);
+    if (cancelled()) return;
+    setEmail(sandbox.email);
+    setPassword(sandbox.temporaryPassword);
+    setFromPreview(true);
+    setNotice(PREVIEW_NOTICE[sandbox.role]);
+    setStep({ name: "credentials" });
+  };
+
   useEffect(() => {
-    if (preview === "password") {
+    if (demo === "password") {
       setStep({ name: "new_password", email: "you@uci.edu", displayName: "", brandNew: true });
       return;
     }
@@ -130,6 +179,20 @@ const LoginFlow: React.FC = () => {
       return;
     }
     let cancelled = false;
+    // A preview code leaves the address bar before anything else happens, so a
+    // reload, a bookmark or a shared screenshot cannot present it again.
+    const previewCode = PREVIEW_HASH.exec(window.location.hash)?.[1] ?? null;
+    if (previewCode !== null) {
+      window.history.replaceState(null, "", "/login");
+      previewRedeem.current ??= apiFetchPublic<PreviewRedeemDto>("/preview/redeem", { code: previewCode });
+    }
+    const redeem = previewRedeem.current;
+    if (redeem !== null) {
+      void redeemPreview(auth, redeem, () => cancelled);
+      return () => {
+        cancelled = true;
+      };
+    }
     auth.authStateReady().then(() => {
       if (cancelled) return;
       const user = auth.currentUser;
@@ -267,7 +330,7 @@ const LoginFlow: React.FC = () => {
   // accepting it this long after the sign-in, so a screen left open on a shared
   // computer goes back to the sign-in page with nothing kept.
   // It never fires while a save is on its way, which finishes by itself.
-  const choosing = step.name === "new_password" && preview === null && !saving;
+  const choosing = step.name === "new_password" && demo === null && !saving;
   useEffect(() => {
     if (!choosing) return;
     const timer = window.setTimeout(() => void restart(SETUP_TIMED_OUT, true), TIMING.passwordSetupMs);
@@ -295,7 +358,7 @@ const LoginFlow: React.FC = () => {
       temporary: issued.current ?? true,
     };
     if (passwordProblem(newPassword, owner) !== null || confirm !== newPassword) return;
-    if (preview === "password") {
+    if (demo === "password") {
       setError("This is a preview. Nothing was saved.");
       return;
     }
@@ -446,7 +509,7 @@ const LoginFlow: React.FC = () => {
             id="portal-password"
             type={showPassword ? "text" : "password"}
             name="password"
-            autoComplete="current-password"
+            autoComplete={fromPreview ? "off" : "current-password"}
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             required

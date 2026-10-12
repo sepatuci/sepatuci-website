@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import sepLogo from "@/assets/logos/sep_logos/sep_white.png";
+import { Button } from "@/components/ui/button";
 import { PROGRAM_NAME } from "@/lib/portal/constants";
 import { PORTAL_LABEL, ROLE_HOME } from "@/lib/portal/roles";
-import type { Role } from "@/lib/portal/types";
+import type { MemberRole, Role } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
 import { usePortal, WELCOME_PATH } from "./portal-session";
 import { ToastProvider } from "./primitives";
@@ -36,7 +37,7 @@ const NAV: Record<Role, NavItem[]> = {
   ],
   admin: [
     { href: "/portal/admin", label: "Pledges", match: ["/portal/admin/pledges"] },
-    { href: "/portal/admin/actives", label: "Actives" },
+    { href: "/portal/admin/people", label: "People" },
     { href: "/portal/admin/teams", label: "Teams" },
     { href: "/portal/admin/forms", label: "Deliverables" },
     { href: "/portal/admin/activity", label: "Activity" },
@@ -46,6 +47,12 @@ const NAV: Record<Role, NavItem[]> = {
 };
 
 const HOMES: readonly string[] = Object.values(ROLE_HOME);
+
+/** What an admin going through a new member's first visit is told, on every page. */
+const PREVIEW_BANNER: Record<MemberRole, string> = {
+  pledge: "You're previewing the portal as a pledge. Nothing you do here affects real pledges.",
+  active: "You're previewing the portal as an active. Nothing you do here affects real members.",
+};
 
 function isActive(item: NavItem, pathname: string): boolean {
   if (pathname === item.href) return true;
@@ -127,6 +134,20 @@ const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             </nav>
           ) : null}
         </header>
+
+        {me.preview ? (
+          <div
+            role="status"
+            className="border-b border-warning-border bg-warning-subtle text-warning-ink print:hidden"
+          >
+            <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-2.5 text-sm sm:px-6">
+              <span>{PREVIEW_BANNER[me.preview.role]}</span>
+              <Button variant="outline" size="sm" onClick={() => void signOut()}>
+                Done previewing
+              </Button>
+            </div>
+          </div>
+        ) : null}
 
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">{children}</div>
       </div>

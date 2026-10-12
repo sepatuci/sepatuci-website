@@ -53,6 +53,8 @@ export const TIMING = {
   temporaryPasswordMs: 72 * 60 * 60_000,
   /** Replacing a temporary password has to follow the sign-in this closely. */
   passwordSetupMs: 15 * 60_000,
+  /** A preview link works for this long after an admin starts a preview. */
+  previewCodeMs: 5 * 60_000,
   /** A draft saves this long after the last keystroke, */
   draftSaveDebounceMs: 4000,
   /** at least this often while someone types without pausing, */

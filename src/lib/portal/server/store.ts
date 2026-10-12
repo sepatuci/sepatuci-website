@@ -20,6 +20,7 @@ import type {
   FormSettings,
   FormStatus,
   IsoDateTime,
+  MemberRole,
   PunishmentDto,
   PunishmentStatus,
   Question,
@@ -65,6 +66,27 @@ export type UserDoc = {
    * only until it is replaced. It never leaves the server.
    */
   temporaryPassword?: StoredTemporaryPassword | null;
+  /**
+   * Set only on an admin's preview account: the uid and address of the admin
+   * it belongs to. Such an account is in none of the portal's lists and can
+   * never join a team. `isPreviewProfile` in ../preview is the one test for it.
+   */
+  previewOwnerUid?: string;
+  previewOwnerEmail?: string;
+};
+
+/**
+ * A one-time link to sign in as a preview account, keyed by the hash of the
+ * code in the link. It names the account and nothing more: the temporary
+ * password is made when the link is opened, so none is ever at rest here.
+ * Redeeming it deletes it, and it expires a few minutes after it is made.
+ */
+export type PreviewCodeDoc = {
+  ownerUid: string;
+  uid: string;
+  email: string;
+  role: MemberRole;
+  expiresAt: Timestamp;
 };
 
 export type TeamDoc = {
@@ -124,6 +146,11 @@ export type SubmissionDoc = {
   activeSeconds: number;
   late: boolean;
   lateBySeconds: number;
+  /**
+   * True on a response from an admin's preview account, which counts towards
+   * nothing. Absent, never false, on every real response.
+   */
+  preview?: true;
 };
 
 export type PunishmentDoc = {
@@ -198,6 +225,7 @@ export interface Collections {
    */
   sessions: (uid: string) => CollectionReference<SessionDoc>;
   audit: CollectionReference<AuditDoc>;
+  previewCodes: CollectionReference<PreviewCodeDoc>;
 }
 
 export function collections(db: Firestore): Collections {
@@ -211,6 +239,7 @@ export function collections(db: Firestore): Collections {
     sessions: (uid) =>
       db.collection("users").doc(uid).collection("sessions").withConverter(passthrough<SessionDoc>()),
     audit: db.collection("auditLog").withConverter(passthrough<AuditDoc>()),
+    previewCodes: db.collection("previewCodes").withConverter(passthrough<PreviewCodeDoc>()),
   };
 }
 

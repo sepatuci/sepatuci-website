@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useServerNow } from "@/components/PortalComponents/portal-session";
 import {
+  ACCOUNT_CHIPS,
   Card,
   Chip,
   EmptyState,
@@ -15,28 +16,17 @@ import {
   PageHeader,
   ProgressBar,
   StatTile,
-  type Tone,
 } from "@/components/PortalComponents/primitives";
 import { isOnline } from "@/lib/portal/activity";
 import { useApi } from "@/lib/portal/client/use-api";
 import { formatDuration, formatRelative, msOrNull } from "@/lib/portal/dates";
 import { standingFor, type Standing } from "@/lib/portal/progress";
-import type {
-  AccountState,
-  AdminOverviewDto,
-  PledgeRowDto,
-} from "@/lib/portal/types";
+import type { AdminOverviewDto, PledgeRowDto } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
 import { ProgressMatrix } from "@/components/PortalComponents/progress-matrix";
 import BulkAddDialog from "./bulk-add-dialog";
 import CreatePledgeDialog from "./create-pledge-dialog";
 import GettingStarted from "./getting-started";
-
-export const ACCOUNT_CHIPS: Record<AccountState, { label: string; tone: Tone }> = {
-  active: { label: "Set up", tone: "success" },
-  invited: { label: "Invited", tone: "neutral" },
-  disabled: { label: "Disabled", tone: "danger" },
-};
 
 type SortKey = "name" | "team" | "progress" | "seen" | "time";
 

@@ -367,6 +367,77 @@ describe("evaluateGate", () => {
     });
   });
 
+  // An admin made from inside the portal is not on the list. Their sign-in
+  // says so with a claim only the server writes.
+  describe("granted admins", () => {
+    const granted = (overrides: Partial<GateClaims> = {}): GateClaims =>
+      admin({ uid: "granted1", email: "former.pledge@uci.edu", granted: true, ...overrides });
+
+    it("admits an admin off the list whose sign-in says the role was granted, to admin routes and shared ones", () => {
+      for (const need of ["any", "admin"] as const) {
+        expect(evaluateGate(granted(), live(need))).toEqual({
+          ok: true,
+          user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin" },
+        });
+        expect(evaluateGate(granted(), emulators(need)).ok).toBe(true);
+      }
+      expect(evaluateGate(granted(), live("admin", { adminEmails: [] })).ok).toBe(true);
+    });
+
+    it("admits them outside UCI too, as it does a listed admin", () => {
+      expect(evaluateGate(granted({ email: "advisor@example.org" }), live("admin"))).toMatchObject({
+        ok: true,
+        user: { email: "advisor@example.org", role: "admin" },
+      });
+    });
+
+    it.each<[string, unknown]>([
+      ["the string \"true\"", "true"],
+      ["1", 1],
+      ["false", false],
+      ["null", null],
+      ["an object", { granted: true }],
+      ["a list", [true]],
+      ["\"yes\"", "yes"],
+    ])("takes nothing but true for the claim: %s leaves an unlisted admin refused", (_label, value) => {
+      expect(denied(evaluateGate(granted({ granted: value }), live("admin")))).toEqual({
+        status: 403,
+        code: "forbidden",
+        message: "This account doesn't have access to the portal.",
+      });
+    });
+
+    it("is neither here nor there for a listed admin, who is admitted either way", () => {
+      expect(evaluateGate(admin({ granted: true }), live("admin")).ok).toBe(true);
+      expect(evaluateGate(admin({ granted: false }), live("admin")).ok).toBe(true);
+    });
+
+    it("does not make a pledge or an active an admin: the role claim still decides, and the claim is then ignored", () => {
+      for (const need of NEEDS) {
+        const asPledge = evaluateGate(pledge({ granted: true }), live(need));
+        expect(asPledge, need).toEqual(evaluateGate(pledge(), live(need)));
+        const asActive = evaluateGate(active({ granted: true }), live(need));
+        expect(asActive, need).toEqual(evaluateGate(active(), live(need)));
+      }
+      expect(denied(evaluateGate(pledge({ granted: true }), live("admin"))).code).toBe("forbidden");
+    });
+
+    it("holds a granted admin to everything else: a verified email, a sign-in under 12 hours old, and the route's role", () => {
+      expect(denied(evaluateGate(granted({ email_verified: false }), live("admin"))).code).toBe("email_unverified");
+      expect(denied(evaluateGate(granted({ auth_time: signedIn(13 * HOUR) }), live("admin")))).toEqual(SESSION_EXPIRED);
+      expect(denied(evaluateGate(granted(), live("pledge"))).code).toBe("forbidden");
+      expect(denied(evaluateGate(granted(), live("active"))).code).toBe("forbidden");
+      expect(denied(evaluateGate(granted({ ...TEMP }), live("admin"))).code).toBe("password_change_required");
+    });
+
+    it("returns only uid, email and role for them too: the claim itself is not passed on", () => {
+      expect(evaluateGate(granted(), live("admin"))).toEqual({
+        ok: true,
+        user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin" },
+      });
+    });
+  });
+
   // Sign-in is a UCI email and a password, and nothing more. What Firebase says
   // about how the person signed in, under `firebase` in the token, is not read:
   // a second factor is neither asked for nor a way past anything.
