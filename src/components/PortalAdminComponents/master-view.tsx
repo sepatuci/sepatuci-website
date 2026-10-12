@@ -35,7 +35,6 @@ import GettingStarted from "./getting-started";
 export const ACCOUNT_CHIPS: Record<AccountState, { label: string; tone: Tone }> = {
   active: { label: "Set up", tone: "success" },
   invited: { label: "Invited", tone: "neutral" },
-  needs_mfa: { label: "Needs two-step", tone: "warning" },
   disabled: { label: "Disabled", tone: "danger" },
 };
 

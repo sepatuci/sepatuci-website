@@ -17,19 +17,20 @@ type Stage =
   | { name: "verifying" }
   | { name: "form"; email: string }
   | { name: "done"; message: string }
-  | { name: "dead"; message: string };
+  // spent: the link itself is used up or expired, so only a new one will do.
+  | { name: "dead"; message: string; spent: boolean };
 
 const DEAD_LINK = "This link is no longer valid. Links expire after about an hour and work once.";
 
 /**
- * Email links this page does not handle itself (undoing an email change or a
- * new second factor). Firebase's own page does, on the project's own domain.
+ * Email links this page does not handle itself, such as undoing an email
+ * change. Firebase's own page does, on the project's own domain.
  */
 const HANDED_OVER = new Set(["recoverEmail", "verifyAndChangeEmail", "revertSecondFactorAddition"]);
 
 /**
  * Handles the links in Firebase's emails: setting a password for the first
- * time, resetting a forgotten one, and confirming an email address.
+ * time, replacing one when an admin sends a new link, and confirming an email address.
  */
 const ResetForm: React.FC = () => {
   const params = useSearchParams();
@@ -52,7 +53,7 @@ const ResetForm: React.FC = () => {
     window.history.replaceState(null, "", "/login/reset");
     const auth = getPortalAuth();
     if (!auth || code.current.length === 0) {
-      setStage({ name: "dead", message: DEAD_LINK });
+      setStage({ name: "dead", message: DEAD_LINK, spent: true });
       return;
     }
     const authDomain = auth.config.authDomain;
@@ -76,13 +77,19 @@ const ResetForm: React.FC = () => {
           return;
         }
         if (mode.current !== "resetPassword") {
-          if (!cancelled) setStage({ name: "dead", message: DEAD_LINK });
+          if (!cancelled) setStage({ name: "dead", message: DEAD_LINK, spent: true });
           return;
         }
         const email = await verifyPasswordResetCode(auth, code.current);
         if (!cancelled) setStage({ name: "form", email });
       } catch (caught) {
-        if (!cancelled) setStage({ name: "dead", message: describeAuthError(caught, "reset") });
+        if (!cancelled) {
+          setStage({
+            name: "dead",
+            message: describeAuthError(caught, "reset"),
+            spent: isDeadResetLink(caught),
+          });
+        }
       }
     };
     void run();
@@ -110,7 +117,7 @@ const ResetForm: React.FC = () => {
       });
     } catch (caught) {
       if (isDeadResetLink(caught)) {
-        setStage({ name: "dead", message: describeAuthError(caught, "reset") });
+        setStage({ name: "dead", message: describeAuthError(caught, "reset"), spent: true });
       } else {
         setError(describeAuthError(caught, "reset"));
       }
@@ -133,16 +140,15 @@ const ResetForm: React.FC = () => {
       <div>
         <h2 className="text-xl font-medium text-foreground">This link can&apos;t be used</h2>
         <p className="mt-2 text-sm text-muted-foreground">{stage.message}</p>
-        <Link href="/login/forgot" className="mt-6 block">
+        <p className="mt-2 text-sm text-muted-foreground">
+          {stage.spent
+            ? "Contact an active or a Founder's Education admin for a new one."
+            : "Open the link from your message again to retry."}
+        </p>
+        <Link href="/login" className="mt-6 block">
           <Button variant="accent" className="h-11 w-full">
-            Get a new link
+            Back to sign in
           </Button>
-        </Link>
-        <Link
-          href="/login"
-          className="mt-4 block text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
-        >
-          Back to sign in
         </Link>
       </div>
     );
@@ -154,10 +160,7 @@ const ResetForm: React.FC = () => {
         <CheckCircle2 className="h-9 w-9 text-success-ink" />
         <h2 className="mt-4 text-xl font-medium text-foreground">All set</h2>
         <p className="mt-2 text-sm text-muted-foreground">{stage.message}</p>
-        <Link
-          href={`/login?notice=password_updated${welcome.current ? "&welcome=1" : ""}`}
-          className="mt-6 block"
-        >
+        <Link href="/login?notice=password_updated" className="mt-6 block">
           <Button variant="accent" className="h-11 w-full">
             Sign in
           </Button>

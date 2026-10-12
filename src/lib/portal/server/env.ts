@@ -4,7 +4,7 @@
  *  - live: a real Firebase project, authenticated with a service account.
  *  - emulator: the local Firebase emulators, used for development and tests.
  *
- * The emulators accept unsigned tokens and have no second factor, so emulator
+ * The emulators accept unsigned tokens, so emulator
  * mode is refused outright anywhere that looks like a deployment.
  */
 

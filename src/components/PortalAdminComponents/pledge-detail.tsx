@@ -3,8 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { ArrowLeft, Ban, Check, Link2, Lock, Mail, Pencil, ShieldOff, Trash2 } from "lucide-react";
+import { ArrowLeft, Ban, Check, Link2, Lock, Pencil, ShieldOff, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Input, Label, Textarea } from "@/components/ui/input";
@@ -22,7 +21,6 @@ import {
 } from "@/components/PortalComponents/primitives";
 import { isOnline } from "@/lib/portal/activity";
 import { apiFetch, errorMessage } from "@/lib/portal/client/api";
-import { getPortalAuth } from "@/lib/portal/client/firebase";
 import { useApi } from "@/lib/portal/client/use-api";
 import { LIMITS, PROGRAM_NAME } from "@/lib/portal/constants";
 import {
@@ -42,7 +40,7 @@ import type {
 import { ACCOUNT_CHIPS } from "./master-view";
 import TemporaryPasswordDialog from "./temporary-password-dialog";
 
-type Pending = "disable" | "reset_mfa" | "temporary_password" | "remove" | "edit" | null;
+type Pending = "disable" | "temporary_password" | "remove" | "edit" | null;
 
 const SectionTitle: React.FC<{ children: React.ReactNode }> = ({ children }) => (
   <h2 className="mb-3 mt-10 text-sm font-medium uppercase tracking-wider text-muted-foreground">
@@ -153,13 +151,6 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
 
   const teamName = data.teams.find((team) => team.id === pledge.teamId)?.name ?? null;
 
-  const emailPasswordLink = () =>
-    run(async () => {
-      const auth = getPortalAuth();
-      if (!auth) throw new Error("The portal isn't configured.");
-      await sendPasswordResetEmail(auth, pledge.email);
-    }, `Password email sent to ${pledge.email}.`);
-
   const addPunishment = (event: React.FormEvent) => {
     event.preventDefault();
     void run(
@@ -212,10 +203,6 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           >
             <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Edit
-          </Button>
-          <Button variant="outline" size="sm" onClick={emailPasswordLink} disabled={busy || disabled}>
-            <Mail className="mr-1.5 h-3.5 w-3.5" />
-            Email password link
           </Button>
           <Button variant="outline" size="sm" onClick={createPasswordLink} disabled={busy || disabled}>
             <Link2 className="mr-1.5 h-3.5 w-3.5" />
@@ -612,21 +599,6 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           void run(
             () => apiFetch(`/admin/pledges/${uid}`, { method: "PATCH", body: { status: "disabled" } }),
             "Account disabled.",
-          )
-        }
-      />
-
-      <ConfirmDialog
-        open={pending === "reset_mfa"}
-        onOpenChange={(open) => setPending(open ? "reset_mfa" : null)}
-        title="Reset two-step verification?"
-        description={`Use this if ${pledge.displayName} has a new phone or lost Duo Mobile. They are signed out and set it up again the next time they sign in.`}
-        confirmLabel="Reset two-step"
-        busy={busy}
-        onConfirm={() =>
-          void run(
-            () => apiFetch(`/admin/pledges/${uid}/reset-mfa`, { method: "POST" }),
-            "Two-step verification reset.",
           )
         }
       />

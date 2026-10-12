@@ -16,7 +16,7 @@ describe("endsSession", () => {
     },
   );
 
-  it.each(["email_unverified", "email_not_allowed", "no_role", "no_profile", "mfa_required"])(
+  it.each(["email_unverified", "email_not_allowed", "no_role", "no_profile"])(
     "ends the session for a 403 that says the account itself may not use the portal: %s",
     (code) => {
       expect(endsSession(refusal(403, code))).toBe(true);
@@ -36,6 +36,15 @@ describe("endsSession", () => {
     },
   );
 
+  // Sign-in is an email and a password. The server has no refusal for a missing second factor
+  // any more, so the browser has no code for one that it treats as the end of a session.
+  it("knows of no refusal for a missing second factor: the code that was one is like any it has never heard of", () => {
+    for (const status of [401, 403, 409, 422]) {
+      expect(endsSession(refusal(status, "mfa_required")), String(status)).toBe(endsSession(refusal(status, "never_heard_of")));
+    }
+    expect(endsSession(refusal(403, "mfa_required"))).toBe(false);
+  });
+
   it.each<[number, string]>([
     [0, "network"],
     [400, "bad_json"],
@@ -44,7 +53,6 @@ describe("endsSession", () => {
     [409, "not_required"],
     [409, "password_change_required"],
     [422, "invalid"],
-    [422, "mfa_required"],
     [429, "rate_limited"],
     [500, "internal"],
     // The sign-in could not be checked just now. That is not the same as being signed out.

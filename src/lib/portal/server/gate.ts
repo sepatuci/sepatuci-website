@@ -29,12 +29,10 @@ export interface GateClaims {
   temp?: unknown;
   /** When that password was issued, in seconds. It stops working three days later. */
   tempAt?: unknown;
-  firebase?: { sign_in_second_factor?: unknown };
 }
 
 export interface GateOptions {
   need: GateNeed;
-  mfaRequired: boolean;
   adminEmails: readonly string[];
   nowMs: number;
   /**
@@ -66,7 +64,7 @@ const NO_ACCESS = "This account doesn't have access to the portal.";
 /** How far two servers' clocks may disagree. */
 const CLOCK_SLACK_MS = 5 * 60_000;
 
-export const TEMPORARY_EXPIRED = "That temporary password has expired. Ask a chair for a new one.";
+export const TEMPORARY_EXPIRED = "That temporary password has expired. Ask an admin for a new one.";
 
 /** True when a temporary password issued at this time (in seconds) can no longer be used. */
 export function temporaryPasswordExpired(issuedAtSeconds: unknown, nowMs: number): boolean {
@@ -113,8 +111,7 @@ export function evaluateGate(claims: GateClaims, options: GateOptions): GateResu
   }
 
   // Someone still on a temporary password chooses their own before anything
-  // else. That comes before two-step verification is set up, so the route that
-  // does it is the only one such an account reaches without a second factor.
+  // else. The route that does it is the only one such an account reaches.
   const choosingPassword = claims.temp === true && options.passwordSetup === true;
   if (claims.temp === true) {
     // A temporary password is good for three days. One left unclaimed in a
@@ -134,13 +131,6 @@ export function evaluateGate(claims: GateClaims, options: GateOptions): GateResu
         code: "session_expired",
         message: "Your session has expired. Sign in again.",
       };
-    }
-  }
-
-  if (options.mfaRequired && !choosingPassword) {
-    const secondFactor = claims.firebase?.sign_in_second_factor;
-    if (typeof secondFactor !== "string" || secondFactor.length === 0) {
-      return deny("mfa_required", "Two-step verification is required.");
     }
   }
 

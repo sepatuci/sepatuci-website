@@ -3,7 +3,7 @@
  * ids, the rate limit, and the deny-all Firestore rules. This file only reads
  * the seeded data; the accounts it disables or deletes are its own fixtures.
  */
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, expectTypeOf, it } from "vitest";
 import { GET as getAdminForm, PUT as putAdminForm } from "@/app/api/portal/admin/forms/[formId]/route";
 import { DELETE as deleteResponse } from "@/app/api/portal/admin/forms/[formId]/responses/[uid]/route";
 import { DELETE as deletePledge } from "@/app/api/portal/admin/pledges/[uid]/route";
@@ -22,7 +22,7 @@ import { POST as signOut } from "@/app/api/portal/sign-out/route";
 import { GET as getSubmission } from "@/app/api/portal/submissions/[formId]/route";
 import { LIMITS, TIMING } from "@/lib/portal/constants";
 import { RATE_LIMITS, resetRateLimits } from "@/lib/portal/server/rate-limit";
-import type { AdminFormDto, AdminOverviewDto, MeDto } from "@/lib/portal/types";
+import type { AccountState, ActiveRowDto, ActivesDto, AdminFormDto, AdminOverviewDto, MeDto, PledgeDetailDto, PledgeRowDto } from "@/lib/portal/types";
 import {
   ADMIN_ONE,
   ADMIN_TWO,
@@ -112,10 +112,10 @@ beforeEach(() => {
 
 describe("route discovery", () => {
   it("finds every portal route handler", () => {
-    expect(new Set(ROUTES.map((route) => route.path)).size).toBeGreaterThanOrEqual(32);
-    expect(ROUTES.length).toBeGreaterThanOrEqual(42);
+    expect(new Set(ROUTES.map((route) => route.path)).size).toBeGreaterThanOrEqual(30);
+    expect(ROUTES.length).toBeGreaterThanOrEqual(40);
     expect(new Set(ROUTES.map((route) => route.label)).size).toBe(ROUTES.length);
-    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(29);
+    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(27);
     expect(PLEDGE_ROUTES.length).toBeGreaterThanOrEqual(6);
     // The welcome is for pledges and actives, and a temporary password can be anyone's to replace.
     expect(SHARED_ROUTES.map((route) => route.label).sort()).toEqual(SHARED);
@@ -150,7 +150,6 @@ describe("route discovery", () => {
       "PATCH /admin/actives/[uid] (admin)",
       "DELETE /admin/actives/[uid] (admin)",
       "POST /admin/actives/[uid]/invite-link (admin)",
-      "POST /admin/actives/[uid]/reset-mfa (admin)",
       "POST /admin/actives/[uid]/temporary-password (admin)",
       "GET /review/overview (active)",
       "GET /review/forms/[formId] (active)",
@@ -172,6 +171,132 @@ describe("route discovery", () => {
     ]) {
       expect(labels).toContain(expected);
     }
+  });
+});
+
+// Sign-in is a UCI email and a password. There used to be a second step after the password, and
+// with it two routes for an admin to reset it, a field on /me that said whether it was asked
+// for, a field on every row that said who had set it up, and an account state for someone who
+// had not. None of that is left for a response to carry or a request to reach.
+describe("sign-in with an email and a password only", () => {
+  /**
+   * What a response would have to say to say anything of a second step. Each is long enough, or
+   * has a character no id has, that it cannot turn up by chance in the ids a response carries.
+   */
+  const SECOND_STEP = /mfaEnrolled|mfaEnforced|needs_mfa|mfa_required|reset_mfa|two-step|second factor|secondFactor|passcode|authenticator/i;
+  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "role", "serverNow", "team", "uid"];
+  const PLEDGE_ROW_KEYS = [
+    "uid",
+    "email",
+    "displayName",
+    "pledgeClass",
+    "teamId",
+    "status",
+    "signInBlocked",
+    "accountState",
+    "createdAt",
+    "lastSignInAt",
+    "onboardedAt",
+    "activity",
+    "submitted",
+    "activePunishments",
+  ].sort();
+  const ACTIVE_ROW_KEYS = ["uid", "email", "displayName", "status", "signInBlocked", "accountState", "createdAt", "lastSignInAt"].sort();
+  const routeOf = (label: string): (typeof ROUTES)[number] => {
+    const found = ROUTES.find((route) => route.label === label);
+    if (!found) throw new Error(`${label} was not discovered.`);
+    return found;
+  };
+
+  it("is what every session in this file is: a sign-in with a password, and no second factor", () => {
+    for (const role of ROLES) {
+      const signedInWith = claimsOf(sessionAs(role).token).firebase as Record<string, unknown>;
+      expect(signedInWith.sign_in_provider, role).toBe("password");
+      expect(signedInWith, role).not.toHaveProperty("sign_in_second_factor");
+    }
+  });
+
+  it("has forty route handlers at thirty paths, and none of them is for a second factor", () => {
+    expect(ROUTES).toHaveLength(40);
+    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(30);
+    expect(ROUTES.filter((route) => /mfa|factor|totp|passcode|two-step|enrol/i.test(route.path)).map((route) => route.label)).toEqual([]);
+    const labels = ROUTES.map((route) => route.label);
+    for (const gone of ["POST /admin/pledges/[uid]/reset-mfa", "POST /admin/actives/[uid]/reset-mfa"]) expect(labels).not.toContain(gone);
+    // What an admin can still do to an account's sign-in: a link, or a temporary password.
+    expect(labels.filter((label) => /^POST \/admin\/(pledges|actives)\/\[uid\]\//.test(label)).sort()).toEqual([
+      "POST /admin/actives/[uid]/invite-link",
+      "POST /admin/actives/[uid]/temporary-password",
+      "POST /admin/pledges/[uid]/invite-link",
+      "POST /admin/pledges/[uid]/punishments",
+      "POST /admin/pledges/[uid]/temporary-password",
+    ]);
+  });
+
+  it.each(["admin/pledges/[uid]/reset-mfa", "admin/actives/[uid]/reset-mfa"])(
+    "has nothing at %s for a request to reach: there is no route there to load",
+    async (gone) => {
+      const missing = `@/app/api/portal/${gone}/route`;
+      await expect(import(/* @vite-ignore */ missing)).rejects.toThrow();
+      // The same lookup finds the route beside it, so it is the route that is missing and not the lookup.
+      const beside = `@/app/api/portal/${gone.replace("reset-mfa", "temporary-password")}/route`;
+      const exported: Record<string, unknown> = await import(/* @vite-ignore */ beside);
+      expect(Object.keys(exported)).toEqual(["POST"]);
+    },
+  );
+
+  it("tells nobody whether a second step is asked for: GET /me has exactly these fields for every role", async () => {
+    expectTypeOf<MeDto>().not.toHaveProperty("mfaEnforced");
+    for (const role of ROLES) {
+      const result = await call(getMe, {}, { token: sessionAs(role).token });
+      const me = ok<MeDto>(result);
+      expect(Object.keys(me).sort(), role).toEqual(ME_KEYS);
+      expect(me, role).not.toHaveProperty("mfaEnforced");
+      expect(result.text, role).not.toMatch(SECOND_STEP);
+    }
+  });
+
+  it("says of no pledge or active whether they have a second factor: an admin's rows have exactly these fields", async () => {
+    expectTypeOf<PledgeRowDto>().not.toHaveProperty("mfaEnrolled");
+    expectTypeOf<ActiveRowDto>().not.toHaveProperty("mfaEnrolled");
+
+    const overview = await call(getOverview, {}, { token: admin.token });
+    const pledges = ok<AdminOverviewDto>(overview).pledges;
+    expect(pledges).toHaveLength(6);
+    for (const row of pledges) {
+      expect(Object.keys(row).sort(), row.displayName).toEqual(PLEDGE_ROW_KEYS);
+      expect(row, row.displayName).not.toHaveProperty("mfaEnrolled");
+    }
+
+    const listed = await call(routeOf("GET /admin/actives").handler, {}, { token: admin.token });
+    const actives = ok<ActivesDto>(listed).actives;
+    expect(actives).toHaveLength(3);
+    for (const row of actives) {
+      expect(Object.keys(row).sort(), row.displayName).toEqual(ACTIVE_ROW_KEYS);
+      expect(row, row.displayName).not.toHaveProperty("mfaEnrolled");
+    }
+
+    // The same row on a pledge's own page, and nothing of a second step anywhere in what was sent.
+    const detail = await call(routeOf("GET /admin/pledges/[uid]").handler, { uid: sam.uid }, { token: admin.token });
+    expect(Object.keys(ok<PledgeDetailDto>(detail).pledge).sort()).toEqual(PLEDGE_ROW_KEYS);
+    for (const result of [overview, listed, detail]) expect(result.text).not.toMatch(SECOND_STEP);
+  });
+
+  it("has three account states, and no fourth for someone who has yet to set a second step up", async () => {
+    expectTypeOf<AccountState>().toEqualTypeOf<"invited" | "active" | "disabled">();
+    const pledges = ok<AdminOverviewDto>(await call(getOverview, {}, { token: admin.token })).pledges;
+    const actives = ok<ActivesDto>(await call(routeOf("GET /admin/actives").handler, {}, { token: admin.token })).actives;
+    // The seed has someone in each of the three, among the pledges and among the actives.
+    expect([...new Set(pledges.map((row) => row.accountState))].sort()).toEqual(["active", "disabled", "invited"]);
+    expect([...new Set(actives.map((row) => row.accountState))].sort()).toEqual(["active", "disabled", "invited"]);
+    const states: string[] = [...pledges, ...actives].map((row) => row.accountState);
+    expect(states).not.toContain("needs_mfa");
+  });
+
+  it("is in no audit entry an admin can read: nothing was ever reset", async () => {
+    const result = await call(routeOf("GET /admin/audit").handler, {}, { token: admin.token });
+    expect(result.status).toBe(200);
+    expect(result.text).not.toMatch(/reset_mfa/);
+    expect(result.text).not.toMatch(SECOND_STEP);
   });
 });
 
@@ -210,7 +335,6 @@ describe("tokens", () => {
       role: "pledge",
       pledgeClass: "Lambda",
       team: null,
-      mfaEnforced: false,
     });
     expect(Date.parse(me.serverNow)).toBeGreaterThan(Date.now() - 60_000);
     expect(me.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
@@ -219,7 +343,6 @@ describe("tokens", () => {
       "createdAt",
       "displayName",
       "email",
-      "mfaEnforced",
       "onboardedAt",
       "pledgeClass",
       "role",
@@ -327,7 +450,7 @@ describe("roles", () => {
       for (const body of bodies) {
         const result = await call(choosePassword, {}, { method: "POST", token: priya.token, body, query: `?uid=${sam.uid}`, headers: { "x-uid": sam.uid } });
         const refusal = refused(result, 409, "not_required");
-        expect(refusal.error).toBe("This account already has its own password. Use Forgot password to change it.");
+        expect(refusal.error).toBe("This account already has its own password. Ask an active or an admin if it needs changing.");
         expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
       }
       // Her password is the one she had, and nobody's has become the one that was sent.
@@ -413,7 +536,7 @@ describe("roles", () => {
     const before = await dumpPortal();
     for (const session of [admin, sam, priya]) {
       const result = await call(choosePassword, {}, { method: "POST", token: session.token, body: { password: A_GOOD_PASSWORD } });
-      expect(refused(result, 409, "not_required").error).toBe("This account already has its own password. Use Forgot password to change it.");
+      expect(refused(result, 409, "not_required").error).toBe("This account already has its own password. Ask an active or an admin if it needs changing.");
       expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
     }
     expect(await dumpPortal()).toEqual(before);
@@ -427,7 +550,6 @@ describe("roles", () => {
       role: "admin",
       team: null,
       onboardedAt: null,
-      mfaEnforced: false,
     });
     expect(ok<MeDto>(await call(getMe, {}, { token: sam.token })).role).toBe("pledge");
     const active = ok<MeDto>(await call(getMe, {}, { token: priya.token }));
@@ -438,7 +560,6 @@ describe("roles", () => {
       role: "active",
       pledgeClass: null,
       team: null,
-      mfaEnforced: false,
     });
     // An active has a welcome of their own, and the seed has Priya through hers 24 days ago.
     expect(Date.parse(active.onboardedAt ?? "")).toBeLessThan(Date.now() - 23 * 86_400_000);
@@ -584,7 +705,7 @@ describe("the gate, with real tokens", () => {
   describe("an account whose claims say its password is temporary", () => {
     const choose = (session: Session) => call(choosePassword, {}, { method: "POST", token: session.token, body: { password: A_GOOD_PASSWORD } });
     const WRONG_PASSWORD = /INVALID_PASSWORD|INVALID_LOGIN_CREDENTIALS/;
-    const EXPIRED = "That temporary password has expired. Ask a chair for a new one.";
+    const EXPIRED = "That temporary password has expired. Ask an admin for a new one.";
 
     /**
      * The profile every account the portal makes has, for an account made here by hand.
@@ -816,9 +937,66 @@ describe("the gate, with real tokens", () => {
 
         const moved = withClaims(session.token, { email: "someone.else@gmail.com" });
         refused(await call(choosePassword, {}, { method: "POST", token: moved, body: { password: A_GOOD_PASSWORD } }), 403, "email_not_allowed");
-        // And says the password has expired before it would turn away a sign-in too old to choose one with.
-        const stale = withClaims(session.token, { auth_time: Number(claimsOf(session.token).auth_time) - 3600 });
-        refused(await call(choosePassword, {}, { method: "POST", token: stale, body: { password: A_GOOD_PASSWORD } }), 403, "temporary_password_expired");
+        // And says the password has expired before it would turn away a sign-in too old to choose one with,
+        // on that route as on any other: signing in again would change nothing.
+        for (const secondsAgo of [TIMING.passwordSetupMs / 1000 + 60, 3600]) {
+          const stale = withClaims(session.token, { auth_time: Number(claimsOf(session.token).auth_time) - secondsAgo });
+          const result = await call(choosePassword, {}, { method: "POST", token: stale, body: { password: A_GOOD_PASSWORD } });
+          expect(refused(result, 403, "temporary_password_expired").error).toBe(EXPIRED);
+          expect(refused(await call(getMe, {}, { token: stale }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+          refused(await call(heartbeat, {}, { method: "POST", token: stale }), 403, "temporary_password_expired");
+        }
+        // Nothing was chosen by any of those.
+        expect(await signInFailure(email, A_GOOD_PASSWORD)).toMatch(WRONG_PASSWORD);
+        expect((await testAuth().getUser(session.uid)).customClaims).toMatchObject({ role: "pledge", temp: true });
+      });
+
+      // The three days are weighed before the profile is looked for, by the gate and by the route
+      // itself, so an account made outside the portal is told what any expired account is.
+      it("tells an expired account with no profile that its password has expired, not that it is not set up", async () => {
+        for (const role of ["pledge", "active"] as const) {
+          const email = `expired.no.profile.${role}@uci.edu`;
+          // In time when it signs in, so that this token gets past the gate and as far as the route.
+          const early = await createAccount(email, { claims: { role, ...temporaryNow() } });
+          expect(refused(await call(choosePassword, {}, { method: "POST", token: early.token, body: { password: A_GOOD_PASSWORD } }), 403, "no_profile").error).toBe(
+            "This account isn't set up for the portal yet.",
+          );
+          await testAuth().setCustomUserClaims(early.uid, { role, ...temporaryNow(TEMPORARY_PASSWORD_MS + 60_000) });
+          // A token made since is stopped at the gate.
+          const late = await signIn(email);
+          expect(claimsOf(late.token).tempAt).toBeLessThan(Date.now() / 1000 - TEMPORARY_PASSWORD_MS / 1000);
+
+          for (const session of [early, late]) {
+            for (const body of [{ password: A_GOOD_PASSWORD }, { password: "short" }, {}]) {
+              const result = await call(choosePassword, {}, { method: "POST", token: session.token, body });
+              expect(refused(result, 403, "temporary_password_expired").error).toBe(EXPIRED);
+              expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
+            }
+          }
+          expect(refused(await call(getMe, {}, { token: late.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+          expect(await docExists(`users/${early.uid}`)).toBe(false);
+          expect(await signInFailure(email, A_GOOD_PASSWORD)).toMatch(WRONG_PASSWORD);
+          expect((await testAuth().getUser(early.uid)).customClaims).toMatchObject({ role, temp: true });
+        }
+      });
+
+      // Firebase changes a password for whoever is signed in, and from its console. Neither is a
+      // chair issuing a new one, and an account made by hand gains no more by it than one the portal made.
+      it("does not let an expired account through because its password has been changed since", async () => {
+        const email = "expired.then.changed@uci.edu";
+        const session = await createAccount(email, { claims: { role: "pledge", ...temporaryNow(TEMPORARY_PASSWORD_MS + 60_000) } });
+        await createProfile(session.uid, email, "pledge");
+        await testAuth().updateUser(session.uid, { password: "set-since-then-elsewhere-4" });
+        const again = await signIn(email, "set-since-then-elsewhere-4");
+        const before = await dumpPortal();
+        for (const body of [{ password: A_GOOD_PASSWORD }, { password: "set-since-then-elsewhere-4" }, { password: "short" }, {}]) {
+          const result = await call(choosePassword, {}, { method: "POST", token: again.token, body });
+          expect(refused(result, 403, "temporary_password_expired").error).toBe(EXPIRED);
+        }
+        expect(refused(await call(getMe, {}, { token: again.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+        expect(await dumpPortal()).toEqual(before);
+        expect((await signIn(email, "set-since-then-elsewhere-4")).uid).toBe(session.uid);
+        expect(await signInFailure(email, A_GOOD_PASSWORD)).toMatch(WRONG_PASSWORD);
       });
     });
 

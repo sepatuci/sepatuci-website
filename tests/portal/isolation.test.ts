@@ -61,6 +61,7 @@ import {
   ADMIN_ONE,
   ADMIN_TWO,
   AVERY,
+  A_KEPT_FINGERPRINT,
   CASEY,
   DANA,
   JORDAN,
@@ -777,7 +778,7 @@ describe("the admin routes, called by a pledge", () => {
     before = await dumpPortal();
     expect(Object.keys(before.firestore).length).toBeGreaterThan(60);
     expect(Object.keys(before.accounts)).toHaveLength(SEEDED_ACCOUNTS);
-    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(29);
+    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(27);
     expect(ADMIN_ROUTES.map((route) => route.label)).toEqual(
       expect.arrayContaining([
         "POST /admin/teams",
@@ -877,7 +878,7 @@ describe("the welcome and the password, asked for in somebody else's name", () =
     for (const victim of victims()) {
       const result = await hostile(CHOOSE_PASSWORD[0], session(), victim);
       const body = refused(result, 409, "not_required");
-      expect(body.error).toBe("This account already has its own password. Use Forgot password to change it.");
+      expect(body.error).toBe("This account already has its own password. Ask an active or an admin if it needs changing.");
       expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
       expect(leaksIn(result.text, session())).toEqual([]);
     }
@@ -1001,7 +1002,7 @@ describe("every route that is an admin's or a pledge's, called by an active", ()
 });
 
 describe("what an active is told about themself", () => {
-  const ME_KEYS = ["createdAt", "displayName", "email", "mfaEnforced", "onboardedAt", "pledgeClass", "role", "serverNow", "team", "uid"];
+  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "role", "serverNow", "team", "uid"];
 
   it("is their own name, email and role, and when they finished their welcome, with no class or team", async () => {
     const result = await call(getMe, {}, { token: priya.token });
@@ -1014,7 +1015,6 @@ describe("what an active is told about themself", () => {
       role: "active",
       pledgeClass: null,
       team: null,
-      mfaEnforced: false,
     });
     expect(me.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(Date.parse(me.serverNow)).toBeGreaterThan(Date.now() - 60_000);
@@ -1238,7 +1238,7 @@ describe("what an admin does to teams", () => {
 describe("an account on a temporary password reads nothing, its own work included", () => {
   const CHANGE_REQUIRED = "Choose your own password to continue.";
   let before: Awaited<ReturnType<typeof dumpPortal>>;
-  const EXPIRED = "That temporary password has expired. Ask a chair for a new one.";
+  const EXPIRED = "That temporary password has expired. Ask an admin for a new one.";
   /** Maya, who has responses, a draft and a punishment of her own, and Priya, who can read every pledge's work. */
   let mayaOnTemporary: Session;
   let priyaOnTemporary: Session;
@@ -1272,7 +1272,7 @@ describe("an account on a temporary password reads nothing, its own work include
       expect(claimsOf(mayaOnTemporary.token)).toMatchObject({ role: "pledge", issued: MAYA, temp: true });
       expect(claimsOf(priyaOnTemporary.token)).toMatchObject({ role: "active", issued: PRIYA, temp: true });
       // Each profile now carries a fingerprint of the password, which is one more thing nobody is to be sent.
-      for (const uid of [maya.uid, priya.uid]) expect(await storedFingerprint(uid)).toMatchObject({ salt: expect.any(String), hash: expect.any(String) });
+      for (const uid of [maya.uid, priya.uid]) expect(await storedFingerprint(uid)).toEqual(A_KEPT_FINGERPRINT);
       before = await dumpPortal();
     },
     SLOW_TEST_MS,
@@ -1344,6 +1344,7 @@ describe("an account on a temporary password reads nothing, its own work include
 
   it("sent neither of them anything of the fingerprint kept of their temporary password, or of anyone's", async () => {
     const kept = await everyStoredFingerprint();
+    // A salt and a hash for each of the two.
     expect(kept).toHaveLength(4);
     const reads: Array<[string, ApiResult]> = [...(await everyRead(mayaOnTemporary)), ...(await everyRead(priyaOnTemporary))];
     // And what an admin reads of the two of them, which is built from the profiles the fingerprints are on.

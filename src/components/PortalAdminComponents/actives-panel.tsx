@@ -37,13 +37,11 @@ import type {
 const STATE_CHIPS: Record<AccountState, { label: string; tone: Tone }> = {
   active: { label: "Set up", tone: "success" },
   invited: { label: "Invited", tone: "neutral" },
-  needs_mfa: { label: "Needs two-step", tone: "warning" },
   disabled: { label: "Disabled", tone: "danger" },
 };
 
 type Pending =
   | { kind: "temporary"; active: ActiveRowDto }
-  | { kind: "reset"; active: ActiveRowDto }
   | { kind: "disable"; active: ActiveRowDto }
   | { kind: "remove"; active: ActiveRowDto };
 
@@ -390,21 +388,6 @@ const ActivesPanel: React.FC = () => {
         confirmLabel="Create temporary password"
         busy={busy}
         onConfirm={() => pending && void temporaryPassword(pending.active)}
-      />
-      <ConfirmDialog
-        open={pending?.kind === "reset"}
-        onOpenChange={(open) => (open ? undefined : setPending(null))}
-        title="Reset two-step verification?"
-        description={`${pending?.active.displayName ?? "They"} will be signed out and will set up Duo Mobile again the next time they sign in.`}
-        confirmLabel="Reset two-step"
-        busy={busy}
-        onConfirm={() =>
-          pending &&
-          void run(
-            () => apiFetch(`/admin/actives/${pending.active.uid}/reset-mfa`, { method: "POST" }),
-            "Two-step verification reset.",
-          )
-        }
       />
       <ConfirmDialog
         open={pending?.kind === "disable"}

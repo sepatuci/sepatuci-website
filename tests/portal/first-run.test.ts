@@ -6,7 +6,8 @@
  * password, refused every poor choice, let in with a good one, and welcomed.
  * Then the same for an account that already existed and is given a temporary
  * password by an admin, what happens when one runs out or is cancelled by a
- * set-password link, and last the ways an account can start.
+ * set-password link, that changing an expired account's password behind the
+ * portal's back opens nothing, and last the ways an account can start.
  *
  * Tests run in order from a fresh seed. Every temporary password the file is
  * ever handed is kept, and at the end everything the portal has stored and
@@ -38,6 +39,7 @@ import {
   ADMIN_ONE,
   ADMIN_TWO,
   AVERY,
+  A_KEPT_FINGERPRINT,
   CASEY,
   DANA,
   DEMO_PASSWORD,
@@ -55,11 +57,14 @@ import {
   TEMPORARY_PASSWORD,
   TEMPORARY_PASSWORD_MS,
   acceptTokensFrom,
+  attachSecondFactor,
   call,
+  changeOwnPassword,
   claimsOf,
   countAll,
   countWhere,
   createAccount,
+  detachSecondFactors,
   discoverRoutes,
   docData,
   docExists,
@@ -73,10 +78,13 @@ import {
   redeemResetCode,
   refused,
   renewed,
+  secondFactorsOf,
   seedPortal,
+  setPasswordByResetLink,
   signIn,
   signInEarlyInASecond,
   signInFailure,
+  signInStopsAtSecondFactor,
   sleep,
   storedAudit,
   storedClaims,
@@ -99,8 +107,9 @@ const CHOOSE_PASSWORD = "POST /password";
 const OTHER_ROUTES = ROUTES.filter((route) => route.label !== CHOOSE_PASSWORD);
 
 const CHANGE_REQUIRED = "Choose your own password to continue.";
-const NOT_REQUIRED = "This account already has its own password. Use Forgot password to change it.";
-const EXPIRED = "That temporary password has expired. Ask a chair for a new one.";
+/** There is no "Forgot password?" to point to any more: a password that needs changing is changed by a link from an admin. */
+const NOT_REQUIRED = "This account already has its own password. Ask an active or an admin if it needs changing.";
+const EXPIRED = "That temporary password has expired. Ask an admin for a new one.";
 const TOO_SHORT = "Use at least 10 characters.";
 const TOO_LONG = "Use no more than 128 characters.";
 const PERSONAL = "Leave your name and email out of your password.";
@@ -115,7 +124,8 @@ const WELCOME_LINK = /^http:\/\/localhost\/login\/reset\?mode=resetPassword&oobC
 const PROFILE_KEYS = ["activity", "createdAt", "createdBy", "displayName", "email", "onboardedAt", "pledgeClass", "role", "status", "submitted", "teamId", "updatedAt"];
 /** A profile also keeps a fingerprint of the temporary password, for as long as the account is on one. */
 const PROFILE_KEYS_ON_TEMPORARY = [...PROFILE_KEYS, "temporaryPassword"].sort();
-const A_FINGERPRINT = { salt: expect.stringMatching(/^[0-9a-f]{32}$/), hash: expect.stringMatching(/^[0-9a-f]{64}$/) };
+/** A salt and a hash of the password, and nothing else. */
+const A_FINGERPRINT = A_KEPT_FINGERPRINT;
 
 /** The part of an admin's row that a pledge's and an active's have in common. */
 interface MemberRow {
@@ -125,7 +135,6 @@ interface MemberRow {
   status: string;
   signInBlocked: boolean;
   accountState: AccountState;
-  mfaEnrolled: boolean;
   lastSignInAt: string | null;
 }
 
@@ -265,6 +274,13 @@ async function keptFor(uid: string): Promise<StoredTemporaryPassword | null> {
   return kept === null ? null : { salt: String(kept.salt), hash: String(kept.hash) };
 }
 
+/** A fresh account on a temporary password that ran out a minute ago, with nothing else done to it. */
+async function startOnExpired(role: MemberKind, email: string, displayName: string): Promise<{ uid: string; temporary: string }> {
+  const started = await startOnTemporary(role, email, displayName);
+  await issueTemporaryPasswordAgo(started.uid, TEMPORARY_PASSWORD_MS + 60_000);
+  return started;
+}
+
 /** Every way of writing a temporary password again that the portal has to see through. */
 function rewritten(temporary: string): Array<[string, string]> {
   const plain = temporary.replace(/-/g, "");
@@ -309,7 +325,7 @@ describe("the routes", () => {
       expect(labels).toContain(expected);
     }
     expect(OTHER_ROUTES).toHaveLength(ROUTES.length - 1);
-    expect(OTHER_ROUTES.length).toBeGreaterThanOrEqual(41);
+    expect(OTHER_ROUTES.length).toBeGreaterThanOrEqual(39);
     // Each of them a handler of its own: every method of every path.
     expect(new Set(OTHER_ROUTES.map((route) => route.label)).size).toBe(OTHER_ROUTES.length);
     expect(new Set(OTHER_ROUTES.map((route) => route.method))).toEqual(new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]));
@@ -349,9 +365,9 @@ describe.each(KINDS)("$role: an account that starts on a temporary password", (k
         status: "active",
         signInBlocked: false,
         accountState: "invited",
-        mfaEnrolled: false,
         lastSignInAt: null,
       });
+      expect(made.row).not.toHaveProperty("mfaEnrolled");
       // The password is in the response once, as its own field, and nowhere else in it.
       expect(result.text.split(temporary)).toHaveLength(2);
       expect(result.text).not.toMatch(/passwordHash|"salt"|"hash"|customClaims|oobCode|"tempAt"|"tempNew"|"temp"/);
@@ -397,8 +413,9 @@ describe.each(KINDS)("$role: an account that starts on a temporary password", (k
         activity: { firstSeenAt: null, lastSeenAt: null, totalActiveSeconds: 0, sessionCount: 0, current: null },
       });
       expect(Object.keys(profile ?? {}).sort()).toEqual(PROFILE_KEYS_ON_TEMPORARY);
-      // A salt and a hash, and nothing else.
+      // A salt and a hash, and nothing else: nothing is kept of how Firebase stores the account's own password.
       expect(profile?.temporaryPassword).toEqual(A_FINGERPRINT);
+      expect(Object.keys((profile?.temporaryPassword ?? {}) as object).sort()).toEqual(["hash", "salt"]);
       // It is of the password that was handed out, and of no other.
       const kept = await keptFor(uid);
       expect(matchesIssued(temporary, kept)).toBe(true);
@@ -661,7 +678,12 @@ describe.each(KINDS)("$role: an account that starts on a temporary password", (k
       expect(claims).toMatchObject({ role, issued: email });
       for (const gone of ["temp", "tempAt", "tempNew"]) expect(gone in claims, gone).toBe(false);
 
-      expect(await me(own)).toMatchObject({ uid, email, displayName, role, team: null, onboardedAt: null, mfaEnforced: false });
+      // With nothing but that password: the sign-in had no second step, and the portal asks for none.
+      expect(claims.firebase).toMatchObject({ sign_in_provider: "password" });
+      expect(claims.firebase).not.toHaveProperty("sign_in_second_factor");
+      const told = await me(own);
+      expect(told).toMatchObject({ uid, email, displayName, role, team: null, onboardedAt: null });
+      expect(told).not.toHaveProperty("mfaEnforced");
       ok(await call(kind.ownRead, {}, { token: own.token }));
       expect(ok(await call(heartbeat, {}, { method: "POST", token: own.token }))).toEqual({ ok: true });
       // And into nothing that is another role's.
@@ -778,14 +800,19 @@ describe("choosing a password, for an account that already has its own", () => {
     // That token is refused everything else, as any token with the flag is.
     refused(await call(getMe, {}, { token: stale.token }), 403, "password_change_required");
 
-    // And one that carries the flag with no time, or with one long past, is told the password has expired, there too.
+    // And one that carries the flag with no time, or with one long past, is told the password has expired, there
+    // too: the gate says so before the account is read, whatever is sent.
+    const before = await dumpPortal();
     for (const tempAt of [undefined, issuedNow - TEMPORARY_PASSWORD_MS / 1000 - 60]) {
       const expired = withClaims(rowan.token, { temp: true, tempAt });
-      for (const result of [await choose({ ...rowan, token: expired }, { password: "amber-window-thistle-93" }), await call(getMe, {}, { token: expired })]) {
-        expect(refused(result, 403, "temporary_password_expired").error).toBe(EXPIRED);
+      expect(refused(await call(getMe, {}, { token: expired }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+      for (const body of [{ password: "amber-window-thistle-93" }, { password: OWN_PASSWORD }, { password: "short" }, {}]) {
+        expect(refused(await choose({ ...rowan, token: expired }, body), 403, "temporary_password_expired").error).toBe(EXPIRED);
       }
     }
+    expect(await dumpPortal()).toEqual(before);
     expect((await signIn(KINDS[0].email, OWN_PASSWORD)).uid).toBe(rowan.uid);
+    expect(await signInFailure(KINDS[0].email, "amber-window-thistle-93")).toMatch(WRONG_PASSWORD);
     expect(await storedClaims(rowan.uid)).toEqual({ role: "pledge", issued: KINDS[0].email });
   });
 });
@@ -967,6 +994,8 @@ describe.each<[MemberKind, string, AccountState]>([
       expect(kept).not.toEqual(first.kept);
       expect(matchesIssued(second, kept)).toBe(true);
       expect(matchesIssued(first.password, kept)).toBe(false);
+      // It is a fingerprint and no more than one, as the first was: a new salt, a new hash.
+      expect(await storedFingerprint(uid)).toEqual(A_FINGERPRINT);
 
       temporary = second;
       onTemporary = await signIn(email, temporary);
@@ -1156,12 +1185,12 @@ describe("issuing a temporary password is refused", () => {
   });
 });
 
-// An account can be pointed at another mailbox through Firebase. Whoever did that may not be
-// its owner, so a temporary password puts the address back and takes the authenticator off.
+// An account can be pointed at another mailbox through Firebase, and can have a second factor
+// attached there too. Whoever did either may not be its owner, and the portal signs in with a
+// password alone, so a temporary password puts the address back and takes the second factor off.
 describe("issuing a temporary password to an account whose sign-in address was moved", () => {
   const ISSUED = "quinn.avila@uci.edu";
   const MOVED = "quinn.avila+elsewhere@uci.edu";
-  const FACTOR = { uid: "factor1", phoneNumber: "+15555550100", displayName: "Phone", factorId: "phone" };
   let uid = "";
   let temporary = "";
 
@@ -1172,8 +1201,8 @@ describe("issuing a temporary password to an account whose sign-in address was m
       uid = made.row.uid;
       const code = new URL(made.inviteLink ?? "").searchParams.get("oobCode") ?? "";
       expect(await redeemResetCode(code, "chosen-by-quinn-first-1")).toBe(true);
-      await testAuth().updateUser(uid, { email: MOVED, emailVerified: true, multiFactor: { enrolledFactors: [FACTOR] } });
-      expect((await testAuth().getUser(uid)).multiFactor?.enrolledFactors).toHaveLength(1);
+      await testAuth().updateUser(uid, { email: MOVED, emailVerified: true });
+      await attachSecondFactor(uid);
 
       temporary = await issueFor("pledge", uid);
 
@@ -1203,15 +1232,48 @@ describe("issuing a temporary password to an account whose sign-in address was m
     expect((await me(await signIn(ISSUED, OWN_PASSWORD))).email).toBe(ISSUED);
   });
 
-  it("keeps the second factor of an account whose address was not moved", async () => {
-    await testAuth().updateUser(uid, { multiFactor: { enrolledFactors: [FACTOR] } });
-    await issueFor("pledge", uid);
-    const record = await testAuth().getUser(uid);
-    expect(record.email).toBe(ISSUED);
-    expect(record.multiFactor?.enrolledFactors.map((factor) => factor.uid)).toEqual(["factor1"]);
-    expect((await auditFor(uid))[0].summary).toBe(`Issued a temporary password for ${ISSUED}`);
-    await testAuth().updateUser(uid, { multiFactor: { enrolledFactors: null } });
-  });
+  // The address is where it should be this time. A second factor is taken off all the same: with
+  // one on, the right password gets no sign-in, and the portal has no second step to finish one.
+  it(
+    "takes a second factor off an account whose address was not moved as well, and the password it hands back signs in",
+    async () => {
+      // Quinn chose this password a moment ago, and signs in with it.
+      expect((await signIn(ISSUED, OWN_PASSWORD)).uid).toBe(uid);
+      await attachSecondFactor(uid);
+      try {
+        // The same password now gets a challenge for a second step, and no sign-in.
+        expect(await signInStopsAtSecondFactor(ISSUED, OWN_PASSWORD)).toBe(true);
+        await expect(signIn(ISSUED, OWN_PASSWORD)).rejects.toThrow(/Could not sign in/);
+        expect((await dumpPortal()).accounts[uid]).toMatchObject({ email: ISSUED, secondFactors: 1 });
+
+        const handedBack = await issueFor("pledge", uid);
+
+        const record = await testAuth().getUser(uid);
+        expect(record.email).toBe(ISSUED);
+        expect(record.multiFactor?.enrolledFactors ?? []).toEqual([]);
+        expect(await secondFactorsOf(uid)).toBe(0);
+        expect((await dumpPortal()).accounts[uid]).toMatchObject({ email: ISSUED, secondFactors: 0 });
+        // The entry is the one any temporary password leaves: the address was not moved, and nothing is said of the factor.
+        expect((await auditFor(uid))[0]).toMatchObject({ action: "pledge.temporary_password", summary: `Issued a temporary password for ${ISSUED}` });
+
+        // The password that was handed back signs in, with no second step, as far as choosing a password.
+        expect(await signInStopsAtSecondFactor(ISSUED, handedBack)).toBe(false);
+        const session = await signIn(ISSUED, handedBack);
+        expect(session.uid).toBe(uid);
+        const claims = claimsOf(session.token);
+        expect(claims).toMatchObject({ email: ISSUED, issued: ISSUED, temp: true, firebase: { sign_in_provider: "password" } });
+        expect(claims.firebase).not.toHaveProperty("sign_in_second_factor");
+        expect(refused(await call(getMe, {}, { token: session.token }), 403, "password_change_required").error).toBe(CHANGE_REQUIRED);
+        // And the one from before the factor was attached is no use to anyone now.
+        expect(await signInFailure(ISSUED, OWN_PASSWORD)).toMatch(WRONG_PASSWORD);
+        expect(await rowOf("pledge", uid)).toMatchObject({ email: ISSUED, accountState: "invited", signInBlocked: false });
+      } finally {
+        // So that what follows starts from an account with no second factor, whatever happened above.
+        await detachSecondFactors(uid);
+      }
+    },
+    SLOW_TEST_MS,
+  );
 
   // Quinn is on a temporary password again. The portal cannot see an emailed link being used,
   // so the link itself takes the temporary password's place: nobody is left to choose twice.
@@ -1468,11 +1530,48 @@ describe.each(KINDS)("$role: a temporary password that has run out", (kind) => {
     refused(await call(getMe, {}, { token: inTime.token }), 403, "password_change_required");
   });
 
+  // The gate answers for a sign-in made after the password ran out, and the route itself for one
+  // made before, which reads the account. Neither answer depends on anything that was sent.
+  it("is told the same on the route for choosing a password whatever it sends: a good password, a poor one, the temporary one, or nothing", async () => {
+    expect(await storedFingerprint(uid)).toEqual(A_FINGERPRINT);
+
+    const bodies: unknown[] = [
+      { password: OWN_PASSWORD },
+      { password: "amber-window-thistle-93" },
+      { password: "short" },
+      { password: "" },
+      { password: temporary },
+      { password: temporary.toLowerCase() },
+      ...rewritten(temporary).map(([, password]) => ({ password })),
+      { password: `${kind.ownWords[0]}-flies-kites-42` },
+      { password: 12_345_678_901 },
+      { password: null },
+      { newPassword: OWN_PASSWORD },
+      {},
+    ];
+    expect(bodies).toHaveLength(21);
+    for (const session of [late, inTime]) {
+      for (const body of bodies) {
+        resetRateLimits();
+        const result = await choose(session, body);
+        expect(refused(result, 403, "temporary_password_expired").error, JSON.stringify(body)).toBe(EXPIRED);
+        expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
+      }
+    }
+    // A body that is not an object at all gets the same answer, as does one with every field a caller might try.
+    for (const rawBody of [`["${OWN_PASSWORD}"]`, `"${OWN_PASSWORD}"`, "null", "1234567890123"]) {
+      refused(await call(choosePassword, {}, { method: "POST", token: late.token, rawBody }), 403, "temporary_password_expired");
+    }
+    const pushed = await choose(late, { password: OWN_PASSWORD, changed: true, account: "changed", temp: false, tempAt: Math.floor(Date.now() / 1000), expired: false });
+    expect(refused(pushed, 403, "temporary_password_expired").error).toBe(EXPIRED);
+  });
+
   it("changed nothing with any of that: the account is as it was, nobody chose a password, and nothing was recorded", async () => {
     const after = await dumpPortal();
     expect(after.accounts).toEqual(before.accounts);
     expect(after.firestore).toEqual(before.firestore);
     expect(await signInFailure(email, OWN_PASSWORD)).toMatch(WRONG_PASSWORD);
+    expect((await signIn(email, temporary)).uid).toBe(uid);
     expect((await auditFor(uid)).map((entry) => entry.action)).toEqual([`${role}.create`]);
     // An admin still sees someone who has yet to get in.
     expect(await rowOf(role, uid)).toMatchObject({ accountState: "invited", status: "active", signInBlocked: false });
@@ -1554,6 +1653,246 @@ describe.each(KINDS)("$role: a temporary password that has run out", (kind) => {
     },
     SLOW_TEST_MS,
   );
+});
+
+// Firebase knows nothing of the three days. It signs in whoever has a temporary password,
+// however long ago that ran out, and it changes an account's password for whoever is signed
+// in to it: `updatePassword` in the browser SDK. A password can be reset from the Firebase
+// console as well. None of that is a chair issuing a new one. The flag and the time of issue
+// are the portal's, and they stay as they were, so the account is still on a temporary
+// password that has run out and is refused everywhere, the route for choosing a password
+// included. Were that route ever to let such an account through, whoever found a temporary
+// password in an old message could change it themself and walk in.
+
+/** A password put on an account by some means other than the portal. It meets every rule here, and is nobody else's. */
+const SET_ELSEWHERE = "set-behind-its-back-17";
+
+/** An account whose temporary password has run out, and a sign-in made with that password since. */
+interface ExpiredAccount {
+  uid: string;
+  email: string;
+  holder: Session;
+}
+
+/** Every way an account's password changes with no chair and no route of the portal's involved. True when Firebase took it. */
+const WITHOUT_A_CHAIR: ReadonlyArray<[string, string, (account: ExpiredAccount) => Promise<boolean>]> = [
+  ["by whoever is signed in with the expired password, through Firebase itself", "by.holder", ({ holder }) => changeOwnPassword(holder, SET_ELSEWHERE)],
+  [
+    "with the Admin SDK, standing in for a reset from the Firebase console",
+    "by.console",
+    async ({ uid }) => {
+      await testAuth().updateUser(uid, { password: SET_ELSEWHERE });
+      return true;
+    },
+  ],
+  ["through a reset link the portal had no part in, redeemed as the reset page redeems one", "by.outside.link", ({ email }) => setPasswordByResetLink(email, SET_ELSEWHERE)],
+];
+const changedEmail = (slug: string, role: MemberKind): string => `changed.${slug}.${role}@uci.edu`;
+
+describe.each(KINDS)("$role: a temporary password that ran out, on an account whose password was then changed", (kind) => {
+  const { role } = kind;
+
+  describe.each(WITHOUT_A_CHAIR)("%s", (_way, slug, change) => {
+    const email = changedEmail(slug, role);
+    const displayName = "Wendell Arroyo";
+    let uid = "";
+    let temporary = "";
+    /** Signed in with the temporary password after it ran out. */
+    let holder: Session;
+    /** Signed in with the password the account was given since. */
+    let again: Session;
+    let before: Dump;
+
+    const hashIn = (dump: Dump): unknown => (dump.accounts[uid] as Record<string, unknown>).passwordHash;
+
+    it("is shut out like any expired account, though Firebase still signs it in with the password that ran out", async () => {
+      ({ uid, temporary } = await startOnExpired(role, email, displayName));
+      // Firebase takes the password: only the portal knows it ran out.
+      holder = await signIn(email, temporary);
+      expect(holder.uid).toBe(uid);
+      expect(refused(await call(getMe, {}, { token: holder.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+      expect(refused(await choose(holder, { password: OWN_PASSWORD }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+    });
+
+    it("takes the new password and is otherwise the account it was: its flag, its expired time and its fingerprint have not moved", async () => {
+      const claims = await storedClaims(uid);
+      const kept = await storedFingerprint(uid);
+      const dump = await dumpPortal();
+      expect(claims).toEqual(temporaryClaims(role, email, true));
+      expect(kept).toEqual(A_FINGERPRINT);
+      // A password the portal would have taken, had it been asked.
+      expect(passwordProblem(SET_ELSEWHERE, { email, displayName, temporary: true })).toBeNull();
+
+      expect(await change({ uid, email, holder })).toBe(true);
+
+      // Firebase knows nothing of the portal's flag. The account still says its temporary password ran out.
+      expect(await storedClaims(uid)).toEqual(claims);
+      expect(await storedFingerprint(uid)).toEqual(kept);
+      const after = await dumpPortal();
+      expect(after.firestore).toEqual(dump.firestore);
+      expect(others(after, uid)).toEqual(others(dump, uid));
+      expect(settled(after, uid)).toEqual(settled(dump, uid));
+      // The password did change: Firebase stores another, and the temporary one signs nobody in.
+      expect(hashIn(after)).not.toBe(hashIn(dump));
+      expect(await signInFailure(email, temporary)).toMatch(WRONG_PASSWORD);
+    });
+
+    it("signs in with that password, to a token that still says the temporary password ran out", async () => {
+      again = await signIn(email, SET_ELSEWHERE);
+      expect(again.uid).toBe(uid);
+      const claims = claimsOf(again.token);
+      expect(claims).toMatchObject({ role, issued: email, temp: true, tempNew: true, email, email_verified: true });
+      expect(Number(claims.tempAt) * 1000).toBeLessThan(Date.now() - TEMPORARY_PASSWORD_MS);
+      // So that a token saying its sign-in was hours ago is judged by the portal, below, and not turned away by the emulator first.
+      await acceptTokensFrom(uid, 86_400_000);
+      before = await dumpPortal();
+    });
+
+    it("is refused every route there is, the one for choosing a password included, with 403 temporary_password_expired", async () => {
+      expect(ROUTES.map((route) => route.label)).toContain(CHOOSE_PASSWORD);
+      expect(ROUTES.length).toBeGreaterThanOrEqual(40);
+      for (const route of ROUTES) {
+        const params = Object.fromEntries(Object.keys(route.params).map((name) => [name, name === "formId" ? "week2interviews" : name === "uid" ? uid : name === "teamId" ? TEAM_ATLAS : "abc123"]));
+        const attempts = [
+          await call(route.handler, route.params, { method: route.method, token: again.token }),
+          await call(route.handler, params, { method: route.method, token: again.token, query: `?confirm=${encodeURIComponent(email)}`, body: { password: OWN_PASSWORD, displayName: "Changed", status: "disabled", answers: {} } }),
+        ];
+        for (const result of attempts) {
+          const body = refused(result, 403, "temporary_password_expired");
+          expect(body.error, route.label).toBe(EXPIRED);
+          expect(Object.keys(result.body as object).sort(), route.label).toEqual(["code", "error"]);
+          expect(result.headers.get("cache-control"), route.label).toBe("no-store");
+        }
+      }
+    });
+
+    it("is told the same on the route for choosing a password whatever it sends, and whatever its token says of the three days or of its sign-in", async () => {
+      const bodies: unknown[] = [
+        { password: OWN_PASSWORD },
+        // The password the account has now, which is the one a sign-in page would send on.
+        { password: SET_ELSEWHERE },
+        { password: "amber-window-thistle-93" },
+        { password: "short" },
+        { password: temporary },
+        { password: temporary.replace(/-/g, "").toLowerCase() },
+        { password: null },
+        { newPassword: OWN_PASSWORD },
+        // None of this is the caller's to say.
+        { password: OWN_PASSWORD, changed: true, account: "changed", temp: false, tempAt: Math.floor(Date.now() / 1000), expired: false },
+        {},
+      ];
+      // A token from before the three days were up still says the password is good. The gate lets
+      // it through to the route, and the route asks the account, which says otherwise.
+      const inTime: Session = { ...again, token: withClaims(again.token, { tempAt: Math.floor(Date.now() / 1000) - 3600 }) };
+      refused(await call(getMe, {}, { token: inTime.token }), 403, "password_change_required");
+
+      for (const session of [again, inTime]) {
+        for (const body of bodies) {
+          resetRateLimits();
+          const result = await choose(session, body);
+          expect(refused(result, 403, "temporary_password_expired").error, JSON.stringify(body)).toBe(EXPIRED);
+          expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
+        }
+      }
+      for (const rawBody of [`["${OWN_PASSWORD}"]`, `"${OWN_PASSWORD}"`, "null"]) {
+        refused(await call(choosePassword, {}, { method: "POST", token: again.token, rawBody }), 403, "temporary_password_expired");
+      }
+
+      // A sign-in too old to choose a password with is told the password has expired, not that
+      // the session has: signing in again would change nothing.
+      const signedIn = Number(claimsOf(again.token).auth_time);
+      for (const ms of [TIMING.passwordSetupMs + 60_000, 3_600_000, TIMING.maxSessionAgeMs - 60_000]) {
+        const aged = withClaims(again.token, { auth_time: signedIn - ms / 1000 });
+        const result = await call(choosePassword, {}, { method: "POST", token: aged, body: { password: OWN_PASSWORD } });
+        expect(refused(result, 403, "temporary_password_expired").error, `${ms} ms`).toBe(EXPIRED);
+        refused(await call(getMe, {}, { token: aged }), 403, "temporary_password_expired");
+      }
+    });
+
+    it("wrote nothing with any of that: every document and every sign-in account is exactly as it was, and nobody chose a password", async () => {
+      const after = await dumpPortal();
+      expect(after.accounts).toEqual(before.accounts);
+      expect(after.firestore).toEqual(before.firestore);
+      expect(await storedClaims(uid)).toEqual(temporaryClaims(role, email, true));
+      expect(await storedFingerprint(uid)).toEqual(A_FINGERPRINT);
+      expect((await auditFor(uid)).map((entry) => entry.action)).toEqual([`${role}.create`]);
+      // The password that was set is still the account's, and still opens nothing. No other was chosen.
+      for (const password of [OWN_PASSWORD, "amber-window-thistle-93", temporary]) expect(await signInFailure(email, password), password).toMatch(WRONG_PASSWORD);
+      const stillOut = await signIn(email, SET_ELSEWHERE);
+      expect(refused(await call(getMe, {}, { token: stillOut.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+      refused(await call(kind.ownRead, {}, { token: stillOut.token }), 403, "temporary_password_expired");
+      // An admin still sees someone who has yet to get in.
+      expect(await rowOf(role, uid)).toMatchObject({ accountState: "invited", status: "active", signInBlocked: false });
+    });
+  });
+
+  // The way back in is the one there always was: an admin. Either of the two things an admin
+  // can do replaces the password that was set, so whoever set it gains nothing by having done so.
+  describe("and is usable again only once an admin steps in", () => {
+    const displayName = "Wendell Arroyo";
+
+    it(
+      "with a new temporary password: three more days, the password that was set is gone, and they choose their own",
+      async () => {
+        const email = changedEmail(WITHOUT_A_CHAIR[0][1], role);
+        const uid = await uidOf(email);
+        const shutOut = await signIn(email, SET_ELSEWHERE);
+        expect(refused(await call(getMe, {}, { token: shutOut.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+
+        const from = Date.now();
+        const fresh = await issueFor(role, uid);
+        const claims = await storedClaims(uid);
+        expect(claims).toEqual(temporaryClaims(role, email, true));
+        expectIssuedBetween(claims, from, Date.now());
+        expect(await storedFingerprint(uid)).toEqual(A_FINGERPRINT);
+        expect(matchesIssued(fresh, await keptFor(uid))).toBe(true);
+        // Neither the password that was set nor the sign-in made with it is any use now.
+        expect(await signInFailure(email, SET_ELSEWHERE)).toMatch(WRONG_PASSWORD);
+        for (const result of [await call(getMe, {}, { token: shutOut.token }), await choose(shutOut, { password: OWN_PASSWORD })]) {
+          refused(result, 401, "session_revoked");
+        }
+
+        const session = await signIn(email, fresh);
+        expect(refused(await call(getMe, {}, { token: session.token }), 403, "password_change_required").error).toBe(CHANGE_REQUIRED);
+        expect(ok(await choose(session, { password: OWN_PASSWORD }))).toEqual({ ok: true });
+        expect(await storedClaims(uid)).toEqual({ role, issued: email });
+        expect(await storedFingerprint(uid)).toBeNull();
+        const own = await signIn(email, OWN_PASSWORD);
+        expect(await me(own)).toMatchObject({ uid, email, displayName, role, onboardedAt: null });
+        ok(await call(kind.ownRead, {}, { token: own.token }));
+        expect((await auditFor(uid)).map((entry) => entry.action)).toEqual([`${role}.temporary_password`, `${role}.create`]);
+      },
+      SLOW_TEST_MS,
+    );
+
+    it(
+      'with "Get password link": the flag comes off, the password that was set goes with it, and the link is the only way in',
+      async () => {
+        const email = changedEmail(WITHOUT_A_CHAIR[1][1], role);
+        const uid = await uidOf(email);
+        const shutOut = await signIn(email, SET_ELSEWHERE);
+        expect(refused(await call(getMe, {}, { token: shutOut.token }), 403, "temporary_password_expired").error).toBe(EXPIRED);
+        await sleep(1100);
+
+        const { inviteLink } = ok<InviteLinkDto>(await asAdmin(kind.link, { uid }));
+        expect(await storedClaims(uid)).toEqual({ role, issued: email });
+        expect(await storedFingerprint(uid)).toBeNull();
+        expect((await auditFor(uid))[0].summary).toBe(`Created a set-password link for ${email}, which cancelled their temporary password`);
+        // With the flag off, the password that was set would have opened the portal. It signs nobody in.
+        expect(await signInFailure(email, SET_ELSEWHERE)).toMatch(WRONG_PASSWORD);
+        refused(await call(getMe, {}, { token: shutOut.token }), 401, "session_revoked");
+        refused(await call(kind.ownRead, {}, { token: shutOut.token }), 401, "session_revoked");
+
+        expect(await redeemResetCode(new URL(inviteLink).searchParams.get("oobCode") ?? "", OWN_PASSWORD)).toBe(true);
+        const session = await signIn(email, OWN_PASSWORD);
+        expect(await me(session)).toMatchObject({ uid, email, displayName, role, onboardedAt: null });
+        ok(await call(kind.ownRead, {}, { token: session.token }));
+        refused(await choose(session, { password: "amber-window-thistle-93" }), 409, "not_required");
+        expect(await signInFailure(email, SET_ELSEWHERE)).toMatch(WRONG_PASSWORD);
+      },
+      SLOW_TEST_MS,
+    );
+  });
 });
 
 // A name is copied out next to a set-password link or a temporary password, and a
@@ -1780,6 +2119,8 @@ describe("how an account starts", () => {
 describe("the check every response goes through", () => {
   const ISSUED = "K7QM-2XRT-9BHD";
   const KEPT = { salt: "00112233445566778899aabbccddeeff", hash: "fe2ea1bafaf04e0be45698d44b4544ac56c0166d66832a9ad406f9055aff8b57" };
+  /** What a record of the account's own password would look like beside a fingerprint, under `account`. The portal keeps none. */
+  const MARK = "754a92e9278c560f2a862c43ce719de9dc2417bb65d65b94718ed7db5376093f";
 
   it("passes what the portal does send: a password from the routes that hand one out, and none from the rest", () => {
     expect(fingerprintLeak({ ok: true }, false)).toBeNull();
@@ -1796,6 +2137,23 @@ describe("the check every response goes through", () => {
     expect(fingerprintLeak({ pledges: [{ uid: "a" }, { uid: "b", salt: KEPT.salt }] }, true)).toMatch(/"salt"/);
     expect(fingerprintLeak([{ deep: [{ deeper: { hash: KEPT.hash } }] }], false)).toMatch(/"hash"/);
     expect(fingerprintLeak({ error: "x", code: "y", fields: [{ path: "password", hash: KEPT.hash }] }, false)).toMatch(/"hash"/);
+  });
+
+  it("catches anything of the account's own password under `temporaryPassword`, with a fingerprint beside it or on its own", () => {
+    const HAS_A_MARK = /its "temporaryPassword" has an "account"/;
+    // From a route that hands a password out and from one that does not, at any depth, and whatever it holds.
+    for (const handsOut of [true, false]) {
+      expect(fingerprintLeak({ temporaryPassword: { account: MARK } }, handsOut)).toMatch(HAS_A_MARK);
+      expect(fingerprintLeak({ temporaryPassword: { account: null } }, handsOut)).toMatch(HAS_A_MARK);
+      expect(fingerprintLeak({ pledge: { uid: "a", temporaryPassword: { account: MARK } } }, handsOut)).toMatch(HAS_A_MARK);
+      expect(fingerprintLeak([{ deep: [{ deeper: { temporaryPassword: { account: MARK } } }] }], handsOut)).toMatch(HAS_A_MARK);
+      expect(fingerprintLeak({ pledges: [{ uid: "a" }, { uid: "b", temporaryPassword: { ...KEPT, account: MARK } }] }, handsOut)).toMatch(HAS_A_MARK);
+      // With a fingerprint beside it, the response is refused whichever part is noticed first.
+      expect(fingerprintLeak({ active: { temporaryPassword: { account: MARK, ...KEPT } } }, handsOut)).not.toBeNull();
+    }
+    // Under any other name the word is harmless, and is not taken for one.
+    expect(fingerprintLeak({ account: "avery.chen@uci.edu", pledges: [{ uid: "a", account: { state: "invited" } }] }, false)).toBeNull();
+    expect(fingerprintLeak({ temporaryPassword: ISSUED, account: MARK }, true)).toBeNull();
   });
 
   it("catches a temporary password from a route that hands none out, and anything else under that name from one that does", () => {
@@ -1824,6 +2182,11 @@ describe("the check every response goes through", () => {
     await expect(call(refusing, {})).rejects.toThrow(/answered 403, and it has a "hash"/);
     const handingOut: AnyHandler = async () => Response.json({ temporaryPassword: ISSUED });
     await expect(call(handingOut, {})).rejects.toThrow(/not from a route that hands one out/);
+    const marking: AnyHandler = async () => Response.json({ pledge: { uid: "a", temporaryPassword: { account: MARK } } });
+    await expect(call(marking, {})).rejects.toThrow(/answered 200, and its "temporaryPassword" has an "account"/);
+    // On a refusal as on an answer, and with a fingerprint beside it.
+    const refusingWithAMark: AnyHandler = async () => Response.json({ error: "No.", code: "temporary_password_expired", temporaryPassword: { ...KEPT, account: MARK } }, { status: 403 });
+    await expect(call(refusingWithAMark, {})).rejects.toThrow(/answered 403, and its "temporaryPassword" has an "account"/);
     const harmless: AnyHandler = async () => Response.json({ ok: true });
     expect((await call(harmless, {})).body).toEqual({ ok: true });
   });
@@ -1856,6 +2219,17 @@ describe("nothing keeps a temporary password", () => {
     expect(stillGood).toHaveLength(onTemporary.length);
     // No sign-in account carries one: a fingerprint is no claim.
     expect(JSON.stringify(dump.accounts)).not.toMatch(/temporaryPassword|"salt"|"hash"/);
+    // Nor either half of one, other than on the profile it belongs to.
+    const everyKept = await everyStoredFingerprint();
+    expect(everyKept).toHaveLength(onTemporary.length * 2);
+    const accounts = JSON.stringify(dump.accounts);
+    const documents = Object.entries(dump.firestore).map(([path, document]): [string, string] => [path, JSON.stringify(document)]);
+    for (const value of everyKept) {
+      expect(accounts.includes(value), "on a sign-in account").toBe(false);
+      const holding = documents.filter(([, text]) => text.includes(value)).map(([path]) => path);
+      expect(holding, "in the documents").toHaveLength(1);
+      expect(holding[0]).toMatch(/^users\/[^/]+$/);
+    }
   });
 
   it("has none of them in the audit log, or in any other document the portal stores", async () => {
@@ -1870,6 +2244,11 @@ describe("nothing keeps a temporary password", () => {
     // Nor anything shaped like one.
     expect(audit).not.toMatch(/[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}-[A-HJKMNP-Z2-9]{4}/);
     expect(audit).not.toMatch(/passwordHash|oobCode/);
+    // Nor anything of the fingerprints, or of how Firebase stores anyone's password.
+    for (const value of await everyStoredFingerprint()) expect(audit.includes(value)).toBe(false);
+    expect(audit).not.toMatch(/fakeHash|fakeSalt/);
+    // What Firebase stores of a password is in no document at all, a profile included.
+    expect(stored).not.toMatch(/fakeHash|fakeSalt|passwordHash/);
   });
 
   it("has none of them on a sign-in account, other than as the password it is", async () => {
@@ -1885,8 +2264,10 @@ describe("nothing keeps a temporary password", () => {
     const onTemporaryActive = await uidOf("unique.0@uci.edu");
     expect(await storedFingerprint(onTemporary)).toEqual(A_FINGERPRINT);
     expect(await storedFingerprint(onTemporaryActive)).toEqual(A_FINGERPRINT);
+    // A salt and a hash for each account that is on one.
     const kept = await everyStoredFingerprint();
     expect(kept.length).toBeGreaterThanOrEqual(12);
+    expect(kept.length % 2).toBe(0);
     for (const value of kept) expect(value).toMatch(/^[0-9a-f]{32}([0-9a-f]{32})?$/);
 
     const reader = await signIn(PRIYA, OWN_PASSWORD);
@@ -1911,7 +2292,7 @@ describe("nothing keeps a temporary password", () => {
       expect(result.status, label).toBe(200);
       for (const password of handedOut) expect(result.text.toUpperCase().includes(password), `${label}: ${password}`).toBe(false);
       for (const value of kept) expect(result.text.includes(value), `${label}: a stored salt or hash`).toBe(false);
-      expect(result.text, label).not.toMatch(/passwordHash|"temp"|"tempAt"|"tempNew"|temporaryPassword|"salt"|"hash"/);
+      expect(result.text, label).not.toMatch(/passwordHash|"temp"|"tempAt"|"tempNew"|temporaryPassword|"salt"|"hash"|fakeHash|fakeSalt/);
       expect(fingerprintLeak(result.body, false), label).toBeNull();
     }
     // The person on the temporary password is among those the reads were of.

@@ -1,31 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import {
-  getMultiFactorResolver,
-  multiFactor,
-  signInWithEmailAndPassword,
-  signOut,
-  TotpMultiFactorGenerator,
-  type MultiFactorError,
-  type MultiFactorResolver,
-  type TotpSecret,
-  type User,
-} from "firebase/auth";
+import { signInWithEmailAndPassword, signOut, type User } from "firebase/auth";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input, Label } from "@/components/ui/input";
 import { authErrorCode, describeAuthError } from "@/lib/portal/auth-errors";
 import { ApiError, apiFetch, errorMessage } from "@/lib/portal/client/api";
 import { getPortalAuth, isEmulatorPreview } from "@/lib/portal/client/firebase";
-import { TIMING, TOTP_ISSUER } from "@/lib/portal/constants";
+import { TIMING } from "@/lib/portal/constants";
 import { looksTemporary, passwordProblem, type PasswordOwner } from "@/lib/portal/password";
 import { safeNextPath } from "@/lib/portal/safe-redirect";
 import type { MeDto } from "@/lib/portal/types";
-import EnrollSteps from "./enroll-steps";
-import PasscodeForm from "./passcode-form";
 import { PasswordFields } from "./password-fields";
 import SetupProgress from "./setup-progress";
 
@@ -33,12 +20,9 @@ type Step =
   | { name: "checking" }
   | { name: "unconfigured" }
   | { name: "credentials" }
-  | { name: "passcode"; resolver: MultiFactorResolver | null; note?: string }
   // brandNew: an account that has never been set up, as opposed to a member
   // whose password a chair replaced.
   | { name: "new_password"; email: string; displayName: string; brandNew: boolean }
-  | { name: "enroll_intro" }
-  | { name: "enroll_scan"; secret: TotpSecret | null; qrUrl: string; secretKey: string }
   | { name: "redirecting" };
 
 // The address bar only ever carries one of these keys, never free text.
@@ -58,10 +42,10 @@ function noticeFor(key: string | null): string | null {
 }
 
 const NO_ACCESS = "This account doesn't have access to the portal.";
-const PASSWORD_SAVED_PASSCODE =
-  "Your password is saved. Enter a passcode from Duo Mobile to finish signing in.";
-const ENROLLED_SIGN_IN_AGAIN =
-  "Two-step verification is set up. Sign in again and enter a passcode from Duo Mobile.";
+// The portal signs in with a password alone. An account that has had an
+// authenticator attached through Firebase directly cannot be signed in here.
+const HAS_SECOND_FACTOR =
+  "This account has an extra sign-in step switched on that the portal doesn't use. Contact a Founder's Education admin to have it cleared.";
 
 const LoginFlow: React.FC = () => {
   const router = useRouter();
@@ -79,10 +63,6 @@ const LoginFlow: React.FC = () => {
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [saving, setSaving] = useState(false);
-  // True from the moment a brand-new account is recognised, so the steps that
-  // follow can say where the person is in setting it up.
-  const arrivedNew = params.get("welcome") === "1";
-  const [firstRun, setFirstRun] = useState(arrivedNew);
   // The password typed to sign in, held only until the account's next step is
   // known. It is in a ref, not on the page, and is cleared as soon as it is used.
   const typed = useRef("");
@@ -106,19 +86,17 @@ const LoginFlow: React.FC = () => {
     setConfirm("");
     setSaving(false);
     setBusy(false);
-    setFirstRun(arrivedNew);
     setError(asNotice || passwordSaved ? null : message);
     setNotice(passwordSaved ? NOTICES.password_updated : asNotice ? message : null);
     setStep({ name: "credentials" });
-  }, [arrivedNew]);
+  }, []);
 
   /**
    * Asks the server whether this sign-in is good enough. The server is the
-   * only judge: this page never decides on its own that a second factor is
-   * unnecessary.
+   * only judge of that; this page only follows its answer.
    */
   const proceed = useCallback(
-    async (user: User): Promise<"password" | void> => {
+    async (): Promise<"password" | void> => {
       try {
         const me = await apiFetch<MeDto>("/me");
         setStep({ name: "redirecting" });
@@ -127,16 +105,8 @@ const LoginFlow: React.FC = () => {
         if (!(caught instanceof ApiError)) return restart(describeAuthError(caught, "sign_in"));
         // Still on the password a chair handed out. Nothing else opens until it is replaced.
         if (caught.code === "password_change_required") return "password";
+        // Its three days have run out. A chair gives a new one.
         if (caught.code === "temporary_password_expired") return restart(caught.message);
-        if (caught.code === "mfa_required") {
-          if (multiFactor(user).enrolledFactors.length === 0) {
-            setBusy(false);
-            setError(null);
-            setStep({ name: "enroll_intro" });
-            return;
-          }
-          return restart(ENROLLED_SIGN_IN_AGAIN, true);
-        }
         if (caught.status === 403) return restart(NO_ACCESS);
         if (caught.status === 401) return restart(NOTICES.ended);
         return restart(caught.message);
@@ -146,16 +116,7 @@ const LoginFlow: React.FC = () => {
   );
 
   useEffect(() => {
-    if (preview === "passcode") {
-      setStep({ name: "passcode", resolver: null });
-      return;
-    }
-    if (preview === "enroll") {
-      setStep({ name: "enroll_intro" });
-      return;
-    }
     if (preview === "password") {
-      setFirstRun(true);
       setStep({ name: "new_password", email: "you@uci.edu", displayName: "", brandNew: true });
       return;
     }
@@ -193,7 +154,6 @@ const LoginFlow: React.FC = () => {
     setBusy(false);
     setSaving(false);
     setError(null);
-    setFirstRun(brandNew);
     setStep({
       name: "new_password",
       email: user.email ?? "",
@@ -204,11 +164,11 @@ const LoginFlow: React.FC = () => {
 
   /**
    * Carries a signed-in account on to whatever it needs next. Every way of
-   * signing in ends here: a password, a passcode, a finished Duo setup, or
+   * signing in ends here: a password typed just now, or
    * coming back to this page already signed in.
    */
   const afterSignIn = async (user: User) => {
-    const needs = await proceed(user);
+    const needs = await proceed();
     const secret = typed.current;
     typed.current = "";
     if (needs !== "password") return;
@@ -221,7 +181,7 @@ const LoginFlow: React.FC = () => {
         displayName: user.displayName,
         temporary: true,
       }) === null;
-    if (alreadyOwn && (await savePassword(user, secret))) return;
+    if (alreadyOwn && (await savePassword(user, secret, true))) return;
     issued.current = looksTemporary(secret) ? secret : null;
     await askForPassword(user);
   };
@@ -231,7 +191,7 @@ const LoginFlow: React.FC = () => {
    * change ends every earlier sign-in, this one included. Returns false when
    * the server refused the password.
    */
-  const savePassword = async (user: User, chosen: string): Promise<boolean> => {
+  const savePassword = async (user: User, chosen: string, quiet = false): Promise<boolean> => {
     const auth = getPortalAuth();
     const address = user.email;
     if (!auth || !address) {
@@ -240,8 +200,15 @@ const LoginFlow: React.FC = () => {
     }
     try {
       await apiFetch("/password", { method: "POST", body: { password: chosen } });
-      saved.current = true;
+      // Quiet means nothing was chosen: a password the person already had was
+      // only recorded as theirs, so there is nothing to announce as saved.
+      saved.current = !quiet;
     } catch (caught) {
+      // The temporary password ran out while this page was open.
+      if (caught instanceof ApiError && caught.code === "temporary_password_expired") {
+        await restart(caught.message);
+        return true;
+      }
       // Two answers are worth one more try at signing in with the chosen
       // password. "Not required" means it was already replaced, perhaps in
       // another tab. A 401 can mean the save went through and only the reply
@@ -276,23 +243,8 @@ const LoginFlow: React.FC = () => {
       await afterSignIn(credential.user);
     } catch (caught) {
       if (authErrorCode(caught) === "auth/multi-factor-auth-required") {
-        const resolver = getMultiFactorResolver(auth, caught as MultiFactorError);
-        const hasTotp = resolver.hints.some(
-          (hint) => hint.factorId === TotpMultiFactorGenerator.FACTOR_ID,
-        );
-        setBusy(false);
-        setSaving(false);
-        setPassword("");
-        if (hasTotp) {
-          setStep({
-            name: "passcode",
-            resolver,
-            ...(saved.current ? { note: PASSWORD_SAVED_PASSCODE } : {}),
-          });
-        } else {
-          typed.current = "";
-          setError("This account's two-step verification needs to be reset. Contact the chairs.");
-        }
+        typed.current = "";
+        await restart(HAS_SECOND_FACTOR);
         return;
       }
       typed.current = "";
@@ -339,99 +291,16 @@ const LoginFlow: React.FC = () => {
       temporary: issued.current ?? true,
     };
     if (passwordProblem(newPassword, owner) !== null || confirm !== newPassword) return;
+    if (preview === "password") {
+      setError("This is a preview. Nothing was saved.");
+      return;
+    }
     const user = getPortalAuth()?.currentUser;
     if (!user) return restart(NOTICES.ended);
     setBusy(true);
     setSaving(true);
     setError(null);
     if (!(await savePassword(user, newPassword))) setBusy(false);
-  };
-
-  const submitPasscode = async (code: string) => {
-    if (step.name !== "passcode") return;
-    if (!step.resolver) {
-      setError("This is a preview. Nothing was checked.");
-      return;
-    }
-    const hint = step.resolver.hints.find(
-      (candidate) => candidate.factorId === TotpMultiFactorGenerator.FACTOR_ID,
-    );
-    if (!hint) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const assertion = TotpMultiFactorGenerator.assertionForSignIn(hint.uid, code);
-      const credential = await step.resolver.resolveSignIn(assertion);
-      await afterSignIn(credential.user);
-    } catch (caught) {
-      const code = authErrorCode(caught);
-      // A wrong passcode can simply be retried. Anything else needs a fresh sign-in.
-      if (code === "auth/invalid-verification-code" || code === "auth/missing-code") {
-        setBusy(false);
-        setError(describeAuthError(caught, "passcode"));
-      } else {
-        await restart(describeAuthError(caught, "passcode"));
-      }
-    }
-  };
-
-  const beginEnrollment = async () => {
-    const user = getPortalAuth()?.currentUser;
-    if (!user) {
-      if (preview) {
-        setStep({
-          name: "enroll_scan",
-          secret: null,
-          secretKey: "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP",
-          qrUrl: `otpauth://totp/${encodeURIComponent(TOTP_ISSUER)}:preview?secret=JBSWY3DPEHPK3PXP&issuer=${encodeURIComponent(TOTP_ISSUER)}`,
-        });
-        return;
-      }
-      return restart(NOTICES.ended);
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const session = await multiFactor(user).getSession();
-      const secret = await TotpMultiFactorGenerator.generateSecret(session);
-      setStep({
-        name: "enroll_scan",
-        secret,
-        secretKey: secret.secretKey,
-        qrUrl: secret.generateQrCodeUrl(user.email ?? "", TOTP_ISSUER),
-      });
-      setBusy(false);
-    } catch (caught) {
-      if (authErrorCode(caught) === "auth/requires-recent-login") {
-        return restart(describeAuthError(caught, "enroll"));
-      }
-      setBusy(false);
-      setError(describeAuthError(caught, "enroll"));
-    }
-  };
-
-  const finishEnrollment = async (code: string) => {
-    if (step.name !== "enroll_scan") return;
-    const user = getPortalAuth()?.currentUser;
-    if (!step.secret || !user) {
-      setError("This is a preview. Nothing was checked.");
-      return;
-    }
-    setBusy(true);
-    setError(null);
-    try {
-      const assertion = TotpMultiFactorGenerator.assertionForEnrollment(step.secret, code);
-      await multiFactor(user).enroll(assertion, "Duo Mobile");
-      await user.getIdToken(true);
-      await afterSignIn(user);
-    } catch (caught) {
-      const code = authErrorCode(caught);
-      if (code === "auth/requires-recent-login") {
-        return restart(describeAuthError(caught, "enroll"));
-      }
-      setBusy(false);
-      setError(describeAuthError(caught, "enroll"));
-    }
   };
 
   if (step.name === "checking" || step.name === "redirecting") {
@@ -451,32 +320,6 @@ const LoginFlow: React.FC = () => {
           Sign-in will be available here once the Founder&apos;s Education chairs finish setting it
           up. Check back soon.
         </p>
-      </div>
-    );
-  }
-
-  if (step.name === "passcode") {
-    return (
-      <div>
-        <h2 className="text-xl font-medium text-foreground">Two-step verification</h2>
-        <p className="mb-6 mt-1.5 text-sm text-muted-foreground">
-          Open Duo Mobile and enter the passcode shown for {TOTP_ISSUER}.
-        </p>
-        {step.note ? (
-          <p
-            role="status"
-            className="mb-5 rounded-lg border border-success-border bg-success-subtle px-3 py-2.5 text-sm text-success-ink"
-          >
-            {step.note}
-          </p>
-        ) : null}
-        <PasscodeForm
-          submitLabel="Verify"
-          busy={busy}
-          error={error}
-          onSubmit={submitPasscode}
-          onCancel={() => void restart(null)}
-        />
       </div>
     );
   }
@@ -552,23 +395,6 @@ const LoginFlow: React.FC = () => {
     );
   }
 
-  if (step.name === "enroll_intro" || step.name === "enroll_scan") {
-    return (
-      <>
-        <EnrollSteps
-          stage={step.name === "enroll_intro" ? "intro" : "scan"}
-          qrUrl={step.name === "enroll_scan" ? step.qrUrl : ""}
-          secretKey={step.name === "enroll_scan" ? step.secretKey : ""}
-          busy={busy}
-          error={error}
-          onBegin={beginEnrollment}
-          onVerify={finishEnrollment}
-          onCancel={() => void restart(NOTICES.signed_out, true)}
-        />
-      </>
-    );
-  }
-
   return (
     <form onSubmit={submitCredentials} noValidate>
       <h2 className="text-xl font-medium text-foreground">Sign in</h2>
@@ -610,17 +436,7 @@ const LoginFlow: React.FC = () => {
       </div>
 
       <div className="mt-4">
-        <div className="mb-1.5 flex items-center justify-between">
-          <Label htmlFor="portal-password" className="mb-0">
-            Password
-          </Label>
-          <Link
-            href="/login/forgot"
-            className="text-sm text-accent-ink transition-colors hover:text-foreground"
-          >
-            Forgot password?
-          </Link>
-        </div>
+        <Label htmlFor="portal-password">Password</Label>
         <div className="relative">
           <Input
             id="portal-password"
@@ -653,7 +469,10 @@ const LoginFlow: React.FC = () => {
         Continue
       </Button>
       <p className="mt-4 text-center text-xs text-muted-foreground">
-        New here? Use the temporary password a chair gave you, or the link in your welcome email.
+        Forgot your password? Contact an active or a Founder&apos;s Education admin.
+      </p>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        New here? Use the temporary password an admin gave you, or the link you were sent.
       </p>
     </form>
   );

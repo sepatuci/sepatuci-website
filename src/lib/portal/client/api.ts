@@ -20,7 +20,6 @@ const SESSION_ENDING_FORBIDDEN = new Set([
   "email_not_allowed",
   "no_role",
   "no_profile",
-  "mfa_required",
   "password_change_required",
 ]);
 

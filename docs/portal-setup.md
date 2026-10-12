@@ -7,18 +7,21 @@ Three parts: try it locally, connect a real Firebase project, run it day to day.
 
 ## How it is put together
 
-- **Sign-in**: email and password, then a 6-digit passcode from Duo Mobile. No sign-up. Admins
-  create every account.
+- **Sign-in**: UCI email and password. No sign-up, and no "Forgot password?" in the portal: admins
+  create every account and replace every lost password. Firebase itself will still email a reset
+  link to an account's address if someone asks it to directly. The portal only ever accepts an
+  account on the UCI address it was issued with, so that link is of use only to whoever holds that
+  mailbox.
 - **Data**: Firestore, reached only through the server routes under `/api/portal`. Each request is
-  checked for sign-in, second factor and role before anything is touched. `firestore.rules` denies
+  checked for sign-in and role before anything is touched. `firestore.rules` denies
   all direct access.
 - **Admins**: the addresses in `PORTAL_ADMIN_EMAILS` that the setup script also gave the admin
   role. Both are required. Admin accounts cannot be changed from inside the portal.
 - **Sessions**: one browser tab. A tab signs itself out after 30 idle minutes. Every sign-in ends
   12 hours after it started, enforced by the server. The Sign out button ends it on every device.
 
-The second factor is a passcode from the Duo Mobile app, which UCI students already have. It is not
-a Duo push and it is not UCI's campus login.
+There is no second sign-in step, so an account is as safe as its password. The portal enforces the
+password rules, and admins should use a long one that they use nowhere else.
 
 ### Who can see what
 
@@ -57,11 +60,8 @@ for the tour alone, or `priya.shah@uci.edu` for the actives' view-only area.
 To sign in to the demo as yourself, put `PORTAL_DEMO_ADMINS=you@uci.edu` in `.env.local` (git
 ignores it) and restart. You become an admin with the demo password.
 
-Two differences from the real thing:
-
-- Two-step verification is skipped. See those screens at `/login?preview=passcode` and
-  `/login?preview=enroll`. `/login?preview=password` shows the choose-a-password step.
-- No email is sent. Password links are printed in the terminal.
+One difference from the real thing: no email is sent. Password links are printed in the terminal.
+`/login?preview=password` shows the choose-a-password step without signing in.
 
 This mode cannot run in production: the server refuses it on a production build or on Vercel.
 
@@ -72,8 +72,8 @@ Once, in order.
 1. **Create the project** at <https://console.firebase.google.com>.
 2. **Authentication**: Build > Authentication > Get started. Enable **Email/Password**. Leave
    "Email link" off.
-3. **Identity Platform**: Authentication > Settings > **Upgrade to Identity Platform**. Free at
-   this size, and required for two-step verification.
+3. **Identity Platform**: Authentication > Sign-in method > Advanced > **Upgrade to enable**. Free
+   at this size, and required for the password rules the setup script switches on.
 4. **Firestore**: Build > Firestore Database > Create database. Production mode, a US region.
 5. **Web app**: Project settings > General > Your apps > add a Web app. Copy `apiKey`,
    `authDomain`, `projectId` and `appId` into the four `NEXT_PUBLIC_FIREBASE_*` variables.
@@ -88,8 +88,9 @@ Once, in order.
    npm run portal:setup
    ```
 
-   It turns on two-step verification, turns off self sign-up, sets the password rules, creates the
-   admin accounts and prints a one-time password link for each. Links last about an hour.
+   It turns off self sign-up, keeps multi-factor sign-in off and removes any authenticator left on
+   an account, sets the password rules, creates the admin accounts and prints a one-time password
+   link for each. Links last about an hour.
 9. **Lock the database**:
 
    ```bash
@@ -100,7 +101,7 @@ Once, in order.
 11. **Email template**: Authentication > Templates > Password reset > edit.
     - Action URL: `https://YOUR_DOMAIN/login/reset`.
     - Sender name: for example "SEP Founder's Education".
-    - Wording: this one email is both the welcome for a new pledge and the forgot-password email.
+    - Wording: this email is the welcome for a new pledge who starts from an emailed link.
       Firebase's default only fits the second. Suggested subject: "Your Founder's Education portal
       password". Suggested message: "Use this link to choose a password for the Sigma Eta Pi
       Founder's Education portal. It works once and expires in about an hour. If you weren't
@@ -120,14 +121,13 @@ Once, in order.
     everyone until midnight Pacific. Set the alert at a few dollars.
 14. **Restrict the web API key** (recommended): Google Cloud console > APIs & Services >
     Credentials > the Browser key > Website restrictions. Allow only your domain.
-15. **First sign-in**: each admin opens their link, chooses a password, signs in at `/login` and
-    scans the QR code with Duo Mobile.
+15. **First sign-in**: each admin opens their link, chooses a password and signs in at `/login`.
 
 ### Check once after the first deploy
 
 None of this could be verified without a real project.
 
-- Sign in as an admin, Duo passcode included, and open Pledges. If the portal says it is
+- Sign in as an admin and open Pledges. If the portal says it is
   unavailable, read the function logs in Vercel. Usual causes: a mistyped private key or a missing
   variable.
 - Vercel installs with `npm ci` (set in `vercel.json`) and runs functions on Node. Keep both: a
@@ -135,8 +135,7 @@ None of this could be verified without a real project.
   deployment then fails after a successful build.
 - Create a test pledge with an address you control. Confirm the email arrives; UCI's filters may
   send it to spam. If so, use "Get password link" on the pledge's page.
-- Go through a first visit as that pledge: password, sign-in, Duo Mobile, welcome tour,
-  deliverables.
+- Go through a first visit as that pledge: password, sign-in, welcome tour, deliverables.
 
 ## Running it day to day
 
@@ -145,7 +144,7 @@ The Guide page inside the portal covers this for admins, with a checklist of fir
 **Add a pledge.** Pledges > Add pledge, with their name and UCI email. Choose how they start:
 
 - *Email a link*: they are emailed a link to choose a password, and the dialog shows the same
-  link. Links last about an hour. An expired one is replaced from "Forgot password?".
+  link. Links last about an hour. An expired one is replaced from their page.
 - *Temporary password*: the dialog shows a password such as `K7QM-2XRT-9BHD` for you to pass on.
   It is shown once and works for 3 days. Their first sign-in makes them replace it, and nothing
   else in the portal opens until they do. If it runs out, give them a new one from their page.
@@ -158,18 +157,27 @@ time with a result for each. Firebase sends at most 150 password emails a day, s
 links add pledges and actives on different days. With temporary passwords, copy the list before
 closing: they cannot be shown again.
 
-**A first visit.** It happens once per account, in this order: choose a password, set up Duo
-Mobile, then a short welcome. A pledge's welcome covers SEP, Founder's Education and how
-deliverables work. An active's covers what they can and cannot see. Both stay available under
+**A first visit.** It happens once per account: choose a password, then a short welcome. A
+pledge's welcome covers SEP, Founder's Education and how deliverables work. An active's covers what they can and cannot see. Both stay available under
 Guide.
 
-**Locked out or lost the password.** They can use "Forgot password?" themselves. From their page
-you can also send a new link, or give a new temporary password, which signs them out everywhere.
-"Get password link" also cancels a temporary password that has not been used yet. "Email password
-link" does not: to cancel one, use Get password link or give a new temporary password.
+**Locked out or lost the password.** There is no "Forgot password?" anywhere in the portal. The
+sign-in page and the Account page tell people to contact an active or an admin. An active passes
+the request on; an admin acts on it from the person's page:
+
+- *Temporary password*: a new one to pass on. It signs them out everywhere, and they choose their
+  own at the next sign-in. Give it to the person face to face, or send it to their own `@uci.edu`
+  address. Never send it to whoever asked: a message claiming to be a pledge on a new number is
+  the easy way into someone else's account.
+- *Get password link*: a one-time link to send them. It also cancels a temporary password that has
+  not been used yet.
+
+A temporary password that runs out after its 3 days is replaced the same way. Resetting a password
+from the Firebase console works too, but it does not clear a temporary password still outstanding
+in the portal, so use one of the two buttons above for anyone who has one.
 
 **Actives.** Actives > Add active, or Add several. They start the same way as a pledge, then get a
-view-only area. The same page disables, removes, resets two-step and replaces passwords. A pledge
+view-only area. The same page disables, removes and replaces passwords. A pledge
 who becomes an active needs a new account: an email can only have one, so the pledge account must
 be removed first, which deletes their responses.
 
@@ -181,8 +189,6 @@ be removed first, which deletes their responses.
 - A pledge's team can also be set from their own page.
 - Teams group the Pledges view and each deliverable's responses. The spreadsheet has a Team column.
 - Deliverables are still turned in by each pledge. Deleting a team keeps its members and their work.
-
-**New phone.** Open the pledge > Reset two-step. They set up Duo Mobile again at next sign-in.
 
 **Disable or remove.** Disable signs the pledge out at once and blocks sign-in, keeping their work.
 Remove deletes the account and everything attached to it, for good.
@@ -212,8 +218,9 @@ Settings, then Publish.
 **Let a pledge redo one.** Open their response and choose Delete and reopen.
 
 **An admin is locked out.** From a machine with `.env.local`:
-`npm run portal:setup -- --reset-credentials`. It resets every admin's password and two-step and
-prints new links.
+`npm run portal:setup -- --reset-credentials`. It resets every admin's password and prints new
+links. The Firebase console can also send one admin a reset email: Authentication > Users > the
+menu on their row > Reset password.
 
 **Change the admins.** Update `PORTAL_ADMIN_EMAILS` in `.env.local` and in Vercel, redeploy, then
 run `npm run portal:setup`. An address taken off the list loses access as soon as the deploy is

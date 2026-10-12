@@ -111,8 +111,6 @@ async function authenticate(
 
   const result = evaluateGate(claims, {
     need,
-    // Sign-in is email and password. No second factor is asked for.
-    mfaRequired: false,
     adminEmails: admin.env.adminEmails,
     nowMs,
     issuedRequired: admin.env.mode === "live",
@@ -181,7 +179,7 @@ const METHODS_WITH_BODY = new Set(["POST", "PUT", "PATCH"]);
 /**
  * Wraps a portal route handler. Every handler under /api/portal is exported
  * through this function, which is what guarantees that no route can be reached
- * without a verified token, a second factor and the right role.
+ * without a verified token and the right role.
  */
 export function portalRoute<P extends Record<string, string> = Record<string, never>>(
   options: RouteOptions,

@@ -8,7 +8,7 @@ interface AuthShellProps {
   children: React.ReactNode;
 }
 
-/** The frame shared by the sign-in, forgot-password and set-password pages. */
+/** The frame shared by the sign-in and set-password pages. */
 const AuthShell: React.FC<AuthShellProps> = ({ children }) => (
   <div className="portal-auth-backdrop flex min-h-screen flex-col bg-background font-normal text-foreground">
     <header className="mx-auto flex w-full max-w-5xl items-center justify-between px-4 py-5 sm:px-6">

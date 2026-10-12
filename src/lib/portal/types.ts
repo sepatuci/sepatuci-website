@@ -180,8 +180,6 @@ export interface MeDto {
   team: MyTeamDto | null;
   /** When the welcome tour was finished. Null until then, and always null for admins. */
   onboardedAt: IsoDateTime | null;
-  /** False only when running against the local emulators. */
-  mfaEnforced: boolean;
   serverNow: IsoDateTime;
 }
 
@@ -296,8 +294,8 @@ export interface ActivityDto {
   currentSessionStartedAt: IsoDateTime | null;
 }
 
-/** invited: never signed in. needs_mfa: signed in but has not set up two-step verification. */
-export type AccountState = "invited" | "needs_mfa" | "active" | "disabled";
+/** invited: has not finished a first sign-in, or is on a temporary password. */
+export type AccountState = "invited" | "active" | "disabled";
 
 export interface PledgeRowDto {
   uid: string;
@@ -312,7 +310,6 @@ export interface PledgeRowDto {
    */
   signInBlocked: boolean;
   accountState: AccountState;
-  mfaEnrolled: boolean;
   createdAt: IsoDateTime;
   lastSignInAt: IsoDateTime | null;
   /** When the pledge finished the welcome tour. */
@@ -442,7 +439,6 @@ export interface ActiveRowDto {
   /** Whether sign-in is actually blocked, as for pledges. */
   signInBlocked: boolean;
   accountState: AccountState;
-  mfaEnrolled: boolean;
   createdAt: IsoDateTime;
   lastSignInAt: IsoDateTime | null;
 }

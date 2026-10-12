@@ -109,24 +109,22 @@ export function lastSignIn(record: UserRecord | undefined): IsoDateTime | null {
 }
 
 function toPledgeRow(
-  admin: PortalAdmin,
   uid: string,
   profile: UserDoc,
   record: UserRecord | undefined,
   activePunishments: number,
 ): PledgeRowDto {
-  const mfaEnrolled = (record?.multiFactor?.enrolledFactors.length ?? 0) > 0;
   const lastSignInAt = lastSignIn(record);
   const status: UserStatus =
     profile.status === "disabled" || record?.disabled === true ? "disabled" : "active";
 
-  // "Invited" means the pledge has never reached the portal: no sign-in, no
-  // second factor and no recorded visit.
+  // "Invited" means the pledge has never reached the portal: no sign-in and
+  // no recorded visit.
   const hasVisited = profile.activity.firstSeenAt !== null;
   let accountState: AccountState = "active";
   if (status === "disabled") accountState = "disabled";
   else if (onTemporaryPassword(record)) accountState = "invited";
-  else if (!hasVisited && !mfaEnrolled && lastSignInAt === null) accountState = "invited";
+  else if (!hasVisited && lastSignInAt === null) accountState = "invited";
 
   return {
     uid,
@@ -137,7 +135,6 @@ function toPledgeRow(
     status,
     signInBlocked: record ? record.disabled : status === "disabled",
     accountState,
-    mfaEnrolled,
     createdAt: iso(profile.createdAt),
     lastSignInAt,
     onboardedAt: isoOrNull(profile.onboardedAt),
@@ -204,7 +201,7 @@ export async function getOverview({ admin, now }: Caller): Promise<AdminOverview
     for (const formId of Object.keys(profile.submitted)) {
       responseCounts.set(formId, (responseCounts.get(formId) ?? 0) + 1);
     }
-    return toPledgeRow(admin, doc.id, profile, records.get(doc.id), activeByUid.get(doc.id) ?? 0);
+    return toPledgeRow(doc.id, profile, records.get(doc.id), activeByUid.get(doc.id) ?? 0);
   });
   pledges.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -383,7 +380,7 @@ export async function createPledge(
 ): Promise<CreatePledgeResultDto> {
   const created = await createMember(caller, body, origin, "pledge");
   return {
-    pledge: toPledgeRow(caller.admin, created.record.uid, created.profile, created.record, 0),
+    pledge: toPledgeRow(created.record.uid, created.profile, created.record, 0),
     inviteLink: created.inviteLink,
     temporaryPassword: created.temporaryPassword,
   };
@@ -431,9 +428,7 @@ export async function getPledgeDetail({ admin, now }: Caller, uid: string): Prom
 
   return {
     serverNow: now.toISOString(),
-    pledge: toPledgeRow(
-      admin,
-      uid,
+    pledge: toPledgeRow(uid,
       profile,
       record,
       punishments.filter((punishment) => punishment.status === "active").length,
@@ -595,22 +590,6 @@ export async function removeMember(
   return { ok: true };
 }
 
-export const resetPledgeMfa = (caller: Caller, uid: string) => resetMemberMfa(caller, uid, "pledge");
-
-export async function resetMemberMfa(
-  { admin, user, now }: Caller,
-  uid: string,
-  role: MemberRole,
-): Promise<{ ok: true }> {
-  const { profile } = await requireMember(admin, uid, role);
-  await admin.auth.updateUser(uid, { multiFactor: { enrolledFactors: null } });
-  await admin.auth.revokeRefreshTokens(uid);
-  await collections(admin.db).audit.add(
-    auditEntry(user, now, `${role}.reset_mfa`, "user", uid, `Reset two-step verification for ${profile.email}`),
-  );
-  return { ok: true };
-}
-
 export const createInviteLink = (caller: Caller, uid: string, origin: string) =>
   createMemberInviteLink(caller, uid, origin, "pledge");
 
@@ -629,8 +608,12 @@ export async function issueTemporaryPassword(
     throw new HttpError(409, "account_disabled", "Re-enable the account first.");
   }
   // As with a password link, an account pointed at another mailbox is put back
-  // on the address it was issued with and loses its authenticator.
+  // on the address it was issued with.
   const moved = record !== undefined && record.email?.toLowerCase() !== profile.email.toLowerCase();
+  // The portal signs in with a password alone. An authenticator attached to the
+  // account through Firebase directly would lock its owner out, so one that is
+  // there is removed. Nothing is sent about it for the usual account, which has none.
+  const hasAuthenticator = (record?.multiFactor?.enrolledFactors.length ?? 0) > 0;
   const password = newTemporaryPassword();
   // Every existing sign-in ends first, so none of them can pick up the flag
   // set below and use it to choose a password of its own.
@@ -647,7 +630,7 @@ export async function issueTemporaryPassword(
     email: profile.email,
     emailVerified: true,
     password,
-    ...(moved ? { multiFactor: { enrolledFactors: null } } : {}),
+    ...(moved || hasAuthenticator ? { multiFactor: { enrolledFactors: null } } : {}),
   });
   // Once more, for a sign-in with the old password that slipped in between the
   // steps above. From here on only the new password signs in, and nobody has it yet.
@@ -683,9 +666,9 @@ export async function createMemberInviteLink(
   // The sign-in address is put back to the one this account was issued with,
   // in case it was pointed at another mailbox. Whoever moved it may not have
   // been the pledge, so every session is ended, the password is replaced with
-  // one nobody knows and any authenticator is removed: the only way back in is
-  // the link below, which goes to the issued address, followed by setting up
-  // Duo Mobile again.
+  // one nobody knows and any authenticator attached through Firebase is
+  // removed: the only way back in is the link below, which goes to the issued
+  // address.
   let movedFrom: string | null = null;
   if (record && record.email?.toLowerCase() !== profile.email.toLowerCase()) {
     movedFrom = record.email ?? "no address";
@@ -697,6 +680,7 @@ export async function createMemberInviteLink(
       multiFactor: { enrolledFactors: null },
     });
     // Once more, for a sign-in that slipped in between the two steps above.
+    await nextSecond();
     await admin.auth.revokeRefreshTokens(uid);
   }
   // A link takes the place of a temporary password that is still outstanding:

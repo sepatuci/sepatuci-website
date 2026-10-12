@@ -56,7 +56,7 @@ export const BEFORE_YOU_START: GuideTopic = {
     "You start solo. If the chairs put you on a team, it shows on your Account page.",
     "If the chairs need your attention, a notice appears at the top of your Deliverables page.",
     "Sign-in is your UCI email and your password. Thirty idle minutes signs you out.",
-    "New phone, or a question about a deadline? Talk to a Founder's Education chair.",
+    "Forgotten password, or a question about a deadline? Talk to a Founder's Education chair.",
   ],
 };
 
@@ -180,6 +180,7 @@ export const ACTIVE_TOPICS: GuideTopic[] = [
       "Responses can include personal detail. Keep them inside SEP.",
       "If something in a response worries you, tell a chair.",
       "You cannot edit, reopen or delete anything. If something looks wrong, a chair can fix it.",
+      "If a pledge asks you about a forgotten password, pass it on to an admin. Only admins can give a new one.",
     ],
   },
 ];

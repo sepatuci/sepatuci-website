@@ -1,6 +1,6 @@
 /**
  * Admin management of active members' accounts. An active is a read-only
- * viewer: created, renamed, disabled, reset and removed like a pledge, with no
+ * viewer: created, renamed, disabled and removed like a pledge, with no
  * class, team, deliverables or tracked time. Tests run in order from a fresh
  * seed: what is listed, what is refused, then one new active is taken through
  * their whole life, and last the rule that keeps the two kinds of account apart.
@@ -8,13 +8,11 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { POST as createActiveInviteLink } from "@/app/api/portal/admin/actives/[uid]/invite-link/route";
-import { POST as resetActiveMfa } from "@/app/api/portal/admin/actives/[uid]/reset-mfa/route";
 import { DELETE as removeActive, PATCH as updateActive } from "@/app/api/portal/admin/actives/[uid]/route";
 import { POST as issueActivePassword } from "@/app/api/portal/admin/actives/[uid]/temporary-password/route";
 import { GET as listActives, POST as createActive } from "@/app/api/portal/admin/actives/route";
 import { POST as createPledgeInviteLink } from "@/app/api/portal/admin/pledges/[uid]/invite-link/route";
 import { POST as addPunishment } from "@/app/api/portal/admin/pledges/[uid]/punishments/route";
-import { POST as resetPledgeMfa } from "@/app/api/portal/admin/pledges/[uid]/reset-mfa/route";
 import { DELETE as removePledge, GET as getPledgeDetail, PATCH as updatePledge } from "@/app/api/portal/admin/pledges/[uid]/route";
 import { POST as issuePledgePassword } from "@/app/api/portal/admin/pledges/[uid]/temporary-password/route";
 import { GET as getOverview, POST as createPledge } from "@/app/api/portal/admin/pledges/route";
@@ -43,6 +41,7 @@ import {
   ADMIN_ONE,
   ADMIN_TWO,
   AVERY,
+  A_KEPT_FINGERPRINT,
   CASEY,
   DANA,
   MARCUS,
@@ -53,9 +52,11 @@ import {
   SLOW_TEST_MS,
   TEAM_ATLAS,
   TEMPORARY_PASSWORD,
+  attachSecondFactor,
   call,
   countAll,
   countWhere,
+  detachSecondFactors,
   docData,
   docExists,
   dumpPortal,
@@ -65,9 +66,11 @@ import {
   ok,
   redeemResetCode,
   refused,
+  secondFactorsOf,
   seedPortal,
   signIn,
   signInFailure,
+  signInStopsAtSecondFactor,
   sleep,
   storedAudit,
   storedFingerprint,
@@ -84,7 +87,7 @@ const INVITE_LINK = /^http:\/\/localhost\/login\/reset\?mode=resetPassword&oobCo
 /** The same link for someone who has not: it ends by asking for the introduction. */
 const WELCOME_LINK = /^http:\/\/localhost\/login\/reset\?mode=resetPassword&oobCode=[^&\s]+&welcome=1$/;
 
-const ROW_KEYS = ["accountState", "createdAt", "displayName", "email", "lastSignInAt", "mfaEnrolled", "signInBlocked", "status", "uid"];
+const ROW_KEYS = ["accountState", "createdAt", "displayName", "email", "lastSignInAt", "signInBlocked", "status", "uid"];
 const PROFILE_KEYS = [
   "activity",
   "createdAt",
@@ -125,7 +128,6 @@ const patch = (uid: string, body: unknown): Promise<ApiResult> => call(updateAct
 const remove = (uid: string, confirm: string | null): Promise<ApiResult> =>
   call(removeActive, { uid }, { method: "DELETE", token: admin.token, query: confirm === null ? "" : `?confirm=${encodeURIComponent(confirm)}` });
 const invite = (uid: string): Promise<ApiResult> => call(createActiveInviteLink, { uid }, { method: "POST", token: admin.token });
-const resetMfa = (uid: string): Promise<ApiResult> => call(resetActiveMfa, { uid }, { method: "POST", token: admin.token });
 const issuePassword = (uid: string): Promise<ApiResult> => call(issueActivePassword, { uid }, { method: "POST", token: admin.token });
 /** The temporary password this file has an admin issue to Marcus, to be searched for in the audit log. */
 let issuedToMarcus = "";
@@ -174,7 +176,6 @@ describe("the list of actives", () => {
       status: "active",
       accountState: "invited",
       signInBlocked: false,
-      mfaEnrolled: false,
       lastSignInAt: null,
     });
     expect((await testAuth().getUser(marcusUid)).passwordHash).toBeUndefined();
@@ -188,31 +189,40 @@ describe("the list of actives", () => {
   it("shows the active the seed sets up as set up, not as invited", async () => {
     const row = await rowOf(priyaUid);
     expect((await testAuth().getUser(priyaUid)).passwordHash).toBeDefined();
-    expect(row).toMatchObject({ accountState: "active", status: "active", signInBlocked: false, mfaEnrolled: false });
+    expect(row).toMatchObject({ accountState: "active", status: "active", signInBlocked: false });
     expect((await docData(`users/${priyaUid}`))?.onboardedAt).not.toBeNull();
   });
 
-  // Each of the three on its own is enough to say the person has reached the portal.
-  it("calls an active invited only while they have no second factor, no sign-in and no welcome behind them", async () => {
+  // Either of the two on its own is enough to say the person has reached the portal.
+  it("calls an active invited only while they have no sign-in and no welcome behind them", async () => {
     const ref = testDb().doc(`users/${marcusUid}`);
-    expect(await rowOf(marcusUid)).toMatchObject({ accountState: "invited", mfaEnrolled: false, lastSignInAt: null });
+    expect(await rowOf(marcusUid)).toMatchObject({ accountState: "invited", lastSignInAt: null });
     expect((await ref.get()).get("onboardedAt")).toBeNull();
 
     await ref.update({ onboardedAt: Timestamp.now() });
     try {
-      expect(await rowOf(marcusUid)).toMatchObject({ accountState: "active", mfaEnrolled: false, lastSignInAt: null });
+      expect(await rowOf(marcusUid)).toMatchObject({ accountState: "active", lastSignInAt: null });
     } finally {
       await ref.update({ onboardedAt: null });
     }
     expect((await rowOf(marcusUid)).accountState).toBe("invited");
+  });
 
-    await testAuth().updateUser(marcusUid, { multiFactor: { enrolledFactors: [{ uid: "factor1", phoneNumber: "+15555550100", displayName: "Phone", factorId: "phone" }] } });
+  // Sign-in is a password alone. A second factor attached to an account through Firebase is not
+  // something the portal set up, and says nothing of whether its owner has ever reached the portal.
+  it("does not go by a second factor: one attached through Firebase leaves an invited active invited, and is not shown", async () => {
+    const before = await rowOf(marcusUid);
+    expect(before.accountState).toBe("invited");
+    await attachSecondFactor(marcusUid);
     try {
-      expect(await rowOf(marcusUid)).toMatchObject({ accountState: "active", mfaEnrolled: true, lastSignInAt: null });
+      const row = await rowOf(marcusUid);
+      expect(row).toEqual(before);
+      expect(Object.keys(row).sort()).toEqual(ROW_KEYS);
+      expect(row).not.toHaveProperty("mfaEnrolled");
     } finally {
-      await testAuth().updateUser(marcusUid, { multiFactor: { enrolledFactors: null } });
+      await detachSecondFactors(marcusUid);
     }
-    expect(await rowOf(marcusUid)).toMatchObject({ accountState: "invited", mfaEnrolled: false });
+    expect(await rowOf(marcusUid)).toEqual(before);
   });
 
   it("gives every seeded active the claims and the profile the portal itself would have written", async () => {
@@ -364,7 +374,6 @@ describe("creating an active", () => {
       status: "active",
       signInBlocked: false,
       accountState: "invited",
-      mfaEnrolled: false,
       lastSignInAt: null,
     });
     expect(created.active.uid).not.toBe("attackerchosenuid");
@@ -521,8 +530,8 @@ describe("one active, from invitation to removal", () => {
       pledgeClass: null,
       team: null,
       onboardedAt: null,
-      mfaEnforced: false,
     });
+    expect(result.body).not.toHaveProperty("mfaEnforced");
   });
 
   it("lets them into nothing that is an admin's or a pledge's", async () => {
@@ -705,35 +714,6 @@ describe("one active, from invitation to removal", () => {
     session = await signIn(NEW_ACTIVE, NEW_PASSWORD);
   });
 
-  it(
-    "resets their two-step verification: signs them out everywhere, keeps the account, and audits it",
-    async () => {
-      const before = await signIn(NEW_ACTIVE, NEW_PASSWORD);
-      ok(await call(getReviewOverview, {}, { token: before.token }));
-      await sleep(1100);
-
-      expect(ok(await resetMfa(uid))).toEqual({ ok: true });
-
-      refused(await call(getReviewOverview, {}, { token: before.token }), 401, "session_revoked");
-      refused(await call(getMe, {}, { token: session.token }), 401, "session_revoked");
-      const record = await testAuth().getUser(uid);
-      expect(record.disabled).toBe(false);
-      expect(record.multiFactor?.enrolledFactors ?? []).toEqual([]);
-      expect(record.customClaims).toEqual({ role: "active", issued: NEW_ACTIVE });
-      expect(await docData(`users/${uid}`)).toMatchObject({ role: "active", status: "active" });
-      expect(await latestAudit()).toMatchObject({
-        action: "active.reset_mfa",
-        targetType: "user",
-        targetId: uid,
-        summary: `Reset two-step verification for ${NEW_ACTIVE}`,
-      });
-
-      session = await signIn(NEW_ACTIVE, NEW_PASSWORD);
-      ok(await call(getReviewOverview, {}, { token: session.token }));
-    },
-    SLOW_TEST_MS,
-  );
-
   it.each<[string, string | null]>([
     ["no confirmation", null],
     ["an empty confirmation", ""],
@@ -816,7 +796,6 @@ describe("the two kinds of account are kept apart", () => {
     ["put on a team", () => call(updatePledge, { uid }, { method: "PATCH", token: admin.token, body: { teamId: TEAM_ATLAS } })],
     ["send nothing at all", () => call(updatePledge, { uid }, { method: "PATCH", token: admin.token, body: {} })],
     ["remove", () => call(removePledge, { uid }, { method: "DELETE", token: admin.token, query: `?confirm=${encodeURIComponent(email)}` })],
-    ["reset two-step", () => call(resetPledgeMfa, { uid }, { method: "POST", token: admin.token })],
     ["create a set-password link", () => call(createPledgeInviteLink, { uid }, { method: "POST", token: admin.token })],
     ["issue a temporary password", () => call(issuePledgePassword, { uid }, { method: "POST", token: admin.token })],
     ["punish", () => call(addPunishment, { uid }, { method: "POST", token: admin.token, body: { title: "Not a pledge", details: "Planted on an active" } })],
@@ -829,7 +808,6 @@ describe("the two kinds of account are kept apart", () => {
     ["re-enable", () => patch(uid, { status: "active" })],
     ["send nothing at all", () => patch(uid, {})],
     ["remove", () => remove(uid, email)],
-    ["reset two-step", () => resetMfa(uid)],
     ["create a set-password link", () => invite(uid)],
     ["issue a temporary password", () => issuePassword(uid)],
   ];
@@ -915,7 +893,7 @@ describe("the two kinds of account are kept apart", () => {
       [adminTwo.uid, ADMIN_TWO],
       [admin.uid, ADMIN_ONE],
     ] as const) {
-      // Twenty requests for each admin, and forty between them: more changes than one account may make in a minute.
+      // Eighteen requests for each admin, and thirty-six between them: more changes than one account may make in a minute.
       resetRateLimits();
       for (const [action, attempt] of [...onActivesRoutes(uid, email), ...onPledgeRoutes(uid, email)]) {
         const body = refused(await attempt(), 403, "cannot_modify_admin");
@@ -950,23 +928,27 @@ describe("the two kinds of account are kept apart", () => {
     ok(await patch(marcusUid, { displayName: "Renamed As An Active" }));
     expect(await docData(`users/${marcusUid}`)).toMatchObject({ displayName: "Renamed As An Active", role: "active" });
     ok(await patch(marcusUid, { displayName: "Marcus Lee" }));
-    ok(await resetMfa(marcusUid));
     ok(await patch(danaUid, { status: "active" }));
     expect(await rowOf(danaUid)).toMatchObject({ status: "active", signInBlocked: false });
     ok(await patch(danaUid, { status: "disabled" }));
 
-    // And a temporary password, through the route for the kind of account it is.
+    // And a temporary password, through the route for the kind of account it is. Marcus is given
+    // a second factor through Firebase first: with one on, no password would sign him in, and
+    // the portal has no second step to ask him for. Issuing the password is what takes it off.
+    await attachSecondFactor(marcusUid);
     const issuedFrom = Date.now();
     const issued = ok<TemporaryPasswordDto>(await issuePassword(marcusUid));
     expect(Object.keys(issued)).toEqual(["temporaryPassword"]);
     expect(issued.temporaryPassword).toMatch(TEMPORARY_PASSWORD);
     issuedToMarcus = issued.temporaryPassword;
+    expect(await secondFactorsOf(marcusUid)).toBe(0);
+    expect(await signInStopsAtSecondFactor(MARCUS, issuedToMarcus)).toBe(false);
     // The flag, the time it was issued, and that Marcus has yet to be welcomed. Nothing else.
     const claims = (await testAuth().getUser(marcusUid)).customClaims ?? null;
     expect(claims).toEqual(temporaryClaims("active", MARCUS, true));
     expectIssuedBetween(claims, issuedFrom, Date.now());
     // A fingerprint of it is kept on his profile, and is in nothing an admin is sent.
-    expect(await storedFingerprint(marcusUid)).toEqual({ salt: expect.stringMatching(/^[0-9a-f]{32}$/), hash: expect.stringMatching(/^[0-9a-f]{64}$/) });
+    expect(await storedFingerprint(marcusUid)).toEqual(A_KEPT_FINGERPRINT);
     const listed = await call(listActives, {}, { token: admin.token });
     for (const kept of await everyStoredFingerprint()) expect(listed.text).not.toContain(kept);
     expect(listed.text).not.toMatch(/temporaryPassword|"salt"|"hash"|"tempAt"|"tempNew"/);
@@ -1014,7 +996,6 @@ describe("accounts that only partly look like actives", () => {
 
     refused(await patch(record.uid, { status: "disabled" }), 403, "cannot_modify_admin");
     refused(await remove(record.uid, email), 403, "cannot_modify_admin");
-    refused(await resetMfa(record.uid), 403, "cannot_modify_admin");
     refused(await invite(record.uid), 403, "cannot_modify_admin");
     refused(await issuePassword(record.uid), 403, "cannot_modify_admin");
     const after = await testAuth().getUser(record.uid);
@@ -1062,10 +1043,17 @@ describe("audit trail", () => {
       "active.enable",
       "active.invite_link",
       "active.remove",
-      "active.reset_mfa",
       "active.temporary_password",
       "active.update",
     ]);
+  });
+
+  // There was an action for resetting a second step, for each kind of account. Nothing writes one now.
+  it("has no entry for resetting a second step, for an active or a pledge, and none that speaks of one", async () => {
+    const entries = await storedAudit();
+    expect(entries.length).toBeGreaterThan(10);
+    expect(entries.map((entry) => entry.action).filter((action) => /mfa|factor|two_step/i.test(action))).toEqual([]);
+    expect(entries.map((entry) => entry.summary).filter((summary) => /two-step|second factor|authenticator|passcode/i.test(summary))).toEqual([]);
   });
 
   it("recorded nothing done to an active under a pledge's action name", async () => {

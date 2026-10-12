@@ -1,21 +1,27 @@
 "use client";
 
-import { useState } from "react";
-import { sendPasswordResetEmail } from "firebase/auth";
-import { KeyRound, Loader2 } from "lucide-react";
+import { KeyRound } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getPortalAuth } from "@/lib/portal/client/firebase";
 import { formatDate } from "@/lib/portal/dates";
 import { ROLE_DESCRIPTION } from "@/lib/portal/roles";
 import type { Role } from "@/lib/portal/types";
 import { usePortal } from "./portal-session";
-import { Card, PageHeader, useToast } from "./primitives";
+import { Card, PageHeader } from "./primitives";
 import { ThemeChoice } from "./theme-controls";
 
 const ACCOUNT_NOTE: Record<Role, string> = {
   admin: "Admin accounts are managed by whoever maintains the portal, not from this page.",
-  active: "To correct your name, ask a Founder's Education chair.",
-  pledge: "To correct your name or team, ask a Founder's Education chair.",
+  active: "To correct your name, ask a Founder's Education admin.",
+  pledge: "To correct your name or team, ask a Founder's Education admin.",
+};
+
+const PASSWORD_NOTE: Record<Role, string> = {
+  admin:
+    "Admin passwords are replaced outside the portal: from the Firebase console, or with the setup script. The setup guide has the steps.",
+  active:
+    "To change it, or if you forget it, contact a Founder's Education admin. They give you a temporary one and you choose a new password at your next sign-in.",
+  pledge:
+    "To change it, or if you forget it, contact an active or a Founder's Education admin. An admin gives you a temporary one and you choose a new password at your next sign-in.",
 };
 
 const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
@@ -27,22 +33,6 @@ const Row: React.FC<{ label: string; children: React.ReactNode }> = ({ label, ch
 
 const AccountPanel: React.FC = () => {
   const { me, signOut } = usePortal();
-  const notify = useToast();
-  const [sending, setSending] = useState(false);
-
-  const changePassword = async () => {
-    const auth = getPortalAuth();
-    if (!auth || sending) return;
-    setSending(true);
-    try {
-      await sendPasswordResetEmail(auth, me.email);
-      notify(`We sent a password link to ${me.email}.`, "success");
-    } catch {
-      notify("We couldn't send the email. Try again in a few minutes.", "danger");
-    } finally {
-      setSending(false);
-    }
-  };
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -81,21 +71,13 @@ const AccountPanel: React.FC = () => {
       <h2 className="mb-3 mt-10 text-sm font-medium uppercase tracking-wider text-muted-foreground">
         Security
       </h2>
-      <Card className="divide-y divide-border">
-        <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
-          <div className="flex items-start gap-3">
-            <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" />
-            <div>
-              <p className="text-sm font-medium text-foreground">Password</p>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                We&apos;ll email you a link to choose a new one.
-              </p>
-            </div>
+      <Card>
+        <div className="flex items-start gap-3 px-5 py-4">
+          <KeyRound className="mt-0.5 h-5 w-5 shrink-0 text-accent-ink" />
+          <div>
+            <p className="text-sm font-medium text-foreground">Password</p>
+            <p className="mt-0.5 text-sm text-muted-foreground">{PASSWORD_NOTE[me.role]}</p>
           </div>
-          <Button variant="outline" onClick={changePassword} disabled={sending}>
-            {sending ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Change password
-          </Button>
         </div>
       </Card>
       <p className="mt-2 px-1 text-xs text-muted-foreground">

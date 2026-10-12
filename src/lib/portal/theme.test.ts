@@ -59,7 +59,11 @@ describe("resolveTheme", () => {
 const THEMED_PATHS = [
   "/login",
   "/login/",
+  // No longer a page of its own. An old bookmark of it, like any address under /login with
+  // no page, is answered in the sign-in frame, and so has to be themed like the rest.
   "/login/forgot",
+  "/login/forgot/",
+  "/login/no/such/page",
   "/login/reset",
   "/portal",
   "/portal/",
