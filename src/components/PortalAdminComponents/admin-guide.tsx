@@ -32,8 +32,10 @@ const AdminGuide: React.FC = () => {
         <Card className="p-6 sm:p-8">
           <h2 className="text-lg font-medium text-foreground">What a new pledge goes through</h2>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-foreground">
-            <li>They open the emailed link and choose a password.</li>
-            <li>They sign in and scan a QR code with Duo Mobile.</li>
+            <li>
+              They sign in with the temporary password you gave them, or open the emailed link, and
+              choose their own password.
+            </li>
             <li>
               They are shown a short introduction to Sigma Eta Pi, Founder&apos;s Education and how
               deliverables work.

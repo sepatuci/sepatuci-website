@@ -127,7 +127,6 @@ function toPledgeRow(
   if (status === "disabled") accountState = "disabled";
   else if (onTemporaryPassword(record)) accountState = "invited";
   else if (!hasVisited && !mfaEnrolled && lastSignInAt === null) accountState = "invited";
-  else if (admin.env.mode === "live" && !mfaEnrolled) accountState = "needs_mfa";
 
   return {
     uid,

@@ -160,7 +160,7 @@ export async function getMe({ admin, user, now }: Caller): Promise<MeDto> {
     createdAt: profile ? iso(profile.createdAt) : null,
     team: isPledge ? await myTeam(cols, user.uid, profile.teamId) : null,
     onboardedAt: isMember && profile.onboardedAt ? iso(profile.onboardedAt) : null,
-    mfaEnforced: admin.env.mode === "live",
+    mfaEnforced: false,
     serverNow: now.toISOString(),
   };
 }

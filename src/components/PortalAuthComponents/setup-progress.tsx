@@ -1,17 +1,14 @@
 import { Check } from "lucide-react";
-import { isEmulatorPreview } from "@/lib/portal/client/firebase";
 import { cn } from "@/lib/utils";
 
-export type SetupStep = "password" | "duo" | "tour";
+export type SetupStep = "password" | "tour";
 
 const LABELS: Record<SetupStep, string> = {
   password: "Password",
-  duo: "Duo Mobile",
   tour: "Quick tour",
 };
 
-// The local demo has no two-step verification, so it does not promise one.
-const STEPS: SetupStep[] = isEmulatorPreview ? ["password", "tour"] : ["password", "duo", "tour"];
+const STEPS: SetupStep[] = ["password", "tour"];
 
 /** Where someone is in setting up a new account. Shown only during that first run. */
 const SetupProgress: React.FC<{ current: SetupStep }> = ({ current }) => {
