@@ -56,7 +56,7 @@ const HAS_SECOND_FACTOR =
 const PREVIEW_HASH = /^#preview=([A-Za-z0-9_-]{40,50})$/;
 const PREVIEW_NOTICE: Record<MemberRole, string> = {
   pledge:
-    "This is a preview account that only you can see. Sign in to go through a new pledge's first visit.",
+    "This is a preview account that only you can see. Sign in to go through a new member's first visit.",
   active:
     "This is a preview account that only you can see. Sign in to go through a new active's first visit.",
 };

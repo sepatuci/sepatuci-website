@@ -1,7 +1,7 @@
 # Founder's Education portal: setup and operations
 
-The portal lives at `/login` and `/portal`. Pledges turn in their Founder's Education deliverables
-there. Admins manage accounts and teams, build the forms and read the responses.
+The portal lives at `/login` and `/portal`. New members turn in their Founder's Education
+deliverables there. Admins manage accounts and teams, build the forms and read the responses.
 
 Three parts: try it locally, connect a real Firebase project, run it day to day.
 
@@ -26,14 +26,16 @@ password rules, and admins should use a long one that they use nowhere else.
 
 ### Who can see what
 
-- A pledge sees only their own deliverables, drafts, responses, notices and account.
-- A pledge on a team also sees the team's name and their teammates' names. Nothing else.
-- An active sees the pledges' work, view only: names, teams, progress, released deliverables and
-  submitted responses. Not punishments, time on site, emails, account details, or anything not yet
-  released. An active cannot change anything.
+- A new member sees only their own deliverables, drafts, responses, notices and account. They are
+  not told about punishments anywhere in the portal; one appears as a notice only once it is
+  assigned.
+- A new member on a team also sees the team's name and their teammates' names. Nothing else.
+- An active sees the new members' work, view only: names, teams, progress, released deliverables
+  and submitted responses. Not punishments, time on site, emails, account details, or anything not
+  yet released. An active cannot change anything.
 - Admins see everything. Every change an admin makes is recorded under Activity.
 
-Actives read responses in full, so anything a pledge types into an answer is visible to them.
+Actives read responses in full, so anything a new member types into an answer is visible to them.
 
 ### Light and dark mode
 
@@ -49,7 +51,7 @@ npm install
 npm run portal:dev
 ```
 
-This starts the Firebase emulators with demo pledges, a demo team, deliverables and responses, and
+This starts the Firebase emulators with demo new members, a demo team, deliverables and responses, and
 serves the site at `http://localhost:3000/login`. The terminal prints the demo accounts. Everything
 is rebuilt on each start.
 
@@ -102,7 +104,7 @@ Once, in order.
 11. **Email template**: Authentication > Templates > Password reset > edit.
     - Action URL: `https://YOUR_DOMAIN/login/reset`.
     - Sender name: for example "SEP Founder's Education".
-    - Wording: this email is the welcome for a new pledge who starts from an emailed link.
+    - Wording: this email is the welcome for a new member who starts from an emailed link.
       Firebase's default only fits the second. Suggested subject: "Your Founder's Education portal
       password". Suggested message: "Use this link to choose a password for the Sigma Eta Pi
       Founder's Education portal. It works once and expires in about an hour. If you weren't
@@ -112,10 +114,10 @@ Once, in order.
     including the `\n` sequences.
 
     Why Production only: the repository is public, and a preview build runs whatever code is on a
-    branch or pull request. With the key in previews, unreviewed code could read every pledge's
+    branch or pull request. With the key in previews, unreviewed code could read every member's
     data. Without it, a preview shows "The portal isn't open yet". Keep Vercel's protection for
     pull requests from forks switched on.
-13. **Blaze plan and a budget alert. Required before real pledges use the portal.** Firebase
+13. **Blaze plan and a budget alert. Required before real members use the portal.** Firebase
     console > Usage and billing. Blaze has the same free allowance, so a normal month still costs
     nothing. What it removes is the daily cut-off: on the free plan, one deadline night or one
     scripted account can use up the day's allowance in about an hour and take the portal down for
@@ -128,21 +130,21 @@ Once, in order.
 
 None of this could be verified without a real project.
 
-- Sign in as an admin and open Pledges. If the portal says it is
-  unavailable, read the function logs in Vercel. Usual causes: a mistyped private key or a missing
-  variable.
+- Sign in as an admin and open New members. If the portal says it is unavailable, read the
+  function logs in Vercel. Usual causes: a mistyped private key or a missing variable.
 - Vercel installs with `npm ci` (set in `vercel.json`) and runs functions on Node. Keep both: a
   second install with a different tool removes files the portal's server code needs, and the
   deployment then fails after a successful build.
-- Create a test pledge with an address you control. Confirm the email arrives; UCI's filters may
-  send it to spam. If so, use "Get password link" on the pledge's page.
-- Go through a first visit as that pledge: password, sign-in, welcome tour, deliverables.
+- Create a test new member with an address you control. Confirm the email arrives; UCI's filters
+  may send it to spam. If so, use "Get password link" on their page.
+- Go through a first visit as that account: password, sign-in, welcome tour, deliverables.
 
 ## Running it day to day
 
 The Guide page inside the portal covers this for admins, with a checklist of first steps.
 
-**Add a pledge.** Pledges > Add pledge, with their name and UCI email. Choose how they start:
+**Add a new member.** New members > Add new member, with their name and UCI email. Choose how they
+start:
 
 - *Email a link*: they are emailed a link to choose a password, and the dialog shows the same
   link. Links last about an hour. An expired one is replaced from their page.
@@ -150,17 +152,17 @@ The Guide page inside the portal covers this for admins, with a checklist of fir
   It is shown once and works for 3 days. Their first sign-in makes them replace it, and nothing
   else in the portal opens until they do. If it runs out, give them a new one from their page.
 
-**Add a whole class.** Pledges > Add several. Paste one person per line, a name and a UCI email
+**Add a whole class.** New members > Add several. Paste one person per line, a name and a UCI email
 separated by a comma or a tab; columns copied from a spreadsheet work, first name before last. Lines with anything extra,
 such as a phone number or a second email, are refused. Set a class for the whole list and choose
 how they start. The list is checked before anything is created, then accounts are made one at a
 time with a result for each. Firebase sends at most 150 password emails a day, so with emailed
-links add pledges and actives on different days. With temporary passwords, copy the list before
+links add new members and actives on different days. With temporary passwords, copy the list before
 closing: they cannot be shown again.
 
-**A first visit.** It happens once per account: choose a password, then a short welcome. A
-pledge's welcome covers SEP, Founder's Education and how deliverables work. An active's covers what they can and cannot see. Both stay available under
-Guide.
+**A first visit.** It happens once per account: choose a password, then a short welcome. A new
+member's welcome covers SEP, Founder's Education and how deliverables work. It says nothing about
+punishments. An active's covers what they can and cannot see. Both stay available under Guide.
 
 **Locked out or lost the password.** There is no "Forgot password?" anywhere in the portal. The
 sign-in page and the Account page tell people to contact an active or an admin. An active passes
@@ -168,8 +170,8 @@ the request on; an admin acts on it from the person's page:
 
 - *Temporary password*: a new one to pass on. It signs them out everywhere, and they choose their
   own at the next sign-in. Give it to the person face to face, or send it to their own `@uci.edu`
-  address. Never send it to whoever asked: a message claiming to be a pledge on a new number is
-  the easy way into someone else's account.
+  address. Never send it to whoever asked: a message claiming to be a new member on a new number
+  is the easy way into someone else's account.
 - *Get password link*: a one-time link to send them. It also cancels a temporary password that has
   not been used yet.
 
@@ -177,46 +179,50 @@ A temporary password that runs out after its 3 days is replaced the same way. Re
 from the Firebase console works too, but it does not clear a temporary password still outstanding
 in the portal, so use one of the two buttons above for anyone who has one.
 
-**Actives.** Actives > Add active, or Add several. They start the same way as a pledge, then get a
-view-only area. The same page disables, removes and replaces passwords. A pledge
-who becomes an active needs a new account: an email can only have one, so the pledge account must
-be removed first, which deletes their responses.
+**Actives.** People > Add active, or Add several. They start the same way as a new member, then get
+a view-only area. The same page disables, removes and replaces passwords. A new member who becomes
+an active is moved with Change role on the People page. They leave their team and the progress
+views, their responses stay readable under each deliverable, and they are signed out everywhere
+so the new access applies at their next sign-in.
 
 **Teams.**
 
 - Everyone starts solo. Create a team on the Teams page, name it and tick its members.
-- One team per pledge. Ticking someone from another team moves them.
+- One team per person. Ticking someone from another team moves them.
 - Saving applies only the ticks you changed, so two admins editing at once do not undo each other.
-- A pledge's team can also be set from their own page.
-- Teams group the Pledges view and each deliverable's responses. The spreadsheet has a Team column.
-- Deliverables are still turned in by each pledge. Deleting a team keeps its members and their work.
+- A new member's team can also be set from their own page.
+- Teams group the New members view and each deliverable's responses. The spreadsheet has a Team
+  column.
+- Deliverables are still turned in by each new member. Deleting a team keeps its members and their
+  work.
 
-**Disable or remove.** Disable signs the pledge out at once and blocks sign-in, keeping their work.
+**Disable or remove.** Disable signs the person out at once and blocks sign-in, keeping their work.
 Remove deletes the account and everything attached to it, for good.
 
-**Punishments.** Add one from the pledge's page. It shows as a notice on their dashboard until you
-resolve it. Pledges with none see nothing.
+**Punishments.** Add one from the new member's page. It shows as a notice on their dashboard until
+you resolve it. New members are not told about punishments anywhere else in the portal, not in the
+welcome tour or the guide, so explain them in person. Those with none see nothing.
 
 **Create a deliverable.** Deliverables > New deliverable. Write the questions, set the schedule in
 Settings, then Publish.
 
 - *Visible from*: when it appears on dashboards as coming up.
-- *Opens*: when pledges can start. Before that they see the title and dates, never the questions.
+- *Opens*: when new members can start. Before that they see the title and dates, never the questions.
 - *Due*: the deadline, to the minute. 11:59 PM includes all of 11:59.
 - *Accept late responses*: on, later ones are accepted and marked late. Off, it closes at the
   deadline.
-- *Unlock order*: locked for each pledge until they turn in another deliverable.
+- *Unlock order*: locked for each new member until they turn in another deliverable.
 
 **Edit a published deliverable.**
 
-- Changes reach pledges who have not turned it in. Responses already in keep the questions they
-  answered.
-- A pledge who has it open when the questions change is asked to check their answers first. Nothing
+- Changes reach new members who have not turned it in. Responses already in keep the questions
+  they answered.
+- Someone who has it open when the questions change is asked to check their answers first. Nothing
   they typed is lost. Changing only the schedule does not interrupt anyone.
 - Once there are responses, a question cannot change type, and the deliverable can be archived but
   not deleted.
 
-**Let a pledge redo one.** Open their response and choose Delete and reopen.
+**Let a new member redo one.** Open their response and choose Delete and reopen.
 
 **An admin is locked out.** From a machine with `.env.local`:
 `npm run portal:setup -- --reset-credentials`. It resets every admin's password and prints new
@@ -229,12 +235,12 @@ live. The setup script writes a listed admin's sign-in without the granted mark 
 page gives, so someone taken off the list later has to be granted again from the People page if
 they are to stay an admin.
 
-**Granted admins.** People > Change role can make a pledge or an active an admin without touching
+**Granted admins.** People > Change role can make a new member or an active an admin without touching
 `PORTAL_ADMIN_EMAILS`. Such an admin is let in by a claim on their account rather than by the
 list, and the People page marks them as granted. They can do everything a listed admin can,
 including changing anyone's role, except that admins named in `PORTAL_ADMIN_EMAILS` cannot be
 changed from the portal at all. To revoke a granted admin, another admin changes their role back
-to pledge or active, or disables the account in the Firebase console under Authentication, which
+to new member or active, or disables the account in the Firebase console under Authentication, which
 blocks sign-in at once. The setup script never touches an account that is not on the list, so
 running it neither creates nor removes granted admins.
 
@@ -242,20 +248,20 @@ running it neither creates nor removes granted admins.
 
 - **Database allowance.** The free plan allows 50,000 reads and 20,000 writes a day, then stops:
   everyone sees errors until midnight Pacific. A normal day uses a small part of it. A deadline
-  night, with thirty pledges writing at once, can use most of it in under an hour. This is why
+  night, with thirty new members writing at once, can use most of it in under an hour. This is why
   step 13 is required.
 - **Request ceilings.** 120 requests a minute and 1,200 an hour per account, lower for requests
   that change data. Turning a deliverable in is never held back. The count is per server instance,
   so it slows a runaway script and guarantees nothing.
 - **Finding a misbehaving account.** A ceiling being hit logs `[Portal] Rate limit reached` with
   the account's id. Search the function logs in Vercel for it. The id is the last part of that
-  pledge's page address. Disable the account there, or in the Firebase console if the portal is
+  person's page address. Disable the account there, or in the Firebase console if the portal is
   down.
 - **Email.** Firebase's built-in mailer sends at most 150 password emails a day.
-- **Time on site.** Counts time with a portal tab open and in view, as the pledge's browser
-  reports it. A visit is one session until the pledge has been away five minutes. It measures use;
-  it is not a timesheet.
-- **Uploads.** None. Pledges paste an `https://` link to a Google Doc or Drive file.
+- **Time on site.** Counts time with a portal tab open and in view, as the person's browser
+  reports it. A visit is one session until they have been away five minutes. It measures use; it
+  is not a timesheet.
+- **Uploads.** None. New members paste an `https://` link to a Google Doc or Drive file.
 - **Answer length.** 500 characters for a short answer, 5,000 for a paragraph, about 800 words. The
   boxes stop at the limit.
 

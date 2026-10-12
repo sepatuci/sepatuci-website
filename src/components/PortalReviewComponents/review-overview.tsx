@@ -23,7 +23,7 @@ import { cn } from "@/lib/utils";
 const ALL_TEAMS = "all";
 const NO_TEAM = "none";
 
-const pledgeHref = (uid: string) => `/portal/review/pledges/${uid}`;
+const pledgeHref = (uid: string) => `/portal/review/new-members/${uid}`;
 
 const Standing: React.FC<{ pledge: ReviewPledgeDto }> = ({ pledge }) => {
   const { progress } = pledge;
@@ -73,8 +73,8 @@ const ReviewOverview: React.FC = () => {
 
   const header = (
     <PageHeader
-      title="Pledges"
-      subtitle="Where every pledge stands on their Founder's Education deliverables."
+      title="New members"
+      subtitle="Where every new member stands on their Founder's Education deliverables."
       actions={
         <>
           <Chip>View only</Chip>
@@ -87,7 +87,7 @@ const ReviewOverview: React.FC = () => {
     />
   );
 
-  if (loading && !data) return <>{header}<LoadingBlock label="Loading pledges" /></>;
+  if (loading && !data) return <>{header}<LoadingBlock label="Loading new members" /></>;
   if (error && !data) return <>{header}<ErrorNote error={error} onRetry={reload} /></>;
   if (!data) return null;
 
@@ -98,8 +98,8 @@ const ReviewOverview: React.FC = () => {
         {header}
         <EmptyState
           icon={<Users className="h-8 w-8" />}
-          title="No pledges yet"
-          body="When an admin adds this class's pledges, they show up here."
+          title="No new members yet"
+          body="When an admin adds this class's new members, they show up here."
         />
       </>
     );
@@ -115,7 +115,7 @@ const ReviewOverview: React.FC = () => {
     <>
       {header}
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <StatTile label="Pledges" value={String(pledges.length)} />
+        <StatTile label="New members" value={String(pledges.length)} />
         <StatTile label="Average completion" value={`${average}%`} hint="Of released deliverables" />
         <StatTile label="Turned in" value={String(turnedIn)} hint="Responses so far" />
         <StatTile label="Outstanding" value={String(outstanding)} hint="Still to turn in" />
@@ -127,7 +127,7 @@ const ReviewOverview: React.FC = () => {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <Input
               type="search"
-              aria-label="Search pledges"
+              aria-label="Search new members"
               placeholder="Search by name"
               value={query}
               onChange={(event) => setQuery(event.target.value)}
@@ -173,7 +173,7 @@ const ReviewOverview: React.FC = () => {
       </div>
 
       {shown.length === 0 ? (
-        <Card className="px-6 py-10 text-center text-sm text-muted-foreground">No pledge matches.</Card>
+        <Card className="px-6 py-10 text-center text-sm text-muted-foreground">No new member matches.</Card>
       ) : view === "grid" ? (
         <ProgressMatrix
           rows={shown.map((pledge) => ({

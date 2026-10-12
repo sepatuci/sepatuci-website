@@ -187,7 +187,7 @@ describe("creating a team", () => {
       ["null", null],
       ["true", true],
     ])("refuses a member list that is %s", async (_label, memberUids) => {
-      expect(await refusedMembers(memberUids)).toBe("Choose pledges from the list.");
+      expect(await refusedMembers(memberUids)).toBe("Choose new members from the list.");
     });
 
     it.each<[string, unknown[]]>([
@@ -199,25 +199,25 @@ describe("creating a team", () => {
       ["null", [null]],
       ["an id of 65 characters", ["a".repeat(65)]],
     ])("refuses a member list that contains %s", async (_label, memberUids) => {
-      expect(await refusedMembers(memberUids)).toBe("Choose pledges from the list.");
+      expect(await refusedMembers(memberUids)).toBe("Choose new members from the list.");
     });
 
     it("refuses a malformed id even next to real pledges, and moves none of them", async () => {
-      expect(await refusedMembers([maya.uid, sam.uid, "not/an/id"])).toBe("Choose pledges from the list.");
+      expect(await refusedMembers([maya.uid, sam.uid, "not/an/id"])).toBe("Choose new members from the list.");
       expect(await teamOf(maya.uid)).toBeNull();
       expect(await teamOf(sam.uid)).toBeNull();
     });
 
     it("refuses a uid that is not a pledge anyone has", async () => {
-      expect(await refusedMembers(["nobody123"])).toBe("Only pledge accounts that still exist can be on a team.");
-      expect(await refusedMembers([maya.uid, "nobody123"])).toBe("Only pledge accounts that still exist can be on a team.");
+      expect(await refusedMembers(["nobody123"])).toBe("Only new member accounts that still exist can be on a team.");
+      expect(await refusedMembers([maya.uid, "nobody123"])).toBe("Only new member accounts that still exist can be on a team.");
       expect(await teamOf(maya.uid)).toBeNull();
     });
 
     it("refuses an admin's uid: admins cannot be put on a team", async () => {
-      expect(await refusedMembers([admin.uid])).toBe("Only pledge accounts that still exist can be on a team.");
-      expect(await refusedMembers([adminTwo.uid])).toBe("Only pledge accounts that still exist can be on a team.");
-      expect(await refusedMembers([maya.uid, admin.uid, sam.uid])).toBe("Only pledge accounts that still exist can be on a team.");
+      expect(await refusedMembers([admin.uid])).toBe("Only new member accounts that still exist can be on a team.");
+      expect(await refusedMembers([adminTwo.uid])).toBe("Only new member accounts that still exist can be on a team.");
+      expect(await refusedMembers([maya.uid, admin.uid, sam.uid])).toBe("Only new member accounts that still exist can be on a team.");
       expect(await teamOf(admin.uid)).toBeNull();
       expect(await teamOf(adminTwo.uid)).toBeNull();
       expect(await teamOf(maya.uid)).toBeNull();
@@ -227,14 +227,14 @@ describe("creating a team", () => {
     it("refuses a sign-in account that has no pledge profile", async () => {
       const record = await testAuth().createUser({ email: "no.profile.team@uci.edu", emailVerified: true });
       await testAuth().setCustomUserClaims(record.uid, { role: "pledge" });
-      expect(await refusedMembers([record.uid])).toBe("Only pledge accounts that still exist can be on a team.");
+      expect(await refusedMembers([record.uid])).toBe("Only new member accounts that still exist can be on a team.");
       expect(await docExists(`users/${record.uid}`)).toBe(false);
       await testAuth().deleteUser(record.uid);
     });
 
     it("refuses more members than there could be pledges", async () => {
       const ids = Array.from({ length: 401 }, (_, index) => `fake${index}`);
-      expect(await refusedMembers(ids)).toBe("Choose pledges from the list.");
+      expect(await refusedMembers(ids)).toBe("Choose new members from the list.");
     });
 
     it("reports a bad name and a bad member list together", async () => {

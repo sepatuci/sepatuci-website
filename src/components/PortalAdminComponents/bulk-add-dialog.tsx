@@ -36,7 +36,7 @@ interface Run {
 }
 
 const ENDPOINT: Record<MemberRole, string> = { pledge: "/admin/pledges", active: "/admin/actives" };
-const NOUN: Record<MemberRole, [string, string]> = { pledge: ["pledge", "pledges"], active: ["active", "actives"] };
+const NOUN: Record<MemberRole, [string, string]> = { pledge: ["new member", "new members"], active: ["active", "actives"] };
 
 // Accounts are created one at a time, a little apart, which keeps a long list
 // under the ceiling on how quickly one admin can make changes.
@@ -293,7 +293,7 @@ const BulkAddDialog: React.FC<BulkAddDialogProps> = ({ open, onOpenChange, kind,
             {kind === "pledge" ? (
               <div>
                 <Label htmlFor="bulk-class">
-                  Pledge class <span className="font-normal text-muted-foreground">(optional, for everyone on the list)</span>
+                  Class <span className="font-normal text-muted-foreground">(optional, for everyone on the list)</span>
                 </Label>
                 <Input
                   id="bulk-class"

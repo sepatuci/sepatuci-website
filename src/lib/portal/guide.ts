@@ -49,13 +49,12 @@ export const HOW_DELIVERABLES_WORK: GuideTopic = {
 
 export const BEFORE_YOU_START: GuideTopic = {
   title: "Before you start",
-  body: "Seven things about your account and who sees what.",
+  body: "Six things about your account and who sees what.",
   points: [
     "Admins are the Founder's Education chairs.",
-    "Admins and SEP's active members can read what you turn in. Other pledges can't.",
+    "Admins and SEP's active members can read what you turn in. Other new members can't.",
     "Admins, and only admins, can see when you're signed in and how long you spend here.",
-    "You start on your own. If an admin puts you on a team, it shows on your Account page. Deliverables are still your own; each pledge turns in their own response.",
-    "If an admin gives you a punishment, it shows as a red notice at the top of Deliverables until they resolve it.",
+    "You start on your own. If an admin puts you on a team, it shows on your Account page. Deliverables are still your own; each new member turns in their own response.",
     "Sign-in is your UCI email and your password. Thirty idle minutes signs you out.",
     "Forgotten password, or a question about a deadline? Talk to a Founder's Education admin.",
   ],
@@ -97,31 +96,31 @@ export const ADMIN_TOPICS: GuideTopic[] = [
       "Invited: they have not finished signing in for the first time, or are on a temporary password.",
       "Set up: ready to use. Disabled: signed out and blocked, with all their work kept.",
       "Removing an account deletes it and everything attached to it, for good.",
-      "Locked out? Send a new password link or give a new temporary password, from the pledge's page or the People page.",
+      "Locked out? Send a new password link or give a new temporary password, from the new member's page or the People page.",
     ],
   },
   {
     title: "People",
     body:
-      "The People page lists everyone with a portal account: admins, actives and pledges. " +
+      "The People page lists everyone with a portal account: admins, actives and new members. " +
       "Accounts of every role are managed there, and roles can be changed there too.",
     points: [
-      "Actives are SEP members who can follow the class. They see names, teams, progress and what pledges have turned in.",
+      "Actives are SEP members who can follow the class. They see names, teams, progress and what new members have turned in.",
       "Actives never see punishments, time on site, emails or unreleased deliverables, and they change nothing.",
-      "Change role moves someone between pledge, active and admin. They are signed out everywhere and get the new access at their next sign-in.",
-      "A pledge made an active or an admin comes off their team and out of pledge progress. Their past responses stay in the deliverables' records.",
+      "Change role moves someone between new member, active and admin. They are signed out everywhere and get the new access at their next sign-in.",
+      "A new member made an active or an admin comes off their team and out of the progress views. Their past responses stay in the deliverables' records.",
       "The preview buttons let you go through a new member's first visit yourself, in a separate tab, without touching real members.",
     ],
   },
   {
     title: "Deliverables",
-    body: "Write the questions, set the schedule, then publish. Pledges never see a draft.",
+    body: "Write the questions, set the schedule, then publish. New members never see a draft.",
     points: [
       "Visible from: when it appears on dashboards as coming up.",
-      "Opens: when pledges can start it. Before then they see the title and dates, never the questions.",
+      "Opens: when new members can start it. Before then they see the title and dates, never the questions.",
       "Due: the deadline, to the minute. With late responses on, later ones are accepted and marked late.",
-      "Unlock order: keep it locked for each pledge until they turn in another deliverable.",
-      "Editing a published deliverable only affects pledges who have not turned it in yet.",
+      "Unlock order: keep it locked for each new member until they turn in another deliverable.",
+      "Editing a published deliverable only affects new members who have not turned it in yet.",
     ],
   },
   {
@@ -130,30 +129,30 @@ export const ADMIN_TOPICS: GuideTopic[] = [
       "Each deliverable's Responses tab has a summary, every response in full, who is still " +
       "missing, and a spreadsheet download.",
     points: [
-      "Response time is measured from when a pledge first opens the deliverable.",
-      "Delete and reopen removes one response so that pledge can turn it in again.",
+      "Response time is measured from when a new member first opens the deliverable.",
+      "Delete and reopen removes one response so the person can turn it in again.",
     ],
   },
   {
     title: "Teams",
     body:
       "Everyone starts on their own. When teams form, create them on the Teams page and move " +
-      "pledges in. One team per pledge.",
+      "new members in. One team per person.",
     points: [
-      "Teams group the Pledges view and the responses, so you can follow each team's progress.",
-      "A pledge sees the name of their team and the names of their teammates, and nothing else about them.",
-      "Deliverables are still turned in by each pledge, whether or not they are on a team.",
+      "Teams group the New members view and the responses, so you can follow each team's progress.",
+      "A new member sees the name of their team and the names of their teammates, and nothing else about them.",
+      "Deliverables are still turned in by each new member, whether or not they are on a team.",
       "Deleting a team keeps its members and all their work. They go back to working individually.",
     ],
   },
   {
     title: "Punishments and privacy",
     body:
-      "A punishment shows as a notice on that pledge's dashboard until you resolve it. Pledges " +
-      "with none see nothing about punishments.",
+      "New members are not told about punishments anywhere in the portal. One appears as a notice " +
+      "on their dashboard only once you assign it, and stays until you resolve it. Explain them in person.",
     points: [
-      "Pledges can only ever see their own responses, punishments and account.",
-      "Actives can read responses, which may include whatever a pledge typed into an answer.",
+      "New members can only ever see their own responses, notices and account.",
+      "Actives can read responses, which may include whatever a new member typed into an answer.",
       "Everything every admin does is recorded under Activity.",
       "Time on site counts only time with a portal tab open and in view.",
     ],
@@ -164,33 +163,33 @@ export const ACTIVE_TOPICS: GuideTopic[] = [
   {
     title: "What you can see",
     body:
-      "As an active you can follow how the pledge class is doing and read what they turn in. " +
+      "As an active you can follow how the class is doing and read what they turn in. " +
       "Everything here is view only.",
     points: [
-      "Pledges: each pledge, their team, and how many deliverables they have turned in.",
+      "New members: each one, their team, and how many deliverables they have turned in.",
       "Deliverables: every released deliverable, a summary of the answers, and each response in full.",
       "Not turned in: who still owes a deliverable, and whether they are late or locked.",
-      "The Refresh button on the Pledges page pulls the latest. Nothing updates on its own.",
+      "The Refresh button on the New members page pulls the latest. Nothing updates on its own.",
     ],
   },
   {
     title: "What stays with the admins",
     body: "Some things are for the Founder's Education admins only, and are not shown to actives.",
     points: [
-      "Punishments, and anything about a pledge's standing beyond their deliverables.",
-      "When a pledge is signed in and how long they spend in the portal.",
+      "Punishments, and anything about a new member's standing beyond their deliverables.",
+      "When a new member is signed in and how long they spend in the portal.",
       "Email addresses and account details.",
       "Deliverables that are still being written or have not been released.",
     ],
   },
   {
     title: "Reading responses well",
-    body: "Pledges write these for the admins and for you. Treat them the way you would want yours treated.",
+    body: "New members write these for the admins and for you. Treat them the way you would want yours treated.",
     points: [
       "Responses can include personal detail. Keep them inside SEP.",
       "If something in a response worries you, tell an admin.",
       "You cannot edit, reopen or delete anything. If something looks wrong, an admin can fix it.",
-      "If a pledge asks you about a forgotten password, pass it on to an admin. Only admins can give a new one.",
+      "If a new member asks you about a forgotten password, pass it on to an admin. Only admins can give a new one.",
     ],
   },
 ];

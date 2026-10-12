@@ -72,7 +72,7 @@ describe("safeNextPath", () => {
       expect(safeNextPath(next, "pledge")).toBe("/portal");
     });
 
-    it.each(["/portal/admin", "/portal/admin/", "/portal/admin/pledges", "/portal/admin/forms/week1/responses"])(
+    it.each(["/portal/admin", "/portal/admin/", "/portal/admin/new-members", "/portal/admin/forms/week1/responses"])(
       "falls back to the dashboard for the admin path %s",
       (next) => {
         expect(safeNextPath(next, "pledge")).toBe("/portal");
@@ -88,7 +88,7 @@ describe("safeNextPath", () => {
       "/portal/review/",
       "/portal/review/deliverables",
       "/portal/review/deliverables/week2interviews",
-      "/portal/review/pledges/abc123",
+      "/portal/review/new-members/abc123",
       "/portal/review/guide",
     ])("falls back to the dashboard for the actives' path %s", (next) => {
       expect(safeNextPath(next, "pledge")).toBe("/portal");
@@ -109,13 +109,13 @@ describe("safeNextPath", () => {
 
     it("never sends them into the admin area", () => {
       expect(safeNextPath("/portal/admin", null)).toBe("/portal");
-      expect(safeNextPath("/portal/admin/pledges", null)).toBe("/portal");
+      expect(safeNextPath("/portal/admin/new-members", null)).toBe("/portal");
     });
 
     it("never sends them into the actives' area either", () => {
       expect(safeNextPath("/portal/review", null)).toBe("/portal");
       expect(safeNextPath("/portal/review/deliverables/week1", null)).toBe("/portal");
-      expect(safeNextPath("/portal/review/pledges/abc123", null)).toBe("/portal");
+      expect(safeNextPath("/portal/review/new-members/abc123", null)).toBe("/portal");
     });
 
     it("keeps the account page, which every role shares", () => {
@@ -129,7 +129,7 @@ describe("safeNextPath", () => {
   });
 
   describe("for an admin", () => {
-    it.each(["/portal/admin", "/portal/admin/", "/portal/admin/pledges", "/portal/admin/forms/week1/responses"])(
+    it.each(["/portal/admin", "/portal/admin/", "/portal/admin/new-members", "/portal/admin/forms/week1/responses"])(
       "keeps the admin path %s",
       (next) => {
         expect(safeNextPath(next, "admin")).toBe(next);
@@ -157,7 +157,7 @@ describe("safeNextPath", () => {
       expect(safeNextPath(next, "admin")).toBe("/portal/admin");
     });
 
-    it.each(["/portal/review", "/portal/review/", "/portal/review/deliverables", "/portal/review/pledges/abc123", "/portal/reviewer"])(
+    it.each(["/portal/review", "/portal/review/", "/portal/review/deliverables", "/portal/review/new-members/abc123", "/portal/reviewer"])(
       "sends them to the admin area instead of the actives' page %s",
       (next) => {
         expect(safeNextPath(next, "admin")).toBe("/portal/admin");
@@ -172,7 +172,7 @@ describe("safeNextPath", () => {
       "/portal/review/deliverables",
       "/portal/review/deliverables/week2interviews",
       "/portal/review/deliverables/week2interviews/",
-      "/portal/review/pledges/abc123",
+      "/portal/review/new-members/abc123",
       "/portal/review/guide",
       "/portal/review/a_b-c",
     ])("keeps the actives' path %s", (next) => {
@@ -200,7 +200,7 @@ describe("safeNextPath", () => {
       "/portal/admin",
       "/portal/admin/",
       "/portal/admin/actives",
-      "/portal/admin/pledges/abc123",
+      "/portal/admin/new-members/abc123",
       "/portal/admin/forms/week1/responses",
       "/portal/admin/review",
     ])("sends them to their own area instead of the admin page %s", (next) => {

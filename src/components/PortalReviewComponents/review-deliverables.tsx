@@ -24,7 +24,7 @@ const ReviewDeliverables: React.FC = () => {
   const header = (
     <PageHeader
       title="Deliverables"
-      subtitle="What pledges have been asked to turn in, and their responses."
+      subtitle="What new members have been asked to turn in, and their responses."
       actions={<Chip>View only</Chip>}
     />
   );
@@ -40,7 +40,7 @@ const ReviewDeliverables: React.FC = () => {
         <EmptyState
           icon={<ClipboardList className="h-8 w-8" />}
           title="Nothing released yet"
-          body="Deliverables appear here once an admin releases them to pledges."
+          body="Deliverables appear here once an admin releases them to new members."
         />
       </>
     );

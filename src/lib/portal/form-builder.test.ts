@@ -312,7 +312,7 @@ describe("describeSchedule", () => {
 
   it("describes a form with no schedule", () => {
     expect(describeSchedule(settings(), null)).toEqual([
-      "Appears on pledge dashboards as soon as it is published.",
+      "Appears on new member dashboards as soon as it is published.",
       "Can be started as soon as it appears.",
       "Has no deadline.",
     ]);
@@ -321,7 +321,7 @@ describe("describeSchedule", () => {
   it("describes each date that is set, with its year", () => {
     const lines = describeSchedule(settings({ visibleAt: VISIBLE, opensAt: OPENS, dueAt: DUE }), null);
     expect(lines).toHaveLength(4);
-    expect(lines[0]).toMatch(/^Appears on pledge dashboards Jun \d{1,2}, 2026, .+\.$/);
+    expect(lines[0]).toMatch(/^Appears on new member dashboards Jun \d{1,2}, 2026, .+\.$/);
     expect(lines[1]).toMatch(/^Can be started from Jun \d{1,2}, 2026, .+\.$/);
     expect(lines[2]).toMatch(/^Due Jun \d{1,2}, 2026, .+\.$/);
     expect(lines[3]).toBe("Closes at the deadline. Late responses are not accepted.");
@@ -346,7 +346,7 @@ describe("describeSchedule", () => {
 
   it("names the deliverable that unlocks this one, last", () => {
     const lines = describeSchedule(settings({ dueAt: DUE, prerequisiteFormId: "week2" }), "Week 2: Interviews");
-    expect(lines[lines.length - 1]).toBe('Stays locked for each pledge until they turn in "Week 2: Interviews".');
+    expect(lines[lines.length - 1]).toBe('Stays locked for each new member until they turn in "Week 2: Interviews".');
   });
 
   it("says nothing about unlocking when there is no prerequisite title", () => {

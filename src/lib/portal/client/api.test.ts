@@ -74,10 +74,10 @@ describe("apiFetchPublic", () => {
   });
 
   it("posts JSON to the portal API with no token, and hands back what came", async () => {
-    const fetched = answering(200, { email: "chair.one+preview-pledge@uci.edu", temporaryPassword: "K7QM-2XRT-9BHD", role: "pledge" });
+    const fetched = answering(200, { email: "chair.one+preview-new-member@uci.edu", temporaryPassword: "K7QM-2XRT-9BHD", role: "pledge" });
     vi.stubGlobal("fetch", fetched);
     const result = await apiFetchPublic<{ email: string }>("/preview/redeem", { code: "abc" });
-    expect(result.email).toBe("chair.one+preview-pledge@uci.edu");
+    expect(result.email).toBe("chair.one+preview-new-member@uci.edu");
 
     expect(fetched).toHaveBeenCalledTimes(1);
     const [url, init] = fetched.mock.calls[0] as [string, RequestInit];

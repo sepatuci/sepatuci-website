@@ -89,7 +89,7 @@ function readTeamInput(body: unknown, requireName: boolean): TeamInput {
       raw.length <= 400 &&
       raw.every((uid): uid is string => typeof uid === "string" && ID_PATTERN.test(uid));
     if (valid) result[key] = [...new Set(raw)];
-    else issues.push({ path: key, code: "invalid", message: "Choose pledges from the list." });
+    else issues.push({ path: key, code: "invalid", message: "Choose new members from the list." });
   }
   const changes = [...(result.addUids ?? []), ...(result.removeUids ?? [])];
   if (result.memberUids !== undefined && changes.length > 0) {
@@ -103,7 +103,7 @@ function readTeamInput(body: unknown, requireName: boolean): TeamInput {
     issues.push({
       path: "addUids",
       code: "conflict",
-      message: "The same pledge can't be both added and removed.",
+      message: "The same new member can't be both added and removed.",
     });
   }
 
@@ -180,7 +180,7 @@ async function readPledges(
   const profiles = snapshots.map((snapshot) => snapshot.data());
   if (profiles.some((profile) => profile?.role !== "pledge")) {
     throw invalid([
-      { path, code: "invalid", message: "Only pledge accounts that still exist can be on a team." },
+      { path, code: "invalid", message: "Only new member accounts that still exist can be on a team." },
     ]);
   }
   // A preview account is one admin's sandbox: real pledges never see it as a teammate.
