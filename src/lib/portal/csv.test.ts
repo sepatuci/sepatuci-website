@@ -89,9 +89,26 @@ describe("csvCell", () => {
     expect(csvCell("C++")).toBe('"C++"');
   });
 
-  it("also prefixes harmless values that merely start with a formula character", () => {
-    expect(csvCell("-5")).toBe(`"'-5"`);
-    expect(csvCell("+1 949 555 0100")).toBe(`"'+1 949 555 0100"`);
+  // A number every spreadsheet reads as one cannot run anything, and a quote in
+  // front of it would turn a numeric column into text.
+  it.each(["-5", "+1", "-0", "-3.5", "+0.5", "+1.25", "-100"])("leaves the plain number %s alone", (value) => {
+    expect(csvCell(value)).toBe(`"${value}"`);
+  });
+
+  // A comma, a bare point or anything else a spreadsheet might not read as a
+  // number is not worth the risk: the apostrophe stays.
+  it.each(["-x", "=1+1", "+cmd", "@y", "+1 949 555 0100", "-1+1", "+1,000.5", "-1e5", "- 5", "-3,5", "+1,5", "-1,000", "-.5", "+5.", "+."])(
+    "still prefixes %s, which starts like a formula and is not a plain number",
+    (value) => {
+      expect(csvCell(value)).toBe(`"'${value}"`);
+    },
+  );
+
+  it("never touches a number that does not start with a sign, whatever its decimal mark", () => {
+    expect(csvCell("3,5")).toBe('"3,5"');
+    expect(csvCell("3.5")).toBe('"3.5"');
+    expect(csvCell("1,000")).toBe('"1,000"');
+    expect(csvCell(".5")).toBe('".5"');
   });
 });
 

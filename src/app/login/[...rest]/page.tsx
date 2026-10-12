@@ -17,11 +17,9 @@ export default function LoginCatchAllPage() {
       <p className="mt-2 text-sm text-muted-foreground">
         The link may be old, or it may have been mistyped.
       </p>
-      <Link href="/login" className="mt-6 block">
-        <Button variant="accent" className="h-11 w-full">
-          Go to sign in
-        </Button>
-      </Link>
+      <Button asChild variant="accent" className="mt-6 h-11 w-full">
+        <Link href="/login">Go to sign in</Link>
+      </Button>
     </AuthShell>
   );
 }

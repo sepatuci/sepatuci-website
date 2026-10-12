@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import SetupProgress from "@/components/PortalAuthComponents/setup-progress";
 import { errorMessage } from "@/lib/portal/client/api";
 import { ORG_NAME } from "@/lib/portal/constants";
 import { ACTIVE_WELCOME_STEPS, WELCOME_STEPS } from "@/lib/portal/guide";
@@ -51,6 +52,8 @@ const WelcomeTour: React.FC = () => {
 
   return (
     <div className="mx-auto max-w-2xl">
+      {/* The same steps the choose-a-password page showed, so the two agree on where this sits. */}
+      {me.onboardedAt === null ? <SetupProgress current="tour" /> : null}
       <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">{ORG_NAME}</p>
       <p className="mt-2 text-sm text-muted-foreground">
         {index === 0

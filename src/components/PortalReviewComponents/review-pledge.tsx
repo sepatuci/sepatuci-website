@@ -5,6 +5,7 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  Chip,
   EmptyState,
   ErrorNote,
   LoadingBlock,
@@ -51,7 +52,10 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
     <>
       {back}
       <div className="mb-8 mt-4">
-        <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">{PROGRAM_NAME} pledge</p>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">{PROGRAM_NAME} pledge</p>
+          <Chip>View only</Chip>
+        </div>
         <h1 className="mt-2 text-3xl font-light tracking-tight text-foreground">{pledge.displayName}</h1>
         <p className="mt-1.5 text-sm text-muted-foreground">{pledge.teamName ?? "Working individually"}</p>
       </div>
@@ -111,11 +115,11 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
                   </p>
                 </div>
                 {cell.state === "submitted" ? (
-                  <Link href={`/portal/review/deliverables/${form.id}?pledge=${pledge.uid}`}>
-                    <Button variant="outline" size="sm">
+                  <Button asChild variant="outline" size="sm">
+                    <Link href={`/portal/review/deliverables/${form.id}?pledge=${pledge.uid}`}>
                       Read response
-                    </Button>
-                  </Link>
+                    </Link>
+                  </Button>
                 ) : null}
               </div>
             );

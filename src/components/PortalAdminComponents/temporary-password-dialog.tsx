@@ -14,6 +14,8 @@ interface TemporaryPasswordProps {
   email: string;
   /** True for a brand-new account, false when an existing one was given a new password. */
   isNew: boolean;
+  /** Called once the password, or a message carrying it, has been copied. */
+  onCopied?: () => void;
 }
 
 /** A short note an admin can send along with a temporary password. */
@@ -38,7 +40,7 @@ export function temporaryPasswordMessage(
  * nothing stores it in a form that can be read back.
  */
 export const TemporaryPassword: React.FC<TemporaryPasswordProps> = (props) => {
-  const { password, name } = props;
+  const { password, name, onCopied } = props;
   const [copied, setCopied] = useState<"password" | "message" | null>(null);
   const [copyFailed, setCopyFailed] = useState(false);
 
@@ -53,6 +55,7 @@ export const TemporaryPassword: React.FC<TemporaryPasswordProps> = (props) => {
       await navigator.clipboard.writeText(what === "password" ? password : message);
       setCopied(what);
       setCopyFailed(false);
+      onCopied?.();
     } catch {
       setCopied(null);
       setCopyFailed(true);
@@ -87,6 +90,48 @@ export const TemporaryPassword: React.FC<TemporaryPasswordProps> = (props) => {
     </div>
   );
 };
+
+interface CopyGuard {
+  /** True once closing was refused: the window now says so and offers to close anyway. */
+  warned: boolean;
+  onCopied: () => void;
+  /** True when the window may close now. False when it asked instead. */
+  confirm: () => boolean;
+}
+
+/**
+ * A password nobody has copied cannot be shown again, so closing its window
+ * asks once, then allows it. Starts over whenever a different password is shown.
+ */
+export function useCopyGuard(password: string | null): CopyGuard {
+  const [copied, setCopied] = useState(false);
+  const [warned, setWarned] = useState(false);
+
+  useEffect(() => {
+    setCopied(false);
+    setWarned(false);
+  }, [password]);
+
+  return {
+    warned,
+    onCopied: () => setCopied(true),
+    confirm: () => {
+      if (password === null || copied || warned) return true;
+      setWarned(true);
+      return false;
+    },
+  };
+}
+
+/** What the window says the one time it refuses to close. */
+export const CopyWarning: React.FC = () => (
+  <p
+    role="alert"
+    className="mt-3 rounded-lg border border-warning-border bg-warning-subtle px-3 py-2.5 text-sm text-warning-ink"
+  >
+    This password is shown once and you haven&apos;t copied it. Copy it, or close anyway.
+  </p>
+);
 
 const STARTS: { value: AccountStart; label: string; note: string }[] = [
   {
@@ -145,28 +190,37 @@ interface TemporaryPasswordDialogProps extends TemporaryPasswordProps {
   onOpenChange: (open: boolean) => void;
 }
 
-/** The same, in its own window, for an account that already exists. */
+/** The same, in its own window, for an account that already exists. Done is the only way out. */
 const TemporaryPasswordDialog: React.FC<TemporaryPasswordDialogProps> = ({
   open,
   onOpenChange,
   ...shown
-}) => (
-  <Dialog open={open} onOpenChange={onOpenChange}>
-    <DialogContent
-      title="Temporary password"
-      description={`${shown.name} has been signed out everywhere. Their old password no longer works.`}
-      persistent
-    >
-      <div className="mt-4">
-        <TemporaryPassword {...shown} />
-      </div>
-      <div className="mt-6 flex justify-end">
-        <Button variant="accent" onClick={() => onOpenChange(false)}>
-          Done
-        </Button>
-      </div>
-    </DialogContent>
-  </Dialog>
-);
+}) => {
+  const guard = useCopyGuard(open ? shown.password : null);
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent
+        title="Temporary password"
+        description={`${shown.name} has been signed out everywhere. Their old password no longer works.`}
+        persistent
+      >
+        <div className="mt-4">
+          <TemporaryPassword {...shown} onCopied={guard.onCopied} />
+        </div>
+        {guard.warned ? <CopyWarning /> : null}
+        <div className="mt-6 flex justify-end">
+          <Button
+            variant="accent"
+            onClick={() => {
+              if (guard.confirm()) onOpenChange(false);
+            }}
+          >
+            {guard.warned ? "Close anyway" : "Done"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export default TemporaryPasswordDialog;

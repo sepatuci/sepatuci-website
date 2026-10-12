@@ -354,13 +354,26 @@ describe("drafts", () => {
     expect(cardOf(await dashboardOf(jordan), "week2interviews").draftUpdatedAt).toBeNull();
   });
 
+  // A save that carries no answers at all is a broken request, not an empty draft:
+  // read as empty, it would wipe what the pledge has typed so far.
   it.each<[string, unknown]>([
-    ["missing", undefined],
-    ["a string", "q_count=4"],
-    ["an array", [{ kind: "text", value: "4" }]],
-    ["null", null],
-  ])("saves an empty draft when answers are %s, rather than failing", async (_label, answers) => {
-    ok(await saveDraft(sam, "week2interviews", { answers }));
+    ["missing", {}],
+    ["null", { answers: null }],
+    ["a string", { answers: "q_count=4" }],
+    ["an array", { answers: [{ kind: "text", value: "4" }] }],
+    ["a number", { answers: 4 }],
+  ])("refuses a save whose answers are %s, and leaves the draft as it was", async (_label, body) => {
+    const before = await docData(`drafts/week2interviews_${sam.uid}`);
+    expect(Object.keys(before?.answers as object)).toHaveLength(3);
+    const refusal = refused(await saveDraft(sam, "week2interviews", body), 422, "invalid");
+    expect(fieldCodes(refusal)).toEqual(["answers:required"]);
+    expect(refusal.fields?.[0]).toMatchObject({ path: "answers" });
+    expect(await docData(`drafts/week2interviews_${sam.uid}`)).toEqual(before);
+    expect(cardOf(await dashboardOf(sam), "week2interviews").draftUpdatedAt).not.toBeNull();
+  });
+
+  it("clears the draft when the answers sent are an empty object", async () => {
+    ok(await saveDraft(sam, "week2interviews", { answers: {} }));
     const form = ok<PledgeFormDto>(await openForm(sam, "week2interviews"));
     expect(form.draft?.answers).toEqual({});
     expect(form.card.draftUpdatedAt).toBeNull();
@@ -401,6 +414,7 @@ describe("submitting", () => {
           q_time: { kind: "text", value: "2pm" },
           q_notes: { kind: "text", value: "javascript:alert(1)" },
         },
+        formVersion: 1,
       }),
       422,
       "invalid",
@@ -417,15 +431,30 @@ describe("submitting", () => {
   });
 
   it("rejects a submission with no answers at all, naming each required question", async () => {
-    const body = refused(await submitAs(sam, "week2interviews", { answers: {} }), 422, "invalid");
+    const body = refused(await submitAs(sam, "week2interviews", { answers: {}, formVersion: 1 }), 422, "invalid");
     expect(fieldCodes(body)).toEqual([
       "answers.q_count:required",
       "answers.q_date:required",
       "answers.q_notes:required",
       "answers.q_surprise:required",
     ]);
-    const missingKey = refused(await submitAs(sam, "week2interviews", {}), 422, "invalid");
+    const missingKey = refused(await submitAs(sam, "week2interviews", { formVersion: 1 }), 422, "invalid");
     expect(fieldCodes(missingKey)).toEqual(["answers:invalid"]);
+  });
+
+  // The page says which edit of the deliverable it showed. A submission that does not
+  // say is not one the page made, and is refused before its answers are looked at.
+  it.each<[string, Record<string, unknown>]>([
+    ["missing", {}],
+    ["null", { formVersion: null }],
+    ["the current version as text", { formVersion: "1" }],
+    ["a boolean", { formVersion: true }],
+  ])("refuses a submission whose version is %s, before judging the answers", async (_label, versionField) => {
+    const body = refused(await submitAs(sam, "week2interviews", { answers: INTERVIEW_ANSWERS, ...versionField }), 422, "invalid");
+    expect(body.error).toBe("Reload the deliverable and submit again.");
+    expect(fieldCodes(body)).toEqual(["formVersion:required"]);
+    expect(body.fields?.[0]).toMatchObject({ path: "formVersion" });
+    expect(await docExists(`submissions/week2interviews_${sam.uid}`)).toBe(false);
   });
 
   it("stores nothing when a submission is rejected", async () => {
@@ -530,6 +559,7 @@ describe("submitting", () => {
   it("refuses a second submission with 409 and keeps the first", async () => {
     const again = await submitAs(sam, "week2interviews", {
       answers: { ...INTERVIEW_ANSWERS, q_count: { kind: "text", value: "99" } },
+      formVersion: 1,
     });
     const body = refused(again, 409, "already_submitted");
     expect(body.error).toBe("You've already turned this in.");
@@ -545,8 +575,8 @@ describe("submitting", () => {
     "accepts one of two simultaneous submissions, as from a double click, and answers the other with 409",
     async () => {
       const attempts = await Promise.all([
-        submitAs(maya, "week2synthesis", { answers: { ...SYNTHESIS_ANSWERS, q_insight1: { kind: "text", value: "first click" } } }),
-        submitAs(maya, "week2synthesis", { answers: { ...SYNTHESIS_ANSWERS, q_insight1: { kind: "text", value: "second click" } } }),
+        submitAs(maya, "week2synthesis", { answers: { ...SYNTHESIS_ANSWERS, q_insight1: { kind: "text", value: "first click" } }, formVersion: 1 }),
+        submitAs(maya, "week2synthesis", { answers: { ...SYNTHESIS_ANSWERS, q_insight1: { kind: "text", value: "second click" } }, formVersion: 1 }),
       ]);
       expect(attempts.map((attempt) => attempt.status).sort()).toEqual([200, 409]);
       const [winner, loser] = attempts[0].status === 200 ? attempts : [attempts[1], attempts[0]];
@@ -567,6 +597,7 @@ describe("submitting", () => {
         Array.from({ length: 8 }, (_, index) =>
           submitAs(jordan, "week2interviews", {
             answers: { ...INTERVIEW_ANSWERS, q_count: { kind: "text", value: String(index + 1) } },
+            formVersion: 1,
           }),
         ),
       );
@@ -592,7 +623,7 @@ describe("submitting", () => {
       expect(cardOf(await dashboardOf(jordan), "week2interviews").state).toBe("submitted");
 
       // Once the burst is over, the same request gets the settled answer.
-      refused(await submitAs(jordan, "week2interviews", { answers: INTERVIEW_ANSWERS }), 409, "already_submitted");
+      refused(await submitAs(jordan, "week2interviews", { answers: INTERVIEW_ANSWERS, formVersion: 1 }), 409, "already_submitted");
       expect(await countWhere("submissions", "uid", jordan.uid)).toBe(3);
     },
     SLOW_TEST_MS,
@@ -609,7 +640,7 @@ describe("submitting", () => {
     });
 
     it("flags a submission after the deadline as late and records by how much", async () => {
-      const submitted = ok<SubmitResultDto>(await submitAs(maya, "week0onboarding", { answers: ONBOARDING_ANSWERS }));
+      const submitted = ok<SubmitResultDto>(await submitAs(maya, "week0onboarding", { answers: ONBOARDING_ANSWERS, formVersion: 1 }));
       expect(submitted.late).toBe(true);
       expect(submitted.confirmationMessage).toBe("Thanks. Welcome to Founder's Education.");
       expect(submitted.unlocked).toEqual([]);
@@ -620,7 +651,8 @@ describe("submitting", () => {
       const form = ok<AdminFormDto>(await call(getAdminForm, { formId: "week0onboarding" }, { token: admin.token }));
       const dueMs = Date.parse(form.settings.dueAt ?? "");
       const endOfDueMinute = Math.floor(dueMs / 60_000) * 60_000 + 59_999;
-      expect(stored.lateBySeconds).toBe(Math.round((Date.parse(stored.submittedAt) - endOfDueMinute) / 1000));
+      // Whole seconds, rounded up, and never none once late.
+      expect(stored.lateBySeconds).toBe(Math.max(1, Math.ceil((Date.parse(stored.submittedAt) - endOfDueMinute) / 1000)));
       // The seed sets the deadline 15 days before it ran.
       expect(stored.lateBySeconds).toBeGreaterThan(15 * DAY_SECONDS - 60);
       expect(stored.lateBySeconds).toBeLessThan(15 * DAY_SECONDS + 600);
@@ -895,7 +927,7 @@ describe("time tracking", () => {
 
   it("carries the active time over to the response when it is submitted", async () => {
     const draft = await docData(`drafts/week2synthesis_${avery.uid}`);
-    ok(await submitAs(avery, "week2synthesis", { answers: SYNTHESIS_ANSWERS }));
+    ok(await submitAs(avery, "week2synthesis", { answers: SYNTHESIS_ANSWERS, formVersion: 1 }));
     const stored = ok<SubmissionDto>(await call(getSubmission, { formId: "week2synthesis" }, { token: avery.token }));
     expect(stored.activeSeconds).toBe(draft?.activeSeconds);
     // 45 or so, then 90, then 30 or so: the resume beat added nothing.

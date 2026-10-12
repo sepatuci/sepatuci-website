@@ -43,6 +43,14 @@ class Issues {
   }
 }
 
+/** An on/off setting. Anything but true or false is refused rather than read as off. */
+function flag(issues: Issues, path: string, value: unknown): boolean {
+  if (value === undefined || value === null) return false;
+  const read = readBoolean(value);
+  if (read === null) issues.add(path, "invalid", "This setting must be on or off.");
+  return read ?? false;
+}
+
 function text(
   issues: Issues,
   path: string,
@@ -140,7 +148,7 @@ function parseQuestion(
   };
   if (type === "section") return { ...base, type };
 
-  const required = readBoolean(raw.required) ?? false;
+  const required = flag(issues, `${path}.required`, raw.required);
   switch (type) {
     case "short_text":
       return {
@@ -160,7 +168,7 @@ function parseQuestion(
         type,
         required,
         options: parseOptions(issues, `${path}.options`, raw.options),
-        allowOther: readBoolean(raw.allowOther) ?? false,
+        allowOther: flag(issues, `${path}.allowOther`, raw.allowOther),
       };
     case "dropdown":
       return {
@@ -210,7 +218,7 @@ function parseSettings(issues: Issues, raw: unknown): FormSettings {
   const source = isRecord(raw) ? raw : {};
   if (!isRecord(raw)) issues.add("settings", "invalid", "Settings are missing.");
 
-  const allowLate = readBoolean(source.allowLate) ?? false;
+  const allowLate = flag(issues, "settings.allowLate", source.allowLate);
   const times: Record<(typeof SCHEDULE_FIELDS)[number]["key"], IsoDateTime | null> = {
     visibleAt: null,
     opensAt: null,
@@ -225,7 +233,9 @@ function parseSettings(issues: Issues, raw: unknown): FormSettings {
       issues.add(`settings.${key}`, "invalid", `${label} is not a valid date and time.`);
       continue;
     }
-    times[key] = toIso(ms);
+    // Schedules are to the minute, as every screen shows them. Seconds would
+    // make the stored time differ from the one everyone reads.
+    times[key] = toIso(Math.floor(ms / 60_000) * 60_000);
   }
   // The late cut-off only means something when late submissions are accepted.
   if (!allowLate) times.closesAt = null;
@@ -297,9 +307,12 @@ export function validateFormDefinition(input: unknown): ValidationResult<FormDef
   });
 
   const questions: Question[] = [];
+  let listUsable = true;
   if (!Array.isArray(input.questions)) {
+    listUsable = false;
     issues.add("questions", "invalid", "Questions are missing.");
   } else if (input.questions.length > LIMITS.maxQuestions) {
+    listUsable = false;
     issues.add(
       "questions",
       "too_many",
@@ -319,7 +332,9 @@ export function validateFormDefinition(input: unknown): ValidationResult<FormDef
     });
   }
 
-  if (publishing && !questions.some((question) => question.type !== "section")) {
+  // Only judged when the list itself was readable; a list that was too long
+  // has one problem to report, not two.
+  if (publishing && listUsable && !questions.some((question) => question.type !== "section")) {
     issues.add("questions", "required", "Add at least one question before publishing.");
   }
 

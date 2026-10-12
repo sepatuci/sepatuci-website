@@ -14,9 +14,9 @@ const PortalNotFound: React.FC = () => {
       title="That page isn't here"
       body="The link may be old, or it may have been mistyped."
       action={
-        <Link href={ROLE_HOME[me.role]}>
-          <Button variant="accent">Back to the portal</Button>
-        </Link>
+        <Button asChild variant="accent">
+          <Link href={ROLE_HOME[me.role]}>Back to the portal</Link>
+        </Button>
       }
     />
   );

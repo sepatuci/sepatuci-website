@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Check, Lock, X } from "lucide-react";
+import { AlertCircle, Check, Clock, Lock, X } from "lucide-react";
 import { formStateLabel } from "@/lib/portal/form-state";
 import type { FormState } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
@@ -28,7 +28,7 @@ const CELL: Record<FormState, string> = {
   submitted: "bg-success text-background",
   missed: "bg-danger text-background",
   open: "border-2 border-accent bg-accent/25",
-  open_late: "border-2 border-warning bg-warning-subtle",
+  open_late: "border-2 border-warning bg-warning-subtle text-warning-ink",
   locked: "bg-muted-foreground/30 text-foreground",
   upcoming: "border border-dashed border-muted-foreground/50",
   hidden: "",
@@ -37,12 +37,16 @@ const CELL: Record<FormState, string> = {
 const cellClass = (state: FormState, late: boolean) =>
   state === "submitted" && late ? "bg-warning text-background" : CELL[state];
 
-// The mark takes the page's background colour, which reads on every fill in both themes.
-// Each state has a mark as well as a colour, so the grid does not depend on telling colours apart.
-const Glyph: React.FC<{ state: FormState }> = ({ state }) => {
+// The mark on a filled square takes the page's background colour, which reads
+// on every fill in both themes. Any two states that share a colour family, such
+// as submitted and submitted late, or open and past due, carry different marks,
+// so the grid does not depend on telling colours apart.
+const Glyph: React.FC<{ state: FormState; late: boolean }> = ({ state, late }) => {
+  if (state === "submitted" && late) return <Clock className="h-3.5 w-3.5" aria-hidden strokeWidth={2.5} />;
   if (state === "submitted") return <Check className="h-3.5 w-3.5" aria-hidden strokeWidth={3} />;
   if (state === "missed") return <X className="h-3.5 w-3.5" aria-hidden strokeWidth={3} />;
   if (state === "locked") return <Lock className="h-3 w-3" aria-hidden />;
+  if (state === "open_late") return <AlertCircle className="h-3.5 w-3.5" aria-hidden strokeWidth={2.5} />;
   return null;
 };
 
@@ -62,7 +66,7 @@ const Mark: React.FC<{ state: FormState; late: boolean; className?: string }> = 
   className,
 }) => (
   <span className={cn("flex items-center justify-center rounded", cellClass(state, late), className)}>
-    <Glyph state={state} />
+    <Glyph state={state} late={late} />
   </span>
 );
 

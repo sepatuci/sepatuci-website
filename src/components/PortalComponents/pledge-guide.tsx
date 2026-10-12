@@ -16,9 +16,9 @@ const PledgeGuide: React.FC = () => (
       title="Guide"
       subtitle="What Sigma Eta Pi and Founder's Education are, and how this portal works."
       actions={
-        <Link href="/portal">
-          <Button variant="accent">Go to my deliverables</Button>
-        </Link>
+        <Button asChild variant="accent">
+          <Link href="/portal">Go to my deliverables</Link>
+        </Button>
       }
     />
     <div className="space-y-5">

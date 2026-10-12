@@ -275,7 +275,10 @@ beforeAll(async () => {
     await call(submit, { formId: archivedId }, {
       method: "POST",
       token: sam.token,
-      body: { answers: { q_only: { kind: "text", value: ARCHIVED_ANSWER } } },
+      body: {
+        answers: { q_only: { kind: "text", value: ARCHIVED_ANSWER } },
+        formVersion: (await adminForm(archivedId)).questionsVersion,
+      },
     }),
   );
   await editForm(archivedId, () => ({ status: "archived" }));

@@ -210,20 +210,27 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
               Title and description
             </span>
           ) : (
-            <select
-              aria-label="Question type"
-              value={question.type}
-              disabled={typeLocked}
-              title={typeLocked ? "The type can't change once there are responses" : undefined}
-              onChange={(event) => onChange(convertQuestion(question, event.target.value as QuestionType))}
-              className={cn(selectClass, "sm:w-52")}
-            >
-              {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </select>
+            <div className="sm:w-52">
+              <select
+                aria-label="Question type"
+                value={question.type}
+                disabled={typeLocked}
+                title={typeLocked ? "The type can't change once there are responses" : undefined}
+                onChange={(event) => onChange(convertQuestion(question, event.target.value as QuestionType))}
+                className={cn(selectClass, "w-full")}
+              >
+                {Object.entries(QUESTION_TYPE_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              {typeLocked ? (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Type can&apos;t change once there are responses. Add a new question instead.
+                </p>
+              ) : null}
+            </div>
           )}
         </div>
 

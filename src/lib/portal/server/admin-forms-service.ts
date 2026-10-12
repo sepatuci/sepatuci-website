@@ -9,6 +9,7 @@ import {
   validateFormDefinition,
 } from "../form-schema";
 import { isRecord } from "../parse";
+import { stableStringify } from "../stable-json";
 import type {
   AdminFormDto,
   AdminFormsDto,
@@ -48,6 +49,7 @@ function toAdminForm(id: string, form: FormDoc, responseCount: number): AdminFor
     questions: form.questions,
     settings: settingsToWire(form.settings),
     version: form.version,
+    questionsVersion: form.questionsVersion ?? form.version,
     createdAt: iso(form.createdAt),
     updatedAt: iso(form.updatedAt),
     responseCount,
@@ -173,8 +175,19 @@ export async function saveForm(
       const issue = (message: string) =>
         invalid([{ path: "settings.prerequisiteFormId", code: "invalid", message }]);
       if (prerequisiteId === formId) throw issue("A deliverable can't unlock itself.");
-      if (!others.some((doc) => doc.id === prerequisiteId)) {
-        throw issue("That deliverable no longer exists.");
+      const prerequisite = others.find((doc) => doc.id === prerequisiteId);
+      if (!prerequisite) throw issue("That deliverable no longer exists.");
+      // Until the earlier deliverable is released there is nothing to turn in,
+      // so this one would simply be open. Saying so is better than a lock that
+      // appears later without anyone having changed this deliverable. A draft
+      // that already points at one may still be edited; it is judged when it
+      // is published or when the choice is made.
+      const newlyChosen = prerequisiteId !== current.settings.prerequisiteFormId;
+      if (
+        prerequisite.data().status !== "published" &&
+        (newlyChosen || definition.status === "published")
+      ) {
+        throw issue(`Publish "${prerequisite.data().title}" first, then choose it here.`);
       }
       const prerequisiteOf = new Map<string, string | null>(
         others.map((doc) => [doc.id, doc.data().settings.prerequisiteFormId]),
@@ -216,8 +229,10 @@ export async function saveForm(
 
     // What a pledge reads and answers. A change here is what makes someone with
     // the deliverable open check it again; a change to the schedule is not.
+    // Firestore hands map keys back sorted, so the comparison must not depend
+    // on key order, or every save would count as a change to the questions.
     const content = (form: Pick<FormDoc, "title" | "description" | "questions">) =>
-      JSON.stringify([form.title, form.description, form.questions]);
+      stableStringify([form.title, form.description, form.questions]);
     const contentChanged = content(current) !== content(definition);
 
     const next: FormDoc = {

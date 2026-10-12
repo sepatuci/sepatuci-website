@@ -4,7 +4,7 @@ import { useState } from "react";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { Check, Copy, Loader2, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/input";
 import {
   Card,
@@ -22,7 +22,7 @@ import { getPortalAuth } from "@/lib/portal/client/firebase";
 import { useApi } from "@/lib/portal/client/use-api";
 import { formatDate } from "@/lib/portal/dates";
 import BulkAddDialog from "./bulk-add-dialog";
-import { StartChoice, TemporaryPassword } from "./temporary-password-dialog";
+import { CopyWarning, StartChoice, TemporaryPassword, useCopyGuard } from "./temporary-password-dialog";
 import type {
   AccountState,
   ActiveRowDto,
@@ -86,6 +86,8 @@ const ActivesPanel: React.FC = () => {
     link: string | null;
     temporary?: { password: string; name: string; email: string; isNew: boolean };
   } | null>(null);
+  // A temporary password leaves with the window, so closing without a copy asks once.
+  const guard = useCopyGuard(shown?.temporary?.password ?? null);
 
   const header = (
     <PageHeader
@@ -369,13 +371,19 @@ const ActivesPanel: React.FC = () => {
           {shown?.link ? <LinkBox link={shown.link} /> : null}
           {shown?.temporary ? (
             <div className="mt-4">
-              <TemporaryPassword {...shown.temporary} />
+              <TemporaryPassword {...shown.temporary} onCopied={guard.onCopied} />
             </div>
           ) : null}
+          {guard.warned ? <CopyWarning /> : null}
           <div className="mt-6 flex justify-end">
-            <DialogClose asChild>
-              <Button variant="accent">Done</Button>
-            </DialogClose>
+            <Button
+              variant="accent"
+              onClick={() => {
+                if (guard.confirm()) setShown(null);
+              }}
+            >
+              {guard.warned ? "Close anyway" : "Done"}
+            </Button>
           </div>
         </DialogContent>
       </Dialog>

@@ -207,24 +207,70 @@ describe("validateAnswers", () => {
       ["short text of only spaces", short("q", { required: true }), text("   ")],
       ["paragraph of only line breaks", paragraph("q", { required: true }), text("\n\r\n \t")],
       ["short text of only invisible control characters", short("q", { required: true }), text("\u0000‮")],
+      ["short text of only a zero-width space", short("q", { required: true }), text("​")],
+      ["short text of only blank braille", short("q", { required: true }), text("⠀")],
+      ["paragraph of only format characters and spaces", paragraph("q", { required: true }), text(" ‎­﻿ ⁠")],
       ["choice with nothing picked", multiple("q", { required: true }), { kind: "choice", optionId: null, other: null }],
-      ["choice whose Other is blank", multiple("q", { required: true, allowOther: true }), { kind: "choice", optionId: null, other: "  " }],
       ["dropdown with nothing picked", dropdown("q", { required: true }), { kind: "choice", optionId: null, other: null }],
       ["checkboxes with none ticked", checkboxes("q", { required: true }), { kind: "choices", optionIds: [], other: null }],
-      ["checkboxes whose Other is blank", checkboxes("q", { required: true, allowOther: true }), { kind: "choices", optionIds: [], other: " " }],
     ])("counts a %s as not answered", (_label, question, raw) => {
       expectRefused(question, raw, "required");
     });
 
     it("simply omits the same blank answers when the question is optional", () => {
-      const questions = [short("q1"), multiple("q2"), checkboxes("q3"), paragraph("q4")];
+      const questions = [short("q1"), multiple("q2"), checkboxes("q3"), paragraph("q4"), short("q5")];
       const value = valueOf(questions, {
         q1: text("   "),
         q2: { kind: "choice", optionId: null, other: null },
         q3: { kind: "choices", optionIds: [], other: null },
         q4: null,
+        q5: text("​⠀"),
       });
       expect(value).toEqual({});
+    });
+
+    // "Other" ticked with nothing typed looks answered on the page but says nothing.
+    // On a required question it is told apart from a blank, so the pledge is asked
+    // to type or to pick an option. On an optional one it is simply blank.
+    describe("Other picked with nothing typed", () => {
+      const OTHER_EMPTY = "Type your other answer, or choose one of the options.";
+
+      it.each<[string, Question, unknown]>([
+        ["choice with an empty Other", multiple("q", { required: true, allowOther: true }), { kind: "choice", optionId: null, other: "" }],
+        ["choice with a blank Other", multiple("q", { required: true, allowOther: true }), { kind: "choice", optionId: null, other: "  " }],
+        ["checkboxes with an empty Other", checkboxes("q", { required: true, allowOther: true }), { kind: "choices", optionIds: [], other: "" }],
+        ["checkboxes with a blank Other", checkboxes("q", { required: true, allowOther: true }), { kind: "choices", optionIds: [], other: " " }],
+      ])("refuses a required %s as other_empty, not as missing", (_label, question, raw) => {
+        expect(issuesOf([question], { [question.id]: raw })).toEqual([
+          { path: `answers.${question.id}`, code: "other_empty", message: OTHER_EMPTY },
+        ]);
+      });
+
+      it("is simply blank on an optional question: nothing said, nothing refused", () => {
+        expect(validateAnswers([multiple("q", { allowOther: true })], { q: { kind: "choice", optionId: null, other: "" } })).toEqual({
+          ok: true,
+          value: {},
+        });
+        expect(validateAnswers([checkboxes("q", { allowOther: true })], { q: { kind: "choices", optionIds: [], other: "  " } })).toEqual({
+          ok: true,
+          value: {},
+        });
+      });
+
+      it("is simply blank in a draft", () => {
+        const questions = [multiple("q1", { allowOther: true }), checkboxes("q2", { allowOther: true })];
+        expect(
+          sanitizeDraftAnswers(questions, {
+            q1: { kind: "choice", optionId: null, other: "" },
+            q2: { kind: "choices", optionIds: [], other: "  " },
+          }),
+        ).toEqual({});
+      });
+
+      it("is not the same as leaving Other alone, which is a plain blank", () => {
+        expectRefused(multiple("q", { required: true, allowOther: true }), { kind: "choice", optionId: null, other: null }, "required");
+        expectRefused(checkboxes("q", { required: true, allowOther: true }), { kind: "choices", optionIds: [], other: null }, "required");
+      });
     });
   });
 
@@ -284,16 +330,23 @@ describe("validateAnswers", () => {
     describe("number validation", () => {
       const question = short("q1", { validation: "number" });
 
-      it.each(["0", "42", "-3", "3.5", "-0.25", "007"])("accepts %s", (value) => {
+      // A sign and one decimal mark, which a phone keyboard set to another locale types as a comma.
+      it.each(["0", "42", "-3", "3.5", "-0.25", "007", "+5", "1,000", "3,5", ".5", "5."])("accepts %s", (value) => {
         expect(valueOf([question], { q1: text(value) }).q1).toEqual({ kind: "text", value });
       });
 
-      it.each(["three", "4 interviews", "1e5", "1,000", ".5", "5.", "+5", "0x10", "Infinity", "NaN", "1.2.3", "--1"])(
+      it.each(["three", "4 interviews", "1e5", "1,000.5", "0x10", "Infinity", "NaN", "1.2.3", "--1", ".", "+"])(
         "refuses %s",
         (value) => {
           expectRefused(question, text(value), "invalid_number");
         },
       );
+
+      it("shows what a number looks like when one is refused", () => {
+        expect(issuesOf([question], { q1: text("about four") })).toEqual([
+          { path: "answers.q1", code: "invalid_number", message: "Enter a number, like 12 or 3.5." },
+        ]);
+      });
 
       it("accepts a number with surrounding space, which is trimmed first", () => {
         expect(valueOf([question], { q1: text("  4  ") }).q1).toEqual({ kind: "text", value: "4" });
@@ -303,16 +356,24 @@ describe("validateAnswers", () => {
     describe("email validation", () => {
       const question = short("q1", { validation: "email" });
 
-      it.each(["avery.chen@uci.edu", "a+b@example.co.uk"])("accepts %s", (value) => {
-        expect(valueOf([question], { q1: text(value) }).q1).toEqual({ kind: "text", value });
-      });
+      it.each(["avery.chen@uci.edu", "a+b@example.co.uk", "name+tag@uci.edu", "A@B.CO", "first.last@sub.example.org"])(
+        "accepts %s",
+        (value) => {
+          expect(valueOf([question], { q1: text(value) }).q1).toEqual({ kind: "text", value });
+        },
+      );
 
-      it.each(["avery", "avery@", "@uci.edu", "avery@uci", "a b@uci.edu", "a@b@uci.edu"])(
+      it.each(["avery", "avery@", "@uci.edu", "avery@uci", "a b@uci.edu", "a@b@uci.edu", "a@b.c", "a@b..co", "a@b.co.", "a@-.-"])(
         "refuses %s",
         (value) => {
           expectRefused(question, text(value), "invalid_email");
         },
       );
+
+      it("reads an address with a zero-width space pasted onto it as the address itself", () => {
+        expect(valueOf([question], { q1: text("a@b.co​") }).q1).toEqual({ kind: "text", value: "a@b.co" });
+        expect(valueOf([question], { q1: text("﻿avery@uci.edu") }).q1).toEqual({ kind: "text", value: "avery@uci.edu" });
+      });
     });
 
     describe("link validation", () => {
@@ -387,6 +448,10 @@ describe("validateAnswers", () => {
         "https:example.org",
         "http//example.org",
         "notes",
+        // Valid to a URL parser, but not a host anyone can reach.
+        "https://x",
+        "https://.",
+        "https:///x",
       ])("refuses %s", (value) => {
         expectRefused(question, text(value), "invalid_url");
       });
@@ -678,6 +743,54 @@ describe("sanitizeDraftAnswers", () => {
     expect(draft.q_name).toEqual({ kind: "text", value: "y".repeat(LIMITS.shortText) });
   });
 
+  // An emoji is two UTF-16 units. A cut that lands between them would leave half
+  // a character, which renders as U+FFFD and is not what the pledge typed.
+  it("cuts an over-long answer between characters, never through an emoji", () => {
+    // One unit, then 5000 units of emoji: 5001 in all, one over the limit.
+    const story = `a${"😀".repeat(LIMITS.paragraph / 2)}`;
+    expect(story).toHaveLength(LIMITS.paragraph + 1);
+    const draft = sanitizeDraftAnswers(questions, { q_story: text(story), q_name: text("😀".repeat(LIMITS.shortText / 2 + 1)) });
+
+    const kept = (draft.q_story as { value: string }).value;
+    // The 5000th unit would be the first half of an emoji, so the cut stops a unit short.
+    expect(kept).toHaveLength(LIMITS.paragraph - 1);
+    expect(kept.startsWith("a😀")).toBe(true);
+    expect(kept.endsWith("😀")).toBe(true);
+    expect(kept).not.toContain("�");
+    // Every character is whole: spread by code point, a lone surrogate would count as one more.
+    expect([...kept]).toHaveLength(1 + (LIMITS.paragraph / 2 - 1));
+
+    expect(draft.q_name).toEqual({ kind: "text", value: "😀".repeat(LIMITS.shortText / 2) });
+  });
+
+  it("keeps the options that still exist when a draft ticks one an admin has since removed", () => {
+    const draft = sanitizeDraftAnswers(questions, {
+      q_ticks: { kind: "choices", optionIds: ["o_b", "o_gone", "o_a", 7], other: null },
+    });
+    expect(draft.q_ticks).toEqual({ kind: "choices", optionIds: ["o_a", "o_b"], other: null });
+    // Nothing left to keep: the answer is blank, not malformed.
+    expect(sanitizeDraftAnswers(questions, { q_ticks: { kind: "choices", optionIds: ["o_gone"], other: null } })).toEqual({});
+    // Turned in, the same answer is still refused.
+    expectRefused(checkboxes("q_ticks"), { kind: "choices", optionIds: ["o_b", "o_gone"], other: null }, "invalid_option");
+  });
+
+  it("cuts an over-long Other answer to the limit in a draft instead of dropping the choice", () => {
+    const pick = multiple("q_pick", { allowOther: true });
+    const ticks = checkboxes("q_ticks", { allowOther: true });
+    const tooLong = `${"o".repeat(LIMITS.otherText + 20)}  `;
+    expect(
+      sanitizeDraftAnswers([pick, ticks], {
+        q_pick: { kind: "choice", optionId: null, other: tooLong },
+        q_ticks: { kind: "choices", optionIds: ["o_c"], other: tooLong },
+      }),
+    ).toEqual({
+      q_pick: { kind: "choice", optionId: null, other: "o".repeat(LIMITS.otherText) },
+      q_ticks: { kind: "choices", optionIds: ["o_c"], other: "o".repeat(LIMITS.otherText) },
+    });
+    expectRefused(pick, { kind: "choice", optionId: null, other: tooLong }, "invalid");
+    expectRefused(ticks, { kind: "choices", optionIds: ["o_c"], other: tooLong }, "invalid");
+  });
+
   it("keeps text that is not a number or an email yet in a draft, and refuses it on submit", () => {
     const amount = short("q_amount", { validation: "number" });
     const contact = short("q_contact", { validation: "email" });
@@ -731,6 +844,30 @@ describe("countAnswered", () => {
     expect(countAnswered(questions, answers)).toBe(2);
     expect(countAnswered(questions, {})).toBe(0);
     expect(countAnswered([], answers)).toBe(0);
+  });
+
+  // The page holds an answer for a question as soon as it is touched. One that
+  // still says nothing is not progress.
+  it.each<[string, Question, Answers[string]]>([
+    ["text of only spaces", short("q"), { kind: "text", value: "   " }],
+    ["empty text", paragraph("q"), { kind: "text", value: "" }],
+    ["a choice with nothing picked and no Other", multiple("q", { allowOther: true }), { kind: "choice", optionId: null, other: null }],
+    ["a choice with Other picked and nothing typed", multiple("q", { allowOther: true }), { kind: "choice", optionId: null, other: "  " }],
+    ["checkboxes with none ticked and no Other", checkboxes("q"), { kind: "choices", optionIds: [], other: null }],
+    ["checkboxes with none ticked and a blank Other", checkboxes("q", { allowOther: true }), { kind: "choices", optionIds: [], other: "" }],
+  ])("does not count %s", (_label, question, answer) => {
+    expect(countAnswered([question], { q: answer })).toBe(0);
+  });
+
+  it.each<[string, Question, Answers[string]]>([
+    ["a single character of text", short("q"), { kind: "text", value: "a" }],
+    ["a choice by option", multiple("q"), { kind: "choice", optionId: "o_a", other: null }],
+    ["a choice by Other", multiple("q", { allowOther: true }), { kind: "choice", optionId: null, other: "Nonprofits" }],
+    ["one ticked checkbox", checkboxes("q"), { kind: "choices", optionIds: ["o_b"], other: null }],
+    ["checkboxes answered by Other alone", checkboxes("q", { allowOther: true }), { kind: "choices", optionIds: [], other: "Robotics" }],
+    ["a scale at its lowest value", scale("q", { min: 0 }), { kind: "scale", value: 0 }],
+  ])("counts %s", (_label, question, answer) => {
+    expect(countAnswered([question], { q: answer })).toBe(1);
   });
 });
 

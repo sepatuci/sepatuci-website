@@ -296,7 +296,9 @@ function Control({
           className="flex items-end gap-4 overflow-x-auto pb-1"
         >
           {question.minLabel ? (
-            <span className="shrink-0 pb-0.5 text-sm text-muted-foreground">{question.minLabel}</span>
+            <span className="min-w-0 max-w-[28%] break-words pb-0.5 text-sm text-muted-foreground">
+              {question.minLabel}
+            </span>
           ) : null}
           {values.map((value) => (
             <label key={value} className="flex cursor-pointer flex-col items-center gap-2.5 text-sm">
@@ -312,7 +314,9 @@ function Control({
             </label>
           ))}
           {question.maxLabel ? (
-            <span className="shrink-0 pb-0.5 text-sm text-muted-foreground">{question.maxLabel}</span>
+            <span className="min-w-0 max-w-[28%] break-words pb-0.5 text-sm text-muted-foreground">
+              {question.maxLabel}
+            </span>
           ) : null}
         </div>
       );

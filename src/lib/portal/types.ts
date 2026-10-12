@@ -385,6 +385,8 @@ export interface InviteLinkDto {
 export interface AdminFormDto extends FormDefinition {
   id: string;
   version: number;
+  /** The version at which the title, description or questions last changed. */
+  questionsVersion: number;
   createdAt: IsoDateTime;
   updatedAt: IsoDateTime;
   responseCount: number;

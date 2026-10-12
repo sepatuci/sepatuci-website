@@ -17,7 +17,7 @@ const ACCOUNT_NOTE: Record<Role, string> = {
 
 const PASSWORD_NOTE: Record<Role, string> = {
   admin:
-    "Admin passwords are replaced outside the portal: from the Firebase console, or with the setup script. The setup guide has the steps.",
+    "Admin passwords are replaced outside the portal: from the Firebase console, or with the setup script. Ask whoever maintains the portal.",
   active:
     "To change it, or if you forget it, contact a Founder's Education admin. They give you a temporary one and you choose a new password at your next sign-in.",
   pledge:

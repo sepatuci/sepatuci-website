@@ -1199,7 +1199,8 @@ describe("request bodies", () => {
         422,
         "invalid",
       );
-      expect(fieldCodes(submitted)).toEqual(["answers:invalid"]);
+      // A body that is not an object cannot say which version was answered, which is asked first.
+      expect(fieldCodes(submitted)).toEqual(["formVersion:required"]);
 
       const created = refused(await call(createPledge, {}, { method: "POST", token: admin.token, rawBody }), 422, "invalid");
       expect(fieldCodes(created)).toEqual(["displayName:required", "email:invalid_email"]);
@@ -1411,7 +1412,12 @@ describe("rate limit", () => {
       expect((await docData(`drafts/week2interviews_${sam.uid}`))?.answers).toEqual({});
       // A submit is never held back by the autosaves before it. This one gets past the
       // ceiling and is judged on its answers, which are incomplete.
-      refused(await call(submit, { formId: "week2interviews" }, { method: "POST", token: sam.token, body: { answers } }), 422, "invalid");
+      const submitted = refused(
+        await call(submit, { formId: "week2interviews" }, { method: "POST", token: sam.token, body: { answers, formVersion: 1 } }),
+        422,
+        "invalid",
+      );
+      expect(fieldCodes(submitted)).toContain("answers.q_surprise:required");
       expect(await docExists(`submissions/week2interviews_${sam.uid}`)).toBe(false);
       // Reading carries on while further changes are refused.
       ok(await call(getMe, {}, { token: sam.token }));

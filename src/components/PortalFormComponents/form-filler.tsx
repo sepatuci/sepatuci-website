@@ -68,7 +68,7 @@ function closedMessage(card: FormCardDto): { title: string; body: string } {
       if (card.lockReason === "prerequisite_missed") {
         return {
           title,
-          body: `It unlocks after ${earlier}, which has closed. Talk to the Founder's Education chairs.`,
+          body: `It unlocks after ${earlier}, which has closed. Talk to a Founder's Education admin.`,
         };
       }
       return {
@@ -81,7 +81,7 @@ function closedMessage(card: FormCardDto): { title: string; body: string } {
     default:
       return {
         title: "This deliverable is closed",
-        body: "It's no longer accepting responses. Talk to the Founder's Education chairs if you need it reopened.",
+        body: "It's no longer accepting responses. Talk to a Founder's Education admin if you have a question about it.",
       };
   }
 }
@@ -306,11 +306,19 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
       if (!dirty.current || turnedIn.current) return;
       if (getPortalAuth()?.currentUser?.uid !== me.uid) return;
       const answers = latest.current;
-      void apiFetch(`/forms/${formId}/draft`, {
-        method: "PUT",
-        body: { answers },
-        keepalive: fitsKeepalive(answers),
-      }).catch(() => undefined);
+      const send = (): Promise<unknown> => {
+        // Checked again here: a save that waited may fire after a different sign-in.
+        if (getPortalAuth()?.currentUser?.uid !== me.uid) return Promise.resolve();
+        return apiFetch(`/forms/${formId}/draft`, {
+          method: "PUT",
+          body: { answers },
+          keepalive: fitsKeepalive(answers),
+        }).catch(() => undefined);
+      };
+      // A save still on its way goes first. Sent side by side, the slower of
+      // the two could finish last and put older answers back.
+      if (inFlight.current) void inFlight.current.finally(send);
+      else void send();
     };
   }, [formId, me.uid]);
 
@@ -454,12 +462,12 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
             Turned in {formatDateTime(result.submittedAt)} by {me.displayName}.
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
-            <Link href={`/portal/history/${formId}`}>
-              <Button variant="outline">View your response</Button>
-            </Link>
-            <Link href="/portal">
-              <Button variant="accent">Back to deliverables</Button>
-            </Link>
+            <Button asChild variant="outline">
+              <Link href={`/portal/history/${formId}`}>View your response</Link>
+            </Button>
+            <Button asChild variant="accent">
+              <Link href="/portal">Back to deliverables</Link>
+            </Button>
           </div>
         </TitleCard>
 
@@ -479,11 +487,9 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
                       </span>
                     ) : null}
                   </span>
-                  <Link href={`/portal/deliverables/${next.id}`}>
-                    <Button variant="accent" size="sm">
-                      Start
-                    </Button>
-                  </Link>
+                  <Button asChild variant="accent" size="sm">
+                    <Link href={`/portal/deliverables/${next.id}`}>Start</Link>
+                  </Button>
                 </li>
               ))}
             </ul>
@@ -524,9 +530,9 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
             </div>
           </div>
           {submitted ? (
-            <Link href={`/portal/history/${formId}`} className="mt-6 inline-block">
-              <Button variant="accent">View your response</Button>
-            </Link>
+            <Button asChild variant="accent" className="mt-6">
+              <Link href={`/portal/history/${formId}`}>View your response</Link>
+            </Button>
           ) : null}
         </TitleCard>
       </FormColumn>
@@ -606,6 +612,11 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
         }}
         className="space-y-3"
       >
+        {refreshing ? (
+          <p role="status" className="text-sm text-muted-foreground">
+            Loading the updated questions.
+          </p>
+        ) : null}
         <fieldset disabled={refreshing} className="m-0 min-w-0 space-y-3 border-0 p-0">
           <legend className="sr-only">Questions</legend>
           {questions.map((question) => (
@@ -652,7 +663,7 @@ const FormFiller: React.FC<{ formId: string }> = ({ formId }) => {
       <ConfirmDialog
         open={confirmOpen}
         onOpenChange={setConfirmOpen}
-        title="Turn this in?"
+        title="Submit your response?"
         description={`You answered ${answered} of ${total} ${total === 1 ? "question" : "questions"}.${
           card.state === "open_late" || (dueMs !== null && nowMs > dueMs + 59_999)
             ? " The deadline has passed, so it will be marked late."

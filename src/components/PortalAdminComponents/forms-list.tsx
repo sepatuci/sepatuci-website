@@ -81,7 +81,7 @@ const FormsList: React.FC = () => {
   const header = (
     <PageHeader
       title="Deliverables"
-      subtitle="The forms pledges fill in for Founder's Education."
+      subtitle="The deliverables pledges fill in for Founder's Education."
       actions={
         <Button variant="accent" onClick={() => void create()} disabled={creating}>
           {creating && busyId === null ? (
@@ -106,7 +106,13 @@ const FormsList: React.FC = () => {
         <EmptyState
           icon={<ClipboardList className="h-8 w-8" />}
           title="No deliverables yet"
-          body="Create the first one. It stays a private draft until you publish it."
+          body="It stays a private draft until you publish it."
+          action={
+            <Button variant="accent" onClick={() => void create()} disabled={creating}>
+              {creating ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+              Create the first one
+            </Button>
+          }
         />
       </>
     );
@@ -121,6 +127,7 @@ const FormsList: React.FC = () => {
         {data.forms.map((form) => {
           const chip = STATUS_CHIPS[form.status];
           const prerequisite = form.settings.prerequisiteFormId;
+          const hasResponses = form.responseCount > 0;
           return (
             <div key={form.id} className="flex flex-wrap items-center justify-between gap-4 px-5 py-4">
               <Link href={`/portal/admin/forms/${form.id}`} className="min-w-0 flex-1">
@@ -142,7 +149,7 @@ const FormsList: React.FC = () => {
                     {form.responseCount} {form.responseCount === 1 ? "response" : "responses"}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {data.pledgeCount} active {data.pledgeCount === 1 ? "pledge" : "pledges"}
+                    {data.pledgeCount} {data.pledgeCount === 1 ? "pledge" : "pledges"}
                   </span>
                 </span>
                 <div className="flex gap-1">
@@ -160,12 +167,21 @@ const FormsList: React.FC = () => {
                       <Copy className="h-4 w-4" />
                     )}
                   </Button>
+                  {/* Not the disabled attribute: that would swallow the title, which says what to do instead. */}
                   <Button
                     variant="ghost"
                     size="icon"
-                    aria-label={`Delete ${form.title}`}
-                    title="Delete"
-                    onClick={() => setDeleting(form)}
+                    aria-label={
+                      hasResponses
+                        ? `Delete ${form.title}: not possible, it has responses. Archive it from Settings instead.`
+                        : `Delete ${form.title}`
+                    }
+                    title={hasResponses ? "Has responses. Archive it from Settings instead." : "Delete"}
+                    aria-disabled={hasResponses || undefined}
+                    className={hasResponses ? "cursor-not-allowed opacity-50 hover:bg-transparent hover:text-inherit" : undefined}
+                    onClick={() => {
+                      if (!hasResponses) setDeleting(form);
+                    }}
                   >
                     <Trash2 className="h-4 w-4" />
                   </Button>
@@ -182,7 +198,7 @@ const FormsList: React.FC = () => {
           if (!open) setDeleting(null);
         }}
         title={`Delete "${deleting?.title ?? ""}"?`}
-        description="A deliverable can only be deleted if nobody has turned it in. Once it has responses, archive it from its Settings tab instead."
+        description="Nobody has turned it in, so no responses are lost. This can't be undone."
         confirmLabel="Delete"
         destructive
         busy={busyId !== null && busyId === deleting?.id}

@@ -25,7 +25,13 @@ export const LIMITS = {
   sessionHistory: 200,
   /** Request body caps, in bytes. */
   smallBodyBytes: 16_000,
-  answersBodyBytes: 400_000,
+  // Sixty paragraph answers of five thousand characters, each up to four bytes
+  // in UTF-8 and escaped as JSON, plus the wrapper around them.
+  answersBodyBytes: 1_400_000,
+  // A stored response holds the answers and a copy of the questions, and a
+  // Firestore document may not exceed one mebibyte. This leaves room for the
+  // rest of the document.
+  submissionStoredBytes: 900_000,
   formBodyBytes: 400_000,
   auditPageSize: 50,
 } as const;

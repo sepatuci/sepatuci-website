@@ -99,7 +99,7 @@ const ReviewOverview: React.FC = () => {
         <EmptyState
           icon={<Users className="h-8 w-8" />}
           title="No pledges yet"
-          body="When the chairs add this class's pledges, they show up here."
+          body="When an admin adds this class's pledges, they show up here."
         />
       </>
     );

@@ -42,6 +42,10 @@ function noticeFor(key: string | null): string | null {
 }
 
 const NO_ACCESS = "This account doesn't have access to the portal.";
+// The choose-a-password step was left open past its limit. Not in NOTICES, so
+// the address bar cannot show it.
+const SETUP_TIMED_OUT =
+  "That took too long. Sign in with your temporary password again to choose your own.";
 // The portal signs in with a password alone. An account that has had an
 // authenticator attached through Firebase directly cannot be signed in here.
 const HAS_SECOND_FACTOR =
@@ -266,7 +270,7 @@ const LoginFlow: React.FC = () => {
   const choosing = step.name === "new_password" && preview === null && !saving;
   useEffect(() => {
     if (!choosing) return;
-    const timer = window.setTimeout(() => void restart(NOTICES.ended, true), TIMING.passwordSetupMs);
+    const timer = window.setTimeout(() => void restart(SETUP_TIMED_OUT, true), TIMING.passwordSetupMs);
     return () => window.clearTimeout(timer);
   }, [choosing, restart]);
 
@@ -317,7 +321,7 @@ const LoginFlow: React.FC = () => {
       <div>
         <h2 className="text-xl font-medium text-foreground">The portal isn&apos;t open yet</h2>
         <p className="mt-2 text-sm text-muted-foreground">
-          Sign-in will be available here once the Founder&apos;s Education chairs finish setting it
+          Sign-in will be available here once the Founder&apos;s Education admins finish setting it
           up. Check back soon.
         </p>
       </div>

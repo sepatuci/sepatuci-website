@@ -27,7 +27,9 @@ export function isCivilDate(value: string): boolean {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
   if (!match) return false;
   const [year, month, day] = [Number(match[1]), Number(match[2]), Number(match[3])];
-  const date = new Date(Date.UTC(year, month - 1, day));
+  // Date.UTC reads a year under 100 as 19xx, so the year is set on its own.
+  const date = new Date(Date.UTC(2000, month - 1, day));
+  date.setUTCFullYear(year);
   return (
     date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day
   );
@@ -102,14 +104,16 @@ export function formatRelative(targetMs: number, nowMs: number): string {
   return diff >= 0 ? `in ${label}` : `${label} ago`;
 }
 
-/** "2h 05m", "12m", "45s". */
+/** "3d 02h", "2h 05m", "12m", "45s". Rolls into days from 24 hours. */
 export function formatDuration(totalSeconds: number): string {
   const seconds = Math.max(0, Math.round(totalSeconds));
   if (seconds < 60) return `${seconds}s`;
   const minutes = Math.floor(seconds / 60);
   if (minutes < 60) return `${minutes}m`;
   const hours = Math.floor(minutes / 60);
-  return `${hours}h ${String(minutes % 60).padStart(2, "0")}m`;
+  if (hours < 24) return `${hours}h ${String(minutes % 60).padStart(2, "0")}m`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ${String(hours % 24).padStart(2, "0")}h`;
 }
 
 // ── <input type="datetime-local"> ────────────────────────────────────────────
