@@ -1,5 +1,5 @@
 import { randomBytes } from "node:crypto";
-import { FieldPath, FieldValue, Timestamp } from "firebase-admin/firestore";
+import { FieldPath, FieldValue, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { ID_PATTERN, LIMITS } from "../constants";
 import { evaluateForm, type FormLike } from "../form-state";
 import {
@@ -9,6 +9,7 @@ import {
   validateFormDefinition,
 } from "../form-schema";
 import { isRecord } from "../parse";
+import { isPreviewProfile } from "../preview";
 import { stableStringify } from "../stable-json";
 import type {
   AdminFormDto,
@@ -31,6 +32,7 @@ import {
   settingsToStored,
   settingsToWire,
   submittedToWire,
+  type Collections,
   type FormDoc,
 } from "./store";
 
@@ -39,6 +41,30 @@ import {
 const notFound = () => new HttpError(404, "not_found", "That deliverable doesn't exist.");
 
 const localId = (prefix: string) => `${prefix}_${randomBytes(6).toString("hex")}`;
+
+/**
+ * A deliverable's responses are its submissions less those from preview
+ * accounts, which are marked and count towards nothing. Two counts, since a
+ * query cannot ask for documents that lack a field.
+ */
+function responseCountQueries(cols: Collections, formId: string) {
+  const all = cols.submissions.where("formId", "==", formId);
+  return { all: all.count(), previews: all.where("preview", "==", true).count() };
+}
+
+async function countResponses(cols: Collections, formId: string): Promise<number> {
+  const queries = responseCountQueries(cols, formId);
+  const [all, previews] = await Promise.all([queries.all.get(), queries.previews.get()]);
+  return all.data().count - previews.data().count;
+}
+
+/** The same count, read inside the transaction that acts on it. */
+async function countResponsesIn(tx: Transaction, cols: Collections, formId: string): Promise<number> {
+  const queries = responseCountQueries(cols, formId);
+  const all = await tx.get(queries.all);
+  const previews = await tx.get(queries.previews);
+  return all.data().count - previews.data().count;
+}
 
 function toAdminForm(id: string, form: FormDoc, responseCount: number): AdminFormDto {
   return {
@@ -62,8 +88,10 @@ export async function listForms({ admin, now }: Caller): Promise<AdminFormsDto> 
     cols.forms.get(),
     cols.users.where("role", "==", "pledge").get(),
   ]);
+  // An admin's preview account is nobody's pledge, and its responses count towards nothing.
+  const pledges = pledgesSnap.docs.filter((doc) => !isPreviewProfile(doc.data()));
   const responseCounts = new Map<string, number>();
-  for (const doc of pledgesSnap.docs) {
+  for (const doc of pledges) {
     for (const formId of Object.keys(doc.data().submitted)) {
       responseCounts.set(formId, (responseCounts.get(formId) ?? 0) + 1);
     }
@@ -71,7 +99,7 @@ export async function listForms({ admin, now }: Caller): Promise<AdminFormsDto> 
   const forms = formsSnap.docs
     .map((doc) => formSummary(doc.id, doc.data(), responseCounts.get(doc.id) ?? 0))
     .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
-  const activePledges = pledgesSnap.docs.filter((doc) => doc.data().status === "active").length;
+  const activePledges = pledges.filter((doc) => doc.data().status === "active").length;
   return { serverNow: now.toISOString(), forms, pledgeCount: activePledges };
 }
 
@@ -131,13 +159,13 @@ export async function createForm({ admin, user, now }: Caller, body: unknown): P
 
 export async function getForm({ admin }: Caller, formId: string): Promise<AdminFormDto> {
   const cols = collections(admin.db);
-  const [formSnap, countSnap] = await Promise.all([
+  const [formSnap, responseCount] = await Promise.all([
     cols.forms.doc(formId).get(),
-    cols.submissions.where("formId", "==", formId).count().get(),
+    countResponses(cols, formId),
   ]);
   const form = formSnap.data();
   if (!form) throw notFound();
-  return toAdminForm(formId, form, countSnap.data().count);
+  return toAdminForm(formId, form, responseCount);
 }
 
 export async function saveForm(
@@ -218,8 +246,8 @@ export async function saveForm(
     }
 
     // Once responses exist, a question keeps its type so earlier answers stay readable.
-    const responded = await tx.get(cols.submissions.where("formId", "==", formId).limit(1));
-    if (!responded.empty && changedQuestionTypes(current.questions, definition.questions).length > 0) {
+    const responses = await countResponsesIn(tx, cols, formId);
+    if (responses > 0 && changedQuestionTypes(current.questions, definition.questions).length > 0) {
       throw new HttpError(
         409,
         "question_type_locked",
@@ -261,13 +289,10 @@ export async function saveForm(
             : "form.unpublish";
     }
     tx.create(cols.audit.doc(), auditEntry(user, now, action, "form", formId, next.title));
-    return { form: next, hasResponses: !responded.empty };
+    return { form: next, responses };
   });
 
-  const responseCount = saved.hasResponses
-    ? (await cols.submissions.where("formId", "==", formId).count().get()).data().count
-    : 0;
-  return toAdminForm(formId, saved.form, responseCount);
+  return toAdminForm(formId, saved.form, saved.responses);
 }
 
 export async function deleteForm({ admin, user, now }: Caller, formId: string): Promise<{ ok: true }> {
@@ -278,8 +303,7 @@ export async function deleteForm({ admin, user, now }: Caller, formId: string): 
     const form = (await tx.get(formRef)).data();
     if (!form) throw notFound();
 
-    const responded = await tx.get(cols.submissions.where("formId", "==", formId).limit(1));
-    if (!responded.empty) {
+    if ((await countResponsesIn(tx, cols, formId)) > 0) {
       throw new HttpError(
         409,
         "has_responses",
@@ -297,8 +321,13 @@ export async function deleteForm({ admin, user, now }: Caller, formId: string): 
       );
     }
     const drafts = await tx.get(cols.drafts.where("formId", "==", formId).limit(400));
+    // A preview account's responses are the one kind that may exist here. They go with the deliverable.
+    const previews = await tx.get(
+      cols.submissions.where("formId", "==", formId).where("preview", "==", true).limit(400),
+    );
 
     drafts.docs.forEach((doc) => tx.delete(doc.ref));
+    previews.docs.forEach((doc) => tx.delete(doc.ref));
     tx.delete(formRef);
     tx.create(cols.audit.doc(), auditEntry(user, now, "form.delete", "form", formId, form.title));
   });
@@ -318,8 +347,15 @@ export async function getResponses({ admin, now }: Caller, formId: string): Prom
   if (!formDoc) throw notFound();
   const form = formDoc.data();
 
-  const profiles = new Map(pledgesSnap.docs.map((doc) => [doc.id, doc.data()]));
+  // An admin's preview account is nobody's pledge: neither its response nor
+  // its absence is shown, and it is on no team.
+  const pledges = pledgesSnap.docs.filter((doc) => !isPreviewProfile(doc.data()));
+  const previewUids = new Set(
+    pledgesSnap.docs.filter((doc) => isPreviewProfile(doc.data())).map((doc) => doc.id),
+  );
+  const profiles = new Map(pledges.map((doc) => [doc.id, doc.data()]));
   const responses: ResponseRowDto[] = submissionsSnap.docs
+    .filter((doc) => !previewUids.has(doc.data().uid))
     .map((doc) => {
       const submission = doc.data();
       const profile = profiles.get(submission.uid);
@@ -348,7 +384,7 @@ export async function getResponses({ admin, now }: Caller, formId: string): Prom
   const nowMs = now.getTime();
   const responded = new Set(responses.map((response) => response.uid));
   const nonResponders: NonResponderDto[] = [];
-  for (const doc of pledgesSnap.docs) {
+  for (const doc of pledges) {
     if (responded.has(doc.id)) continue;
     const profile = doc.data();
     // A disabled account cannot turn anything in, so it is not chased for it.
@@ -379,7 +415,7 @@ export async function getResponses({ admin, now }: Caller, formId: string): Prom
     nonResponders,
     teams: await loadTeams(
       cols,
-      pledgesSnap.docs.map((doc) => doc.data().teamId),
+      pledges.map((doc) => doc.data().teamId),
     ),
   };
 }

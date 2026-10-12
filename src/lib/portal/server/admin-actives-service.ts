@@ -1,4 +1,5 @@
 import type { UserRecord } from "firebase-admin/auth";
+import { isPreviewProfile } from "../preview";
 import type {
   AccountState,
   ActiveRowDto,
@@ -58,11 +59,13 @@ function toActiveRow(
 
 export async function listActives({ admin, now }: Caller): Promise<ActivesDto> {
   const snapshot = await collections(admin.db).users.where("role", "==", "active").get();
+  // An admin's preview account is nobody's active.
+  const docs = snapshot.docs.filter((doc) => !isPreviewProfile(doc.data()));
   const records = await authRecords(
     admin,
-    snapshot.docs.map((doc) => doc.id),
+    docs.map((doc) => doc.id),
   );
-  const actives = snapshot.docs
+  const actives = docs
     .map((doc) => toActiveRow(doc.id, doc.data(), records.get(doc.id)))
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
   return { serverNow: now.toISOString(), actives };

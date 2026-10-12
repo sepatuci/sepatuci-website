@@ -97,18 +97,20 @@ export const ADMIN_TOPICS: GuideTopic[] = [
       "Invited: they have not finished signing in for the first time, or are on a temporary password.",
       "Set up: ready to use. Disabled: signed out and blocked, with all their work kept.",
       "Removing an account deletes it and everything attached to it, for good.",
-      "Locked out? Send a new password link or give a new temporary password, from the pledge's page or the Actives page.",
+      "Locked out? Send a new password link or give a new temporary password, from the pledge's page or the People page.",
     ],
   },
   {
-    title: "Actives",
+    title: "People",
     body:
-      "Actives are SEP members who can follow the class. Add them on the Actives page. They " +
-      "read and never change anything.",
+      "The People page lists everyone with a portal account: admins, actives and pledges. " +
+      "Accounts of every role are managed there, and roles can be changed there too.",
     points: [
-      "They see names, teams, progress and what pledges have turned in.",
-      "They never see punishments, time on site, emails or unreleased deliverables.",
-      "A pledge who becomes an active needs a new account once their pledge account is removed.",
+      "Actives are SEP members who can follow the class. They see names, teams, progress and what pledges have turned in.",
+      "Actives never see punishments, time on site, emails or unreleased deliverables, and they change nothing.",
+      "Change role moves someone between pledge, active and admin. They are signed out everywhere and get the new access at their next sign-in.",
+      "A pledge made an active or an admin comes off their team and out of pledge progress. Their past responses stay in the deliverables' records.",
+      "The preview buttons let you go through a new member's first visit yourself, in a separate tab, without touching real members.",
     ],
   },
   {

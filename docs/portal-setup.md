@@ -16,7 +16,8 @@ Three parts: try it locally, connect a real Firebase project, run it day to day.
   checked for sign-in and role before anything is touched. `firestore.rules` denies
   all direct access.
 - **Admins**: the addresses in `PORTAL_ADMIN_EMAILS` that the setup script also gave the admin
-  role. Both are required. Admin accounts cannot be changed from inside the portal.
+  role. Both are required. These admins cannot be changed from inside the portal. An admin can
+  also make someone else an admin from the People page; see "Granted admins" below.
 - **Sessions**: one browser tab. A tab signs itself out after 30 idle minutes. Every sign-in ends
   12 hours after it started, enforced by the server. The Sign out button ends it on every device.
 
@@ -224,7 +225,18 @@ menu on their row > Reset password.
 
 **Change the admins.** Update `PORTAL_ADMIN_EMAILS` in `.env.local` and in Vercel, redeploy, then
 run `npm run portal:setup`. An address taken off the list loses access as soon as the deploy is
-live.
+live. The setup script writes a listed admin's sign-in without the granted mark that the People
+page gives, so someone taken off the list later has to be granted again from the People page if
+they are to stay an admin.
+
+**Granted admins.** People > Change role can make a pledge or an active an admin without touching
+`PORTAL_ADMIN_EMAILS`. Such an admin is let in by a claim on their account rather than by the
+list, and the People page marks them as granted. They can do everything a listed admin can,
+including changing anyone's role, except that admins named in `PORTAL_ADMIN_EMAILS` cannot be
+changed from the portal at all. To revoke a granted admin, another admin changes their role back
+to pledge or active, or disables the account in the Firebase console under Authentication, which
+blocks sign-in at once. The setup script never touches an account that is not on the list, so
+running it neither creates nor removes granted admins.
 
 ## Limits worth knowing
 

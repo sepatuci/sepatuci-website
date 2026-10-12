@@ -263,7 +263,7 @@ function plain(value: unknown): Plain {
   return String(value);
 }
 
-export const PORTAL_COLLECTIONS = ["users", "teams", "forms", "drafts", "submissions", "punishments", "auditLog"] as const;
+export const PORTAL_COLLECTIONS = ["users", "teams", "forms", "drafts", "submissions", "punishments", "auditLog", "previewCodes"] as const;
 export type PortalCollection = (typeof PORTAL_COLLECTIONS)[number];
 
 /** Every document of the named collections, keyed by its full path. */
@@ -531,13 +531,15 @@ function keysWithin(value: unknown, found: Array<[string, unknown]> = []): Array
 
 /**
  * The only routes that send a temporary password: the two that create an
- * account, which say `null` when it starts by link, and the two that issue one.
+ * account, which say `null` when it starts by link, the two that issue one,
+ * and the one that trades a preview link for the preview account's.
  */
 export const HANDS_OUT_A_TEMPORARY_PASSWORD: readonly string[] = [
   "POST /admin/pledges",
   "POST /admin/actives",
   "POST /admin/pledges/[uid]/temporary-password",
   "POST /admin/actives/[uid]/temporary-password",
+  "POST /preview/redeem",
 ];
 
 /**
@@ -667,6 +669,9 @@ export type AnyHandler = Handler<Record<string, string>>;
 export type Method = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 const METHODS: Method[] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
 
+/** Who a route is for: one role, anyone signed in, or, for the one route that needs no sign-in, anyone at all. */
+export type RouteNeed = GateNeed | "public";
+
 export interface DiscoveredRoute {
   /** For example "PATCH /admin/teams/[teamId]". */
   label: string;
@@ -676,8 +681,8 @@ export interface DiscoveredRoute {
   handler: AnyHandler;
   /** The names of the dynamic segments, each given a placeholder id. */
   params: Record<string, string>;
-  /** Who the route is for, going by where it is: one role, or anyone signed in. */
-  need: GateNeed;
+  /** Who the route is for, going by where it is: one role, anyone signed in, or anyone at all. */
+  need: RouteNeed;
   /** Everything the route's module exports, handler or not. */
   moduleExports: string[];
 }
@@ -689,12 +694,19 @@ const API_ROOT = fileURLToPath(new URL("../../src/app/api/portal", import.meta.u
  * is only for an account that is still on a temporary one.
  */
 const OPEN_TO_ANY_ROLE = new Set(["me", "heartbeat", "sign-out", "onboarding", "password"]);
+/**
+ * The routes that need no sign-in at all. Only the one that trades a preview
+ * link for the preview account's sign-in, where the code in the link is the
+ * credential. Every test that calls every route with a token leaves these out.
+ */
+export const PUBLIC_ROUTES = new Set(["preview/redeem"]);
 
 /**
  * Each role's routes sit in a folder of their own: /admin for admins and
  * /review for actives. Everything else that is not shared is a pledge's.
  */
-function needOf(relative: string): GateNeed {
+function needOf(relative: string): RouteNeed {
+  if (PUBLIC_ROUTES.has(relative)) return "public";
   if (relative.startsWith("admin/")) return "admin";
   if (relative.startsWith("review/")) return "active";
   return OPEN_TO_ANY_ROLE.has(relative) ? "any" : "pledge";

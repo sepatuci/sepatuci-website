@@ -1,11 +1,12 @@
 import { Timestamp } from "firebase-admin/firestore";
 import { ID_PATTERN, LIMITS } from "../constants";
 import { isRecord, readText } from "../parse";
+import { isPreviewProfile } from "../preview";
 import type { FieldIssue, TeamDto } from "../types";
 import { auditEntry } from "./audit";
 import { HttpError, invalid } from "./http";
 import type { Caller } from "./pledge-service";
-import { collections, iso, type Collections, type TeamDoc } from "./store";
+import { collections, iso, type Collections, type TeamDoc, type UserDoc } from "./store";
 
 /**
  * Teams are a way for admins to group pledges. Every pledge starts on their
@@ -32,9 +33,10 @@ export async function loadTeams(
 
   const teamIds =
     memberTeamIds ??
-    (await cols.users.where("role", "==", "pledge").select("teamId").get()).docs.map(
-      (doc) => (doc.get("teamId") as string | null | undefined) ?? null,
-    );
+    (await cols.users.where("role", "==", "pledge").select("teamId", "previewOwnerUid").get()).docs
+      // An admin's preview account is on no team, and is not counted even if it were.
+      .filter((doc) => !isPreviewProfile({ previewOwnerUid: doc.get("previewOwnerUid") }))
+      .map((doc) => (doc.get("teamId") as string | null | undefined) ?? null);
   const counts = new Map<string, number>();
   for (const teamId of teamIds) {
     if (teamId) counts.set(teamId, (counts.get(teamId) ?? 0) + 1);
@@ -175,13 +177,27 @@ async function readPledges(
 ): Promise<string[]> {
   if (uids.length === 0) return [];
   const snapshots = await tx.getAll(...uids.map((uid) => cols.users.doc(uid)));
-  const unknown = snapshots.some((snapshot) => snapshot.data()?.role !== "pledge");
-  if (unknown) {
+  const profiles = snapshots.map((snapshot) => snapshot.data());
+  if (profiles.some((profile) => profile?.role !== "pledge")) {
     throw invalid([
       { path, code: "invalid", message: "Only pledge accounts that still exist can be on a team." },
     ]);
   }
+  // A preview account is one admin's sandbox: real pledges never see it as a teammate.
+  if (profiles.some((profile) => profile !== undefined && isPreviewProfile(profile))) {
+    throw invalid([{ path, code: "invalid", message: "A preview account can't join a team." }]);
+  }
   return uids;
+}
+
+/** The members of a team, as a transaction reads them. A preview account is never one. */
+async function teamMembers(
+  tx: FirebaseFirestore.Transaction,
+  cols: Collections,
+  teamId: string,
+): Promise<FirebaseFirestore.QueryDocumentSnapshot<UserDoc>[]> {
+  const members = await tx.get(cols.users.where("teamId", "==", teamId));
+  return members.docs.filter((doc) => !isPreviewProfile(doc.data()));
 }
 
 /**
@@ -220,9 +236,7 @@ export async function updateTeam(
     const membership =
       input.memberUids !== undefined || input.addUids !== undefined || input.removeUids !== undefined;
     if (membership) {
-      const current = new Set(
-        (await tx.get(cols.users.where("teamId", "==", teamId))).docs.map((doc) => doc.id),
-      );
+      const current = new Set((await teamMembers(tx, cols, teamId)).map((doc) => doc.id));
       if (input.memberUids !== undefined) {
         const wanted = new Set(await readPledges(tx, cols, input.memberUids, "memberUids"));
         joining = [...wanted].filter((uid) => !current.has(uid));
@@ -258,9 +272,9 @@ export async function deleteTeam({ admin, user, now }: Caller, teamId: string): 
   await admin.db.runTransaction(async (tx) => {
     const team = (await tx.get(teamRef)).data();
     if (!team) throw teamNotFound();
-    const members = await tx.get(cols.users.where("teamId", "==", teamId));
+    const members = await teamMembers(tx, cols, teamId);
 
-    for (const doc of members.docs) tx.update(doc.ref, { teamId: null, updatedAt: stamp });
+    for (const doc of members) tx.update(doc.ref, { teamId: null, updatedAt: stamp });
     tx.delete(teamRef);
     tx.create(
       cols.audit.doc(),
@@ -270,7 +284,7 @@ export async function deleteTeam({ admin, user, now }: Caller, teamId: string): 
         "team.delete",
         "team",
         teamId,
-        `Deleted team "${team.name}" (${members.size} ${members.size === 1 ? "member" : "members"} now individual)`,
+        `Deleted team "${team.name}" (${members.length} ${members.length === 1 ? "member" : "members"} now individual)`,
       ),
     );
   });

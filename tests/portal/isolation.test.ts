@@ -778,7 +778,7 @@ describe("the admin routes, called by a pledge", () => {
     before = await dumpPortal();
     expect(Object.keys(before.firestore).length).toBeGreaterThan(60);
     expect(Object.keys(before.accounts)).toHaveLength(SEEDED_ACCOUNTS);
-    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(27);
+    expect(ADMIN_ROUTES.length).toBeGreaterThanOrEqual(32);
     expect(ADMIN_ROUTES.map((route) => route.label)).toEqual(
       expect.arrayContaining([
         "POST /admin/teams",
@@ -787,6 +787,9 @@ describe("the admin routes, called by a pledge", () => {
         "POST /admin/actives",
         "PATCH /admin/actives/[uid]",
         "DELETE /admin/actives/[uid]",
+        // A pledge who could reach either of these could make themself an admin, or sign in as a sandbox.
+        "POST /admin/people/[uid]/role",
+        "POST /admin/preview",
         // A pledge who could reach either of these could take over anybody's account.
         "POST /admin/pledges/[uid]/temporary-password",
         "POST /admin/actives/[uid]/temporary-password",
@@ -918,8 +921,9 @@ describe("every route that is an admin's or a pledge's, called by an active", ()
     expect(Object.keys(before.firestore).length).toBeGreaterThan(60);
     expect(Object.keys(before.accounts)).toHaveLength(SEEDED_ACCOUNTS);
     // Every admin route and every pledge route: nothing is left out but the reads that are an
-    // active's own and the routes every role shares, two of which are tried just above.
-    expect(NOT_AN_ACTIVES).toHaveLength(DISCOVERED.length - 7);
+    // active's own, the routes every role shares, two of which are tried just above, and the
+    // one route that needs no sign-in at all.
+    expect(NOT_AN_ACTIVES).toHaveLength(DISCOVERED.length - 8);
     expect(DISCOVERED.filter((route) => !NOT_AN_ACTIVES.includes(route)).map((route) => route.label).sort()).toEqual([
       "GET /me",
       "GET /review/forms/[formId]",
@@ -927,6 +931,7 @@ describe("every route that is an admin's or a pledge's, called by an active", ()
       "POST /heartbeat",
       "POST /onboarding",
       "POST /password",
+      "POST /preview/redeem",
       "POST /sign-out",
     ]);
     expect(PLEDGE_ROUTES.map((route) => route.label)).toEqual(
@@ -1002,7 +1007,7 @@ describe("every route that is an admin's or a pledge's, called by an active", ()
 });
 
 describe("what an active is told about themself", () => {
-  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "role", "serverNow", "team", "uid"];
+  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "preview", "role", "serverNow", "team", "uid"];
 
   it("is their own name, email and role, and when they finished their welcome, with no class or team", async () => {
     const result = await call(getMe, {}, { token: priya.token });

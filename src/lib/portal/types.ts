@@ -180,7 +180,14 @@ export interface MeDto {
   team: MyTeamDto | null;
   /** When the welcome tour was finished. Null until then, and always null for admins. */
   onboardedAt: IsoDateTime | null;
+  /** Set only on an admin's preview account: whose it is, and which role it stands in for. */
+  preview: PreviewInfoDto | null;
   serverNow: IsoDateTime;
+}
+
+export interface PreviewInfoDto {
+  ownerEmail: string;
+  role: MemberRole;
 }
 
 /** What a pledge may know about their team: its name and who else is on it. Nothing more. */
@@ -454,6 +461,81 @@ export interface CreateActiveResultDto {
   active: ActiveRowDto;
   inviteLink: string | null;
   temporaryPassword: string | null;
+}
+
+// ── An admin's preview account ───────────────────────────────────────────────
+// A sandbox pledge or active that belongs to one admin, for going through a
+// new member's first visit. It is in none of the portal's lists.
+
+/**
+ * ready: nobody has signed in yet, or a temporary password has been issued
+ * and not yet replaced. in_progress: the account has chosen its own password.
+ */
+export type PreviewStage = "ready" | "in_progress";
+
+export interface PreviewStateDto {
+  uid: string;
+  role: MemberRole;
+  email: string;
+  displayName: string;
+  stage: PreviewStage;
+  createdAt: IsoDateTime;
+}
+
+/** What GET /admin/preview answers: the caller's own preview account, if they have one. */
+export interface PreviewStatusDto {
+  preview: PreviewStateDto | null;
+}
+
+export interface PreviewStartResultDto {
+  /** Goes into the one-time link. Shown to the admin once and never stored as it is. */
+  code: string;
+  expiresAt: IsoDateTime;
+  preview: PreviewStateDto;
+}
+
+/** What the sign-in page is handed for a preview link, so that it can fill the form in. */
+export interface PreviewRedeemDto {
+  email: string;
+  temporaryPassword: string;
+  role: MemberRole;
+}
+
+// ── Everyone with an account, as admins manage them ──────────────────────────
+
+/** listed: an admin named in the portal's configuration. granted: one made an admin from inside the portal. */
+export type AdminKind = "listed" | "granted";
+
+export interface PersonRowDto {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: Role;
+  status: UserStatus;
+  /** Whether sign-in is actually blocked, as for pledges. */
+  signInBlocked: boolean;
+  accountState: AccountState;
+  createdAt: IsoDateTime;
+  lastSignInAt: IsoDateTime | null;
+  /** Null for anyone who is not an admin. */
+  adminKind: AdminKind | null;
+  /** True on the caller's own row. */
+  self: boolean;
+  /** Whether the Change role button applies: not the caller, not a listed admin, not disabled. */
+  canChangeRole: boolean;
+}
+
+export interface PeopleDto {
+  serverNow: IsoDateTime;
+  /** In alphabetical order, the caller included. Preview accounts are left out. */
+  people: PersonRowDto[];
+  /** The caller's own preview account, if they have one. */
+  preview: PreviewStateDto | null;
+  teams: TeamDto[];
+}
+
+export interface ChangeRoleResultDto {
+  person: PersonRowDto;
 }
 
 // ── What an active may read ──────────────────────────────────────────────────

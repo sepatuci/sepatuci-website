@@ -69,12 +69,16 @@ const ROUTES = await discoverRoutes();
 const ADMIN_ROUTES = ROUTES.filter((route) => route.need === "admin");
 const PLEDGE_ROUTES = ROUTES.filter((route) => route.need === "pledge");
 const ACTIVE_ROUTES = ROUTES.filter((route) => route.need === "active");
+/** The one route that needs no sign-in: the code in a preview link is its credential. */
+const PUBLIC_ROUTES = ROUTES.filter((route) => route.need === "public");
+/** Every route a sign-in is judged on: all but that one. */
+const SIGNED_IN_ROUTES = ROUTES.filter((route) => route.need !== "public");
 
 const ROLES = ["admin", "active", "pledge"] as const;
 type CallerRole = (typeof ROLES)[number];
 const CALLED: Record<CallerRole, string> = { admin: "an admin", active: "an active", pledge: "a pledge" };
 /** Whether a route is one this role may call at all. */
-const mayCall = (role: CallerRole, need: (typeof ROUTES)[number]["need"]): boolean => need === "any" || need === role;
+const mayCall = (role: CallerRole, need: (typeof ROUTES)[number]["need"]): boolean => need === "any" || need === "public" || need === role;
 /** Every route against every role it is not for. */
 const REFUSALS = ROUTES.flatMap((route) => ROLES.filter((role) => !mayCall(role, route.need)).map((role) => ({ route, role })));
 /** The routes every role is let through to, whatever each then does with the request. */
@@ -138,8 +142,23 @@ describe("route discovery", () => {
       else if (route.need === "active") expect(folder, route.label).toBe("review");
       else expect(["admin", "review"], route.label).not.toContain(folder);
     }
-    // Every role has routes of its own, and every route is some role's or everyone's.
-    expect(ADMIN_ROUTES.length + ACTIVE_ROUTES.length + PLEDGE_ROUTES.length + SHARED.length).toBe(ROUTES.length);
+    // Every role has routes of its own, and every route is some role's, everyone's, or the one that is anyone's.
+    expect(PUBLIC_ROUTES.map((route) => route.label)).toEqual(["POST /preview/redeem"]);
+    expect(ADMIN_ROUTES.length + ACTIVE_ROUTES.length + PLEDGE_ROUTES.length + SHARED.length + PUBLIC_ROUTES.length).toBe(ROUTES.length);
+  });
+
+  it("finds the people and preview routes among the admin's, and the one for a preview link open to anyone", () => {
+    const labels = ROUTES.map((route) => `${route.label} (${route.need})`);
+    for (const expected of [
+      "GET /admin/people (admin)",
+      "POST /admin/people/[uid]/role (admin)",
+      "GET /admin/preview (admin)",
+      "POST /admin/preview (admin)",
+      "DELETE /admin/preview (admin)",
+      "POST /preview/redeem (public)",
+    ]) {
+      expect(labels).toContain(expected);
+    }
   });
 
   it("finds the routes for managing actives among the admin's", () => {
@@ -184,7 +203,7 @@ describe("sign-in with an email and a password only", () => {
    * has a character no id has, that it cannot turn up by chance in the ids a response carries.
    */
   const SECOND_STEP = /mfaEnrolled|mfaEnforced|needs_mfa|mfa_required|reset_mfa|two-step|second factor|secondFactor|passcode|authenticator/i;
-  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "role", "serverNow", "team", "uid"];
+  const ME_KEYS = ["createdAt", "displayName", "email", "onboardedAt", "pledgeClass", "preview", "role", "serverNow", "team", "uid"];
   const PLEDGE_ROW_KEYS = [
     "uid",
     "email",
@@ -216,9 +235,9 @@ describe("sign-in with an email and a password only", () => {
     }
   });
 
-  it("has forty route handlers at thirty paths, and none of them is for a second factor", () => {
-    expect(ROUTES).toHaveLength(40);
-    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(30);
+  it("has forty-six route handlers at thirty-four paths, and none of them is for a second factor", () => {
+    expect(ROUTES).toHaveLength(46);
+    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(34);
     expect(ROUTES.filter((route) => /mfa|factor|totp|passcode|two-step|enrol/i.test(route.path)).map((route) => route.label)).toEqual([]);
     const labels = ROUTES.map((route) => route.label);
     for (const gone of ["POST /admin/pledges/[uid]/reset-mfa", "POST /admin/actives/[uid]/reset-mfa"]) expect(labels).not.toContain(gone);
@@ -301,12 +320,20 @@ describe("sign-in with an email and a password only", () => {
 });
 
 describe("tokens", () => {
-  it.each(ROUTES)("$label refuses a request with no token", async ({ handler, method, params }) => {
+  it.each(SIGNED_IN_ROUTES)("$label refuses a request with no token", async ({ handler, method, params }) => {
     refused(await call(handler, params, { method }), 401, "unauthenticated");
   });
 
-  it.each(ROUTES)("$label refuses a garbage token", async ({ handler, method, params }) => {
+  it.each(SIGNED_IN_ROUTES)("$label refuses a garbage token", async ({ handler, method, params }) => {
     refused(await call(handler, params, { method, token: "not.a.token" }), 401, "unauthenticated");
+  });
+
+  it.each(PUBLIC_ROUTES)("$label is open to anyone: it is judged on what it sends, with no token or a garbage one alike", async ({ handler, method, params }) => {
+    for (const token of [undefined, "not.a.token", sam.token]) {
+      const result = await call(handler, params, { method, token, body: { code: "not-a-code" } });
+      refused(result, 404, "preview_code_invalid");
+      expect(Object.keys(result.body as object).sort()).toEqual(["code", "error"]);
+    }
   });
 
   it.each<[string, (session: Session) => string]>([
@@ -339,12 +366,14 @@ describe("tokens", () => {
     expect(Date.parse(me.serverNow)).toBeGreaterThan(Date.now() - 60_000);
     expect(me.createdAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(me.onboardedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+    expect(me.preview).toBeNull();
     expect(Object.keys(me).sort()).toEqual([
       "createdAt",
       "displayName",
       "email",
       "onboardedAt",
       "pledgeClass",
+      "preview",
       "role",
       "serverNow",
       "team",
@@ -380,13 +409,14 @@ describe("roles", () => {
 
   describe("every route, against every role it is not for", () => {
     // Each role's own routes and the shared ones are let through; every other pairing is here.
-    it("is two refusals for each route that belongs to one role, and none for the routes everyone shares", () => {
-      expect(REFUSALS).toHaveLength(2 * (ROUTES.length - SHARED.length));
+    it("is two refusals for each route that belongs to one role, and none for the routes everyone shares or the one anyone may call", () => {
+      expect(REFUSALS).toHaveLength(2 * (SIGNED_IN_ROUTES.length - SHARED.length));
       for (const role of ROLES) {
         const own = ROUTES.filter((route) => route.need === role).length;
-        expect(REFUSALS.filter((cell) => cell.role === role), role).toHaveLength(ROUTES.length - SHARED.length - own);
+        expect(REFUSALS.filter((cell) => cell.role === role), role).toHaveLength(SIGNED_IN_ROUTES.length - SHARED.length - own);
       }
       expect(REFUSALS.filter((cell) => cell.route.need === "any")).toEqual([]);
+      expect(REFUSALS.filter((cell) => cell.route.need === "public")).toEqual([]);
       // The new routes for issuing a temporary password are among those an active and a pledge are refused.
       for (const role of ["active", "pledge"] as const) {
         const refusedLabels = REFUSALS.filter((cell) => cell.role === role).map((cell) => cell.route.label);
@@ -420,7 +450,8 @@ describe("roles", () => {
     });
 
     it("includes no route that changes anything, other than the four that are about the caller's own sign-in and welcome", () => {
-      const changes = ROUTES.filter((route) => route.method !== "GET");
+      // The one route open to anyone is a change too, but of nothing an active has: it spends a preview link.
+      const changes = SIGNED_IN_ROUTES.filter((route) => route.method !== "GET");
       expect(changes.length).toBeGreaterThanOrEqual(25);
       expect(changes.filter((route) => mayCall("active", route.need)).map((route) => route.label).sort()).toEqual(SHARED_WRITES);
       // Each of the others was called by an active above, and refused.
@@ -428,10 +459,10 @@ describe("roles", () => {
       for (const route of changes.filter((candidate) => !SHARED_WRITES.includes(candidate.label))) {
         expect(refusedForAnActive.has(route.label), route.label).toBe(true);
       }
-      expect(refusedForAnActive.size).toBe(ROUTES.length - SHARED.length - ACTIVE_ROUTES.length);
+      expect(refusedForAnActive.size).toBe(SIGNED_IN_ROUTES.length - SHARED.length - ACTIVE_ROUTES.length);
     });
 
-    it.each(ROUTES.filter((route) => route.method !== "GET" && !SHARED_WRITES.includes(route.label)))(
+    it.each(SIGNED_IN_ROUTES.filter((route) => route.method !== "GET" && !SHARED_WRITES.includes(route.label)))(
       "$label is refused to an active whatever it is sent, before the body or the ids are looked at",
       async ({ handler, method }) => {
         const attempts = [

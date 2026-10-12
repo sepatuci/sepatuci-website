@@ -103,8 +103,10 @@ type MemberKind = "pledge" | "active";
 
 const ROUTES = await discoverRoutes();
 const CHOOSE_PASSWORD = "POST /password";
-/** Every handler the portal has, apart from the one for choosing a password. */
-const OTHER_ROUTES = ROUTES.filter((route) => route.label !== CHOOSE_PASSWORD);
+/** Every handler a sign-in is judged on: all but the one for redeeming a preview link, which needs none. */
+const SIGNED_IN_ROUTES = ROUTES.filter((route) => route.need !== "public");
+/** Every handler the portal has, apart from the one for choosing a password and the one that needs no sign-in. */
+const OTHER_ROUTES = SIGNED_IN_ROUTES.filter((route) => route.label !== CHOOSE_PASSWORD);
 
 const CHANGE_REQUIRED = "Choose your own password to continue.";
 /** There is no "Forgot password?" to point to any more: a password that needs changing is changed by a link from an admin. */
@@ -324,8 +326,9 @@ describe("the routes", () => {
     ]) {
       expect(labels).toContain(expected);
     }
-    expect(OTHER_ROUTES).toHaveLength(ROUTES.length - 1);
-    expect(OTHER_ROUTES.length).toBeGreaterThanOrEqual(39);
+    expect(SIGNED_IN_ROUTES).toHaveLength(ROUTES.length - 1);
+    expect(OTHER_ROUTES).toHaveLength(SIGNED_IN_ROUTES.length - 1);
+    expect(OTHER_ROUTES.length).toBeGreaterThanOrEqual(44);
     // Each of them a handler of its own: every method of every path.
     expect(new Set(OTHER_ROUTES.map((route) => route.label)).size).toBe(OTHER_ROUTES.length);
     expect(new Set(OTHER_ROUTES.map((route) => route.method))).toEqual(new Set(["GET", "POST", "PUT", "PATCH", "DELETE"]));
@@ -1505,7 +1508,7 @@ describe.each(KINDS)("$role: a temporary password that has run out", (kind) => {
     before = await dumpPortal();
 
     expect(ROUTES.map((route) => route.label)).toContain(CHOOSE_PASSWORD);
-    for (const route of ROUTES) {
+    for (const route of SIGNED_IN_ROUTES) {
       const params = Object.fromEntries(Object.keys(route.params).map((name) => [name, name === "formId" ? "week2interviews" : name === "uid" ? uid : name === "teamId" ? TEAM_ATLAS : "abc123"]));
       const attempts = [
         await call(route.handler, route.params, { method: route.method, token: late.token }),
@@ -1751,7 +1754,7 @@ describe.each(KINDS)("$role: a temporary password that ran out, on an account wh
     it("is refused every route there is, the one for choosing a password included, with 403 temporary_password_expired", async () => {
       expect(ROUTES.map((route) => route.label)).toContain(CHOOSE_PASSWORD);
       expect(ROUTES.length).toBeGreaterThanOrEqual(40);
-      for (const route of ROUTES) {
+      for (const route of SIGNED_IN_ROUTES) {
         const params = Object.fromEntries(Object.keys(route.params).map((name) => [name, name === "formId" ? "week2interviews" : name === "uid" ? uid : name === "teamId" ? TEAM_ATLAS : "abc123"]));
         const attempts = [
           await call(route.handler, route.params, { method: route.method, token: again.token }),
@@ -2164,12 +2167,13 @@ describe("the check every response goes through", () => {
     expect(fingerprintLeak({ temporaryPassword: "quiet-harbor-lantern-47" }, true)).toMatch(/not a temporary password/);
   });
 
-  it("names the four routes that hand one out, and they are routes the portal has", () => {
+  it("names the five routes that hand one out, and they are routes the portal has", () => {
     expect([...HANDS_OUT_A_TEMPORARY_PASSWORD].sort()).toEqual([
       "POST /admin/actives",
       "POST /admin/actives/[uid]/temporary-password",
       "POST /admin/pledges",
       "POST /admin/pledges/[uid]/temporary-password",
+      "POST /preview/redeem",
     ]);
     const labels = ROUTES.map((route) => route.label);
     for (const label of HANDS_OUT_A_TEMPORARY_PASSWORD) expect(labels).toContain(label);

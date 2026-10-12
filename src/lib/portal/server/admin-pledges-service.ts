@@ -6,6 +6,7 @@ import { ID_PATTERN, LIMITS, UCI_EMAIL_PATTERN } from "../constants";
 import { toIso } from "../dates";
 import { isRecord, readEnum, readText } from "../parse";
 import { temporaryPassword } from "../password";
+import { isPreviewProfile } from "../preview";
 import { UNSAFE_NAME_START } from "../roster";
 import type {
   AccountState,
@@ -75,7 +76,7 @@ export function onTemporaryPassword(record: UserRecord | undefined): boolean {
  * What a member's sign-in carries: the role, the address the account was
  * issued to, and a flag while the password is still a temporary one.
  */
-function memberClaims(
+export function memberClaims(
   role: MemberRole,
   email: string,
   temporary: { issuedAt: Date; brandNew: boolean } | null,
@@ -92,7 +93,7 @@ function memberClaims(
   };
 }
 
-const newTemporaryPassword = (): string => temporaryPassword(() => randomBytes(1)[0]);
+export const newTemporaryPassword = (): string => temporaryPassword(() => randomBytes(1)[0]);
 
 /**
  * The last real sign-in. Some backends stamp a sign-in time when an account is
@@ -196,12 +197,14 @@ export async function getOverview({ admin, now }: Caller): Promise<AdminOverview
   }
 
   const responseCounts = new Map<string, number>();
-  const pledges = usersSnap.docs.map((doc) => {
+  const pledges = usersSnap.docs.flatMap((doc) => {
     const profile = doc.data();
+    // An admin's preview account is nobody's pledge, and counts towards nothing.
+    if (isPreviewProfile(profile)) return [];
     for (const formId of Object.keys(profile.submitted)) {
       responseCounts.set(formId, (responseCounts.get(formId) ?? 0) + 1);
     }
-    return toPledgeRow(doc.id, profile, records.get(doc.id), activeByUid.get(doc.id) ?? 0);
+    return [toPledgeRow(doc.id, profile, records.get(doc.id), activeByUid.get(doc.id) ?? 0)];
   });
   pledges.sort((a, b) => a.displayName.localeCompare(b.displayName));
 
@@ -505,6 +508,9 @@ export async function updateMember(
         patch.teamId = null;
         changes.push("removed from their team");
       }
+    } else if (isPreviewProfile(profile)) {
+      // A preview account is one admin's sandbox: real pledges never see it as a teammate.
+      issues.push({ path: "teamId", code: "invalid", message: "A preview account can't join a team." });
     } else if (typeof wanted !== "string" || !ID_PATTERN.test(wanted)) {
       issues.push({ path: "teamId", code: "invalid", message: "Choose a team from the list." });
     } else if (wanted !== profile.teamId) {
@@ -575,11 +581,8 @@ export async function removeMember(
   }
 
   // The profile goes last, so an interrupted removal can simply be run again.
+  await purgeMemberData(admin, uid);
   const cols = collections(admin.db);
-  for (const collection of [cols.submissions, cols.drafts, cols.punishments]) {
-    await deleteMatching(admin.db, collection.where("uid", "==", uid));
-  }
-  await deleteMatching(admin.db, cols.sessions(uid));
   const batch = admin.db.batch();
   batch.delete(cols.users.doc(uid));
   batch.create(
@@ -588,6 +591,19 @@ export async function removeMember(
   );
   await batch.commit();
   return { ok: true };
+}
+
+/**
+ * Deletes everything attached to a member's account other than the profile
+ * itself: their responses, drafts, punishments and visit history. Removing an
+ * account does this, and so does starting a preview account over.
+ */
+export async function purgeMemberData(admin: PortalAdmin, uid: string): Promise<void> {
+  const cols = collections(admin.db);
+  for (const collection of [cols.submissions, cols.drafts, cols.punishments]) {
+    await deleteMatching(admin.db, collection.where("uid", "==", uid));
+  }
+  await deleteMatching(admin.db, cols.sessions(uid));
 }
 
 export const createInviteLink = (caller: Caller, uid: string, origin: string) =>

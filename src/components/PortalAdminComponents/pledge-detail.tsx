@@ -9,6 +9,7 @@ import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
 import { Input, Label, Textarea } from "@/components/ui/input";
 import { useServerNow } from "@/components/PortalComponents/portal-session";
 import {
+  ACCOUNT_CHIPS,
   Card,
   Chip,
   ConfirmDialog,
@@ -37,7 +38,6 @@ import type {
   PunishmentDto,
   TemporaryPasswordDto,
 } from "@/lib/portal/types";
-import { ACCOUNT_CHIPS } from "./master-view";
 import TemporaryPasswordDialog from "./temporary-password-dialog";
 
 type Pending = "disable" | "temporary_password" | "remove" | "edit" | null;

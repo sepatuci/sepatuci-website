@@ -58,6 +58,20 @@ function readFields(value: unknown): FieldIssue[] {
   );
 }
 
+const NETWORK_ERROR = (): ApiError =>
+  new ApiError(0, "network", "We couldn't reach the server. Check your connection.");
+
+/** The refusal a response carries, as an ApiError. */
+function refusalOf(response: Response, payload: unknown): ApiError {
+  const body = isRecord(payload) ? payload : {};
+  return new ApiError(
+    response.status,
+    typeof body.code === "string" ? body.code : "unknown",
+    typeof body.error === "string" ? body.error : "Something went wrong. Try again.",
+    readFields(body.fields),
+  );
+}
+
 /**
  * Calls a portal endpoint as the signed-in user. The path is relative to
  * /api/portal. Throws ApiError for every failure, including being offline.
@@ -88,7 +102,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
         body: hasBody ? JSON.stringify(options.body ?? {}) : undefined,
       });
     } catch {
-      throw new ApiError(0, "network", "We couldn't reach the server. Check your connection.");
+      throw NETWORK_ERROR();
     }
   };
 
@@ -104,16 +118,31 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   const payload: unknown = await response.json().catch(() => null);
   if (!response.ok) {
-    const body = isRecord(payload) ? payload : {};
-    const error = new ApiError(
-      response.status,
-      typeof body.code === "string" ? body.code : "unknown",
-      typeof body.error === "string" ? body.error : "Something went wrong. Try again.",
-      readFields(body.fields),
-    );
+    const error = refusalOf(response, payload);
     if (endsSession(error)) sessionListener?.(error);
     throw error;
   }
+  return payload as T;
+}
+
+/**
+ * Calls a portal endpoint that needs no sign-in, with a JSON body. No token is
+ * sent, and no refusal can end a session: whoever is signed in stays signed in.
+ */
+export async function apiFetchPublic<T>(path: string, body: unknown): Promise<T> {
+  let response: Response;
+  try {
+    response = await fetch(`/api/portal${path}`, {
+      method: "POST",
+      cache: "no-store",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(body ?? {}),
+    });
+  } catch {
+    throw NETWORK_ERROR();
+  }
+  const payload: unknown = await response.json().catch(() => null);
+  if (!response.ok) throw refusalOf(response, payload);
   return payload as T;
 }
 

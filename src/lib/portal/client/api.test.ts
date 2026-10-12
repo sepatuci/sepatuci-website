@@ -3,8 +3,8 @@
  * portal signs the person out and sends them back to the sign-in page, and
  * which only mean that one request was turned down.
  */
-import { describe, expect, it } from "vitest";
-import { ApiError, endsSession } from "./api";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { ApiError, apiFetchPublic, endsSession, onSessionEnded } from "./api";
 
 const refusal = (status: number, code: string): ApiError => new ApiError(status, code, "Refused.");
 
@@ -60,5 +60,75 @@ describe("endsSession", () => {
     [503, "no_profile"],
   ])("leaves the session alone for a %i %s", (status, code) => {
     expect(endsSession(refusal(status, code))).toBe(false);
+  });
+});
+
+/** What the browser's fetch answered, for the one route that needs no sign-in. */
+function answering(status: number, payload: unknown): ReturnType<typeof vi.fn> {
+  return vi.fn(async () => new Response(JSON.stringify(payload), { status, headers: { "content-type": "application/json" } }));
+}
+
+describe("apiFetchPublic", () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it("posts JSON to the portal API with no token, and hands back what came", async () => {
+    const fetched = answering(200, { email: "chair.one+preview-pledge@uci.edu", temporaryPassword: "K7QM-2XRT-9BHD", role: "pledge" });
+    vi.stubGlobal("fetch", fetched);
+    const result = await apiFetchPublic<{ email: string }>("/preview/redeem", { code: "abc" });
+    expect(result.email).toBe("chair.one+preview-pledge@uci.edu");
+
+    expect(fetched).toHaveBeenCalledTimes(1);
+    const [url, init] = fetched.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe("/api/portal/preview/redeem");
+    expect(init.method).toBe("POST");
+    expect(init.cache).toBe("no-store");
+    expect(init.body).toBe(JSON.stringify({ code: "abc" }));
+    const headers = new Headers(init.headers);
+    expect(headers.get("content-type")).toBe("application/json");
+    expect(headers.has("authorization")).toBe(false);
+  });
+
+  it("sends {} for a missing body", async () => {
+    const fetched = answering(200, {});
+    vi.stubGlobal("fetch", fetched);
+    await apiFetchPublic("/preview/redeem", undefined);
+    expect((fetched.mock.calls[0] as [string, RequestInit])[1].body).toBe("{}");
+  });
+
+  it("throws an ApiError with the server's status, code and message for a refusal", async () => {
+    vi.stubGlobal("fetch", answering(404, { error: "This preview link has expired or was already used.", code: "preview_code_invalid" }));
+    await expect(apiFetchPublic("/preview/redeem", { code: "x" })).rejects.toMatchObject({
+      name: "ApiError",
+      status: 404,
+      code: "preview_code_invalid",
+      message: "This preview link has expired or was already used.",
+      fields: [],
+    });
+  });
+
+  it("falls back to a generic message and code for a refusal with no readable body", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => new Response("<html>", { status: 502 })));
+    await expect(apiFetchPublic("/preview/redeem", {})).rejects.toMatchObject({ status: 502, code: "unknown", message: "Something went wrong. Try again." });
+  });
+
+  it("reports being offline as a network error", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => { throw new TypeError("Failed to fetch"); }));
+    await expect(apiFetchPublic("/preview/redeem", {})).rejects.toMatchObject({ status: 0, code: "network" });
+  });
+
+  it("never ends the session: a 401 or a 403 here is a refusal of the request, and the listener is not told", async () => {
+    const listener = vi.fn();
+    const stop = onSessionEnded(listener);
+    try {
+      for (const [status, code] of [[401, "unauthenticated"], [403, "email_not_allowed"], [403, "password_change_required"]] as const) {
+        vi.stubGlobal("fetch", answering(status, { error: "No.", code }));
+        await expect(apiFetchPublic("/preview/redeem", {})).rejects.toMatchObject({ status, code });
+      }
+      expect(listener).not.toHaveBeenCalled();
+    } finally {
+      stop();
+    }
   });
 });

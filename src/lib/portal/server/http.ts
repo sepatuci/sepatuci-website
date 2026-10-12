@@ -224,3 +224,62 @@ export function portalRoute<P extends Record<string, string> = Record<string, ne
     }
   };
 }
+
+export interface PublicRouteOptions {
+  maxBodyBytes?: number;
+  /** What the route's requests are counted under. Each route open to everyone has its own. */
+  limitKey: string;
+}
+
+export interface PublicRouteContext {
+  request: Request;
+  admin: PortalAdmin;
+  /** One reading of the server clock for the whole request, taken as it arrived. */
+  now: Date;
+  /** Parsed JSON for requests that carry a body, otherwise undefined. Untrusted. */
+  body: unknown;
+}
+
+type PublicRouteHandler = (context: PublicRouteContext) => Promise<object>;
+
+/**
+ * The caller's address, or "unknown" without one. The first hop of
+ * x-forwarded-for is the client on Vercel, which overwrites that header rather
+ * than appending to it. Behind a proxy that appends, it is whatever the client
+ * sent, and the ceiling below is then only as good as the proxy.
+ */
+function clientAddress(request: Request): string {
+  const forwarded = request.headers.get("x-forwarded-for") ?? "";
+  const first = forwarded.split(",")[0].trim();
+  return first.length > 0 ? first.slice(0, 64) : "unknown";
+}
+
+/**
+ * Wraps a route that needs no sign-in. The only one is redeeming a preview
+ * link, whose code is the credential. With no account to count against,
+ * requests are counted against the caller's address, under the ceilings for
+ * changes, which are the lower pair. There is no ceiling for the route as a
+ * whole: one would let an anonymous flood shut the route for everyone.
+ */
+export function publicRoute(options: PublicRouteOptions, handler: PublicRouteHandler) {
+  return async (request: Request, _route?: { params: Promise<Record<string, string>> }): Promise<Response> => {
+    const now = new Date();
+    try {
+      const admin = getPortalAdmin();
+      const key = `${options.limitKey}:${clientAddress(request)}`;
+      if (!allowRequest(key, now.getTime(), true)) {
+        // One line per address per minute, naming the route rather than any account.
+        if (shouldLogRefusal(key, now.getTime())) {
+          console.warn("[Portal] Rate limit reached for the open route", options.limitKey);
+        }
+        throw new HttpError(429, "rate_limited", "Too many requests. Wait a minute and try again.");
+      }
+      const body = METHODS_WITH_BODY.has(request.method)
+        ? await readJsonBody(request, options.maxBodyBytes ?? LIMITS.smallBodyBytes)
+        : undefined;
+      return json(await handler({ request, admin, now, body }));
+    } catch (error) {
+      return errorResponse(error, request.headers.has("authorization"));
+    }
+  };
+}

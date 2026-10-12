@@ -1,8 +1,6 @@
-import type { Metadata } from "next";
-import ActivesPanel from "@/components/PortalAdminComponents/actives-panel";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = { title: "Actives" };
-
+/** Actives are managed with everyone else now, on the People page. */
 export default function AdminActivesPage() {
-  return <ActivesPanel />;
+  redirect("/portal/admin/people");
 }

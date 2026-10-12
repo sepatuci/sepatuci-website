@@ -1,5 +1,6 @@
 import { evaluateForm, hasOpened, isReleased, type FormLike } from "../form-state";
 import { countAnswerable } from "../form-schema";
+import { isPreviewProfile } from "../preview";
 import { computeProgress } from "../progress";
 import type {
   ReviewCellDto,
@@ -95,7 +96,8 @@ export async function getReviewOverview(caller: Caller): Promise<ReviewOverviewD
   const pledges: ReviewPledgeDto[] = [];
   for (const doc of pledgesSnap.docs) {
     const profile = doc.data();
-    if (profile.status === "disabled") continue;
+    // Neither a disabled pledge nor an admin's preview account takes part.
+    if (profile.status === "disabled" || isPreviewProfile(profile)) continue;
     const submitted = submittedToWire(profile.submitted);
     const byForm: Record<string, ReviewCellDto> = {};
     for (const { id, like } of released) {
@@ -161,11 +163,12 @@ export async function getReviewForm(caller: Caller, formId: string): Promise<Rev
   }
 
   // Only pledges who can still take part. A disabled or removed pledge's
-  // response is not shown, and they are not listed as missing.
+  // response is not shown, and they are not listed as missing. Nor is an
+  // admin's preview account, whose responses are nobody's work.
   const pledges = new Map(
     pledgesSnap.docs
       .map((doc) => [doc.id, doc.data()] as const)
-      .filter(([, profile]) => profile.status !== "disabled"),
+      .filter(([, profile]) => profile.status !== "disabled" && !isPreviewProfile(profile)),
   );
   const teamOf = (teamId: string | null): string | null =>
     (teamId ? teams.get(teamId) : undefined) ?? null;

@@ -6,6 +6,7 @@ import { evaluateForm, lateAfterMs, type EvaluatedForm, type FormLike } from "..
 import { countAnswerable } from "../form-schema";
 import { isRecord } from "../parse";
 import { passwordProblem, TEMPORARY_REUSED } from "../password";
+import { isPreviewProfile } from "../preview";
 import { computeProgress } from "../progress";
 import type {
   DashboardDto,
@@ -16,6 +17,7 @@ import type {
   MeDto,
   MyTeamDto,
   PledgeFormDto,
+  PreviewInfoDto,
   SubmissionDto,
   SubmissionHistoryDto,
   SubmitResultDto,
@@ -79,10 +81,16 @@ const contentVersion = (form: FormDoc): number => form.questionsVersion ?? form.
 interface PledgeContext {
   submitted: SubmittedMap;
   createdAtMs: number;
+  /** True for an admin's preview account, whose responses are marked as counting towards nothing. */
+  preview: boolean;
 }
 
 function pledgeContext(profile: UserDoc): PledgeContext {
-  return { submitted: submittedToWire(profile.submitted), createdAtMs: profile.createdAt.toMillis() };
+  return {
+    submitted: submittedToWire(profile.submitted),
+    createdAtMs: profile.createdAt.toMillis(),
+    preview: isPreviewProfile(profile),
+  };
 }
 
 function toCard(
@@ -123,13 +131,21 @@ async function myTeam(cols: Collections, uid: string, teamId: string | null): Pr
   if (!teamId) return null;
   const [team, members] = await Promise.all([
     cols.teams.doc(teamId).get(),
-    cols.users.where("teamId", "==", teamId).select("displayName", "status", "role").get(),
+    cols.users
+      .where("teamId", "==", teamId)
+      .select("displayName", "status", "role", "previewOwnerUid")
+      .get(),
   ]);
   const name = team.data()?.name;
   if (!name) return null;
   const teammates = members.docs
     .filter(
-      (doc) => doc.id !== uid && doc.get("role") === "pledge" && doc.get("status") !== "disabled",
+      (doc) =>
+        doc.id !== uid &&
+        doc.get("role") === "pledge" &&
+        doc.get("status") !== "disabled" &&
+        // An admin's preview account is never a teammate, even were it put on a team by hand.
+        !isPreviewProfile({ previewOwnerUid: doc.get("previewOwnerUid") }),
     )
     .map((doc) => String(doc.get("displayName") ?? ""))
     .filter((displayName) => displayName.length > 0)
@@ -151,6 +167,11 @@ export async function getMe({ admin, user, now }: Caller): Promise<MeDto> {
   }
   const isPledge = user.role === "pledge" && profile !== undefined;
   const isMember = user.role !== "admin" && profile !== undefined;
+  // Only an admin's preview account is told it is one, and whose it is.
+  const preview: PreviewInfoDto | null =
+    user.role !== "admin" && profile !== undefined && isPreviewProfile(profile)
+      ? { ownerEmail: profile.previewOwnerEmail ?? "", role: user.role }
+      : null;
   return {
     uid: user.uid,
     email: user.email,
@@ -160,6 +181,7 @@ export async function getMe({ admin, user, now }: Caller): Promise<MeDto> {
     createdAt: profile ? iso(profile.createdAt) : null,
     team: isPledge ? await myTeam(cols, user.uid, profile.teamId) : null,
     onboardedAt: isMember && profile.onboardedAt ? iso(profile.onboardedAt) : null,
+    preview,
     serverNow: now.toISOString(),
   };
 }
@@ -556,6 +578,7 @@ export async function submitForm(
       activeSeconds: draft?.activeSeconds ?? 0,
       late,
       lateBySeconds: late && lateFromMs !== null ? Math.max(1, Math.ceil((nowMs - lateFromMs) / 1000)) : 0,
+      ...(view.pledge.preview ? { preview: true as const } : {}),
     });
     tx.update(cols.users.doc(user.uid), new FieldPath("submitted", formId), { submittedAt, late });
     if (draft) tx.delete(draftRef);
