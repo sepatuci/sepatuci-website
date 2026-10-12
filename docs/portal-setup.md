@@ -130,8 +130,9 @@ None of this could be verified without a real project.
 - Sign in as an admin, Duo passcode included, and open Pledges. If the portal says it is
   unavailable, read the function logs in Vercel. Usual causes: a mistyped private key or a missing
   variable.
-- `vercel.json` runs functions on Bun. The Firebase server library worked under Bun locally. If the
-  deployed API misbehaves, remove `bunVersion` from `vercel.json` to run on Node.
+- Vercel installs with `npm ci` (set in `vercel.json`) and runs functions on Node. Keep both: a
+  second install with a different tool removes files the portal's server code needs, and the
+  deployment then fails after a successful build.
 - Create a test pledge with an address you control. Confirm the email arrives; UCI's filters may
   send it to spam. If so, use "Get password link" on the pledge's page.
 - Go through a first visit as that pledge: password, sign-in, Duo Mobile, welcome tour,
