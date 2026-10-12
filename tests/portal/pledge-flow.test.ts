@@ -135,7 +135,7 @@ describe("dashboard", () => {
       const dashboard = ok<DashboardDto>(result);
       expect(dashboard.forms.map((form) => form.id)).not.toContain("pitchfeedback");
       expect(result.text).not.toContain("Pitch Night Feedback");
-      expect(result.text).not.toContain("Not visible to pledges yet");
+      expect(result.text).not.toContain("Not visible to new members yet");
       expect(dashboard.progress.total).toBe(5);
     }
   });

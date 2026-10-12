@@ -27,11 +27,11 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="h-4 w-4" />
-      All pledges
+      All new members
     </Link>
   );
 
-  if (loading && !data) return <>{back}<LoadingBlock label="Loading pledge" /></>;
+  if (loading && !data) return <>{back}<LoadingBlock label="Loading new member" /></>;
   if (error && !data) return <div className="space-y-4">{back}<ErrorNote error={error} onRetry={reload} /></div>;
   if (!data) return null;
 
@@ -40,7 +40,7 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
     return (
       <div className="space-y-4">
         {back}
-        <EmptyState title="This pledge isn't in the list" body="They may have been removed, or the link is wrong." />
+        <EmptyState title="This new member isn't in the list" body="They may have been removed, or the link is wrong." />
       </div>
     );
   }
@@ -53,7 +53,7 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
       {back}
       <div className="mb-8 mt-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">{PROGRAM_NAME} pledge</p>
+          <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">{PROGRAM_NAME} new member</p>
           <Chip>View only</Chip>
         </div>
         <h1 className="mt-2 text-3xl font-light tracking-tight text-foreground">{pledge.displayName}</h1>
@@ -92,7 +92,7 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
       </h2>
       {assigned.length === 0 ? (
         <Card className="px-5 py-8 text-center text-sm text-muted-foreground">
-          Nothing has been released to this pledge yet.
+          Nothing has been released to this new member yet.
         </Card>
       ) : (
         <Card className="divide-y divide-border overflow-hidden">
@@ -116,7 +116,7 @@ const ReviewPledge: React.FC<{ uid: string }> = ({ uid }) => {
                 </div>
                 {cell.state === "submitted" ? (
                   <Button asChild variant="outline" size="sm">
-                    <Link href={`/portal/review/deliverables/${form.id}?pledge=${pledge.uid}`}>
+                    <Link href={`/portal/review/deliverables/${form.id}?member=${pledge.uid}`}>
                       Read response
                     </Link>
                   </Button>

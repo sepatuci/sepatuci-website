@@ -30,13 +30,13 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/portal/account", label: "Account" },
   ],
   active: [
-    { href: "/portal/review", label: "Pledges", match: ["/portal/review/pledges"] },
+    { href: "/portal/review", label: "New members", match: ["/portal/review/new-members"] },
     { href: "/portal/review/deliverables", label: "Deliverables" },
     { href: "/portal/review/guide", label: "Guide" },
     { href: "/portal/account", label: "Account" },
   ],
   admin: [
-    { href: "/portal/admin", label: "Pledges", match: ["/portal/admin/pledges"] },
+    { href: "/portal/admin", label: "New members", match: ["/portal/admin/new-members"] },
     { href: "/portal/admin/people", label: "People" },
     { href: "/portal/admin/teams", label: "Teams" },
     { href: "/portal/admin/forms", label: "Deliverables" },
@@ -50,7 +50,7 @@ const HOMES: readonly string[] = Object.values(ROLE_HOME);
 
 /** What an admin going through a new member's first visit is told, on every page. */
 const PREVIEW_BANNER: Record<MemberRole, string> = {
-  pledge: "You're previewing the portal as a pledge. Nothing you do here affects real pledges.",
+  pledge: "You're previewing the portal as a new member. Nothing you do here affects real members.",
   active: "You're previewing the portal as an active. Nothing you do here affects real members.",
 };
 

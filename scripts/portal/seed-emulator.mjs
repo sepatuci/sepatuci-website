@@ -162,7 +162,7 @@ function buildForms(at) {
     },
     pitchfeedback: {
       title: "Pitch Night Feedback",
-      description: "Draft. Not visible to pledges yet.",
+      description: "Draft. Not visible to new members yet.",
       status: "draft",
       questions: [
         { id: "q_overall", type: "linear_scale", title: "How did your pitch go?", description: "", required: true, min: 1, max: 5, minLabel: "Rough", maxLabel: "Great" },
@@ -498,5 +498,5 @@ export async function seed({ extraAdmins = [], firstRun = false } = {}) {
 
 if (import.meta.url === `file://${process.argv[1]}`) {
   const result = await seed();
-  process.stdout.write(`Seeded ${result.admins.length} admins and ${PLEDGES.length} pledges.\n`);
+  process.stdout.write(`Seeded ${result.admins.length} admins and ${PLEDGES.length} new members.\n`);
 }

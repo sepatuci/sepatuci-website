@@ -159,9 +159,9 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
       setIssues([]);
       notify(
         override.status === "published"
-          ? "Published. Pledges will see it on schedule."
+          ? "Published. New members will see it on schedule."
           : override.status === "draft"
-            ? "Unpublished. Pledges can no longer see it."
+            ? "Unpublished. New members can no longer see it."
             : "Saved.",
         "success",
       );
@@ -260,8 +260,8 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
           title={publishing ? `Publish "${title}"?` : `Unpublish "${title}"?`}
           description={
             publishing
-              ? `Pledges see it on their dashboards on this schedule.${dirty ? " Your unsaved edits go out with it." : ""}`
-              : `Pledges lose access straight away, including anyone with a draft open. Responses already turned in are kept.${dirty ? " Your unsaved edits are saved too." : ""}`
+              ? `New members see it on their dashboards on this schedule.${dirty ? " Your unsaved edits go out with it." : ""}`
+              : `New members lose access straight away, including anyone with a draft open. Responses already turned in are kept.${dirty ? " Your unsaved edits are saved too." : ""}`
           }
           confirmLabel={publishing ? "Publish" : "Unpublish"}
           destructive={!publishing}
@@ -335,7 +335,7 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
           {saved.responseCount > 0 ? (
             <div className="rounded-lg border border-border bg-muted/40 px-5 py-3 text-sm text-muted-foreground">
               This deliverable has {saved.responseCount}{" "}
-              {saved.responseCount === 1 ? "response" : "responses"}. Edits apply to pledges who
+              {saved.responseCount === 1 ? "response" : "responses"}. Edits apply to new members who
               haven&apos;t submitted yet. Existing responses keep the questions they answered.
             </div>
           ) : null}
@@ -361,7 +361,7 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
             />
             <textarea
               aria-label="Deliverable description"
-              placeholder="Description: what pledges need to do, and why"
+              placeholder="Description: what new members need to do, and why"
               value={draft.description}
               maxLength={LIMITS.formDescription}
               rows={Math.min(8, Math.max(2, draft.description.split("\n").length))}
@@ -439,7 +439,7 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
       {tab === "preview" ? (
         <FormColumn>
           <div className="rounded-lg border border-border bg-muted/40 px-5 py-3 text-sm text-muted-foreground">
-            This is what pledges see, including changes you haven&apos;t saved. Nothing you enter
+            This is what new members see, including changes you haven&apos;t saved. Nothing you enter
             here is kept.
           </div>
           <TitleCard>
@@ -483,7 +483,7 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
       ) : null}
 
       {tab === "responses" ? (
-        <ResponsesPanel formId={formId} focusUid={params.get("pledge")} onChanged={refreshResponseCount} />
+        <ResponsesPanel formId={formId} focusUid={params.get("member")} onChanged={refreshResponseCount} />
       ) : null}
 
       {tab === "settings" ? (

@@ -79,7 +79,7 @@ export const ProgressMatrix: React.FC<ProgressMatrixProps> = ({ rows, forms, ple
         <thead>
           <tr className="border-b border-border text-left text-xs uppercase tracking-wider text-muted-foreground">
             <th scope="col" className="sticky left-0 z-10 bg-card px-5 py-3 font-medium">
-              Pledge
+              New member
             </th>
             {forms.map((form) => (
               <th key={form.id} scope="col" className="px-2 py-3 font-medium" title={form.title}>

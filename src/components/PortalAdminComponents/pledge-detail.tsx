@@ -80,11 +80,11 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
       className="inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
     >
       <ArrowLeft className="h-4 w-4" />
-      All pledges
+      All new members
     </Link>
   );
 
-  if (loading && !data) return <>{back}<LoadingBlock label="Loading pledge" /></>;
+  if (loading && !data) return <>{back}<LoadingBlock label="Loading new member" /></>;
   if (error && !data) return <div className="space-y-4">{back}<ErrorNote error={error} onRetry={reload} /></div>;
   if (!data || !standing) return null;
 
@@ -159,7 +159,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           method: "POST",
           body: { title: punishTitle, details: punishDetails },
         }),
-      "Punishment added. The pledge will see it on their dashboard.",
+      "Punishment added. The new member will see it on their dashboard.",
       () => {
         setPunishTitle("");
         setPunishDetails("");
@@ -173,7 +173,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
       <div className="mb-8 mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <p className="text-xs font-medium uppercase tracking-[0.25em] text-accent-ink">
-            {PROGRAM_NAME} pledge
+            {PROGRAM_NAME} new member
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-3">
             <h1 className="text-3xl font-light tracking-tight text-foreground">{pledge.displayName}</h1>
@@ -303,7 +303,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
       <SectionTitle>Deliverables</SectionTitle>
       {assigned.length === 0 ? (
         <Card className="px-5 py-8 text-center text-sm text-muted-foreground">
-          No deliverables have been released to this pledge.
+          No deliverables have been released to this new member.
         </Card>
       ) : (
         <Card className="divide-y divide-border overflow-hidden">
@@ -334,7 +334,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
                 {submission ? (
                   <div className="flex gap-2">
                     <Button asChild variant="outline" size="sm">
-                      <Link href={`/portal/admin/forms/${form.id}?tab=responses&pledge=${uid}`}>
+                      <Link href={`/portal/admin/forms/${form.id}?tab=responses&member=${uid}`}>
                         View response
                       </Link>
                     </Button>
@@ -368,7 +368,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           </div>
           <Textarea
             aria-label="Punishment details"
-            placeholder="What the pledge needs to do (optional). They will see this on their dashboard."
+            placeholder="What the new member needs to do (optional). They will see this on their dashboard."
             maxLength={LIMITS.punishmentDetails}
             value={punishDetails}
             onChange={(event) => setPunishDetails(event.target.value)}
@@ -433,7 +433,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
       <SectionTitle>Sessions</SectionTitle>
       {data.sessions.length === 0 ? (
         <Card className="px-5 py-8 text-center text-sm text-muted-foreground">
-          This pledge hasn&apos;t opened the portal yet.
+          This new member hasn&apos;t opened the portal yet.
         </Card>
       ) : (
         <Card className="overflow-hidden">
@@ -479,7 +479,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
       </p>
 
       <Dialog open={pending === "edit"} onOpenChange={(open) => setPending(open ? "edit" : null)}>
-        <DialogContent title="Edit pledge">
+        <DialogContent title="Edit new member">
           <form
             className="mt-5 space-y-4"
             onSubmit={(event) => {
@@ -510,7 +510,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
               />
             </div>
             <div>
-              <Label htmlFor="edit-pledge-class">Pledge class</Label>
+              <Label htmlFor="edit-pledge-class">Class</Label>
               <Input
                 id="edit-pledge-class"
                 value={editClass}
@@ -667,7 +667,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           if (!open) setRemoving(null);
         }}
         title="Remove this punishment?"
-        description="It disappears from the pledge's dashboard and from this history. To keep a record, mark it resolved instead."
+        description="It disappears from the new member's dashboard and from this history. To keep a record, mark it resolved instead."
         confirmLabel="Remove"
         destructive
         busy={busy}

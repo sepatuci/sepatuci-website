@@ -27,7 +27,9 @@ const STAGES: Record<PreviewStage, { label: string; tone: Tone }> = {
 const NO_PREVIEW = { label: "No preview account yet", tone: "neutral" as const };
 
 const ROLES: MemberRole[] = ["pledge", "active"];
-const NOUN: Record<MemberRole, string> = { pledge: "pledge", active: "active" };
+/** What each sandbox is called, and the same with "a new" in front, so no button reads "a new new member". */
+const NOUN: Record<MemberRole, string> = { pledge: "new member", active: "active" };
+const AS_NEW: Record<MemberRole, string> = { pledge: "a new member", active: "a new active" };
 
 /** What the server's refusals mean here. Anything else shows the server's own message. */
 const REFUSALS: Record<string, string> = {
@@ -116,12 +118,12 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ preview, onChanged }) => {
           <div className="flex flex-wrap gap-2">
             {ROLES.map((role) => (
               <Button key={role} variant="outline" size="sm" disabled={busy} onClick={() => askOrStart(role)}>
-                {preview ? `Start over as a new ${NOUN[role]}` : `Preview as a new ${NOUN[role]}`}
+                {preview ? `Start over as ${AS_NEW[role]}` : `Preview as ${AS_NEW[role]}`}
               </Button>
             ))}
             {preview?.role === "pledge" ? (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/portal/admin/pledges/${preview.uid}`}>Open the pledge&apos;s page</Link>
+                <Link href={`/portal/admin/new-members/${preview.uid}`}>Open the new member&apos;s page</Link>
               </Button>
             ) : null}
             {preview ? (
@@ -164,7 +166,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ preview, onChanged }) => {
         open={pending !== null}
         onOpenChange={(open) => (open ? undefined : setPending(null))}
         title={
-          pending?.kind === "start" ? `Start over as a new ${NOUN[pending.role]}?` : "Remove preview account?"
+          pending?.kind === "start" ? `Start over as ${AS_NEW[pending.role]}?` : "Remove preview account?"
         }
         description={
           pending?.kind === "start"

@@ -25,7 +25,7 @@ describe("areaAllows", () => {
       "/portal/admin/forms",
       "/portal/admin/forms/week2interviews",
       "/portal/admin/guide",
-      "/portal/admin/pledges/abc123",
+      "/portal/admin/new-members/abc123",
       "/portal/admin/teams",
       // Not pages that exist, but still inside the area: nobody else may be sent there.
       "/portal/admin/review",
@@ -42,7 +42,7 @@ describe("areaAllows", () => {
       "/portal/review/deliverables",
       "/portal/review/deliverables/week2interviews",
       "/portal/review/guide",
-      "/portal/review/pledges/abc123",
+      "/portal/review/new-members/abc123",
       "/portal/review/admin",
       "/portal/review/account",
     ])("%s belongs to actives alone", (pathname) => {
@@ -157,7 +157,7 @@ describe("areaAllows", () => {
       "/portal/admin",
       "/portal/admin/forms/a",
       "/portal/review",
-      "/portal/review/pledges/a",
+      "/portal/review/new-members/a",
       "/portal/reviewer",
       "/portal/administrator",
     ];

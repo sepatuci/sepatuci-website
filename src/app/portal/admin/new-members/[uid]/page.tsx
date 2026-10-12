@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import PledgeDetail from "@/components/PortalAdminComponents/pledge-detail";
 
-export const metadata: Metadata = { title: "Pledge" };
+export const metadata: Metadata = { title: "New member" };
 
 export default async function PledgePage({ params }: { params: Promise<{ uid: string }> }) {
   const { uid } = await params;

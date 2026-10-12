@@ -372,7 +372,7 @@ const QuestionEditor: React.FC<QuestionEditorProps> = ({
 
         {question.type === "short_text" ? (
           <div className="mt-5 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <label htmlFor={`validation-${question.id}`}>Pledges must enter</label>
+            <label htmlFor={`validation-${question.id}`}>New members must enter</label>
             <select
               id={`validation-${question.id}`}
               value={question.validation}

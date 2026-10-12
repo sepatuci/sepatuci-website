@@ -187,6 +187,19 @@ async function resetSandbox(
   const cols = collections(admin.db);
   const password = unknownPassword();
 
+  // The address a role's sandbox takes can change between versions of the
+  // portal. If somebody else holds the new one, the move below would fail
+  // halfway, so it is refused before anything is undone.
+  if (target.email !== sandbox.record?.email) {
+    const holder = await admin.auth.getUserByEmail(target.email).catch((error: unknown) => {
+      if (errorCode(error) === "auth/user-not-found") return null;
+      throw error;
+    });
+    if (holder !== null && holder.uid !== uid) {
+      throw new HttpError(409, "preview_email_taken", "An account already uses the address this preview would take.");
+    }
+  }
+
   await admin.auth.revokeRefreshTokens(uid);
   await purgeMemberData(admin, uid);
   await admin.auth.setCustomUserClaims(
@@ -259,7 +272,7 @@ export async function startPreview(caller: Caller, body: unknown): Promise<Previ
   const input = isRecord(body) ? body : {};
   const role = readEnum<MemberRole>(input.role, ["pledge", "active"]);
   if (!role) {
-    throw invalid([{ path: "role", code: "invalid", message: "Choose whether to preview as a pledge or an active." }]);
+    throw invalid([{ path: "role", code: "invalid", message: "Choose whether to preview as a new member or an active." }]);
   }
   // The sandbox's address is the admin's own with a tag. On any other domain
   // that would be some stranger's UCI mailbox, and a reset email from Firebase
@@ -302,7 +315,7 @@ export async function startPreview(caller: Caller, body: unknown): Promise<Previ
       "preview.start",
       "user",
       target.uid,
-      `${current ? "Started over" : "Started"} a preview as a new ${role}, ${target.email}`,
+      `${current ? "Started over" : "Started"} a preview as a new ${role === "pledge" ? "member" : "active"}, ${target.email}`,
     ),
   );
   await batch.commit();

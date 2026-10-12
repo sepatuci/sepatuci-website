@@ -839,7 +839,7 @@ describe("the two kinds of account are kept apart", () => {
     for (const uid of [priyaUid, marcusUid, danaUid]) {
       const created = refused(await call(createTeam, {}, { method: "POST", token: admin.token, body: { name: "Team With An Active", memberUids: [uid] } }), 422, "invalid");
       expect(fieldCodes(created)).toEqual(["memberUids:invalid"]);
-      expect(created.fields?.[0].message).toBe("Only pledge accounts that still exist can be on a team.");
+      expect(created.fields?.[0].message).toBe("Only new member accounts that still exist can be on a team.");
       // Alongside a real pledge, the whole request is refused: nobody is moved.
       const whole = await call(updateTeam, { teamId: TEAM_ATLAS }, { method: "PATCH", token: admin.token, body: { memberUids: [avery.uid, uid] } });
       expect(fieldCodes(refused(whole, 422, "invalid"))).toEqual(["memberUids:invalid"]);

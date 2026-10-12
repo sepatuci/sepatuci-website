@@ -18,14 +18,14 @@ export const ROLE_HOME: Record<Role, string> = {
 export const PORTAL_LABEL: Record<Role, string> = {
   admin: "Admin portal",
   active: "Actives view",
-  pledge: "Pledge portal",
+  pledge: "New member portal",
 };
 
 /** How a role is described on the Account page. */
 export const ROLE_DESCRIPTION: Record<Role, string> = {
   admin: "Founder's Education admin",
   active: "Active member, view only",
-  pledge: "Pledge",
+  pledge: "New member",
 };
 
 /** Pages every signed-in person shares. */
