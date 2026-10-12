@@ -25,7 +25,7 @@ const SHARED: Record<string, string> = {
 const BY_STEP: Record<AuthStep, Record<string, string>> = {
   sign_in: {
     "auth/user-disabled":
-      "This account has been disabled. Contact the Founder's Education chairs if you think this is a mistake.",
+      "This account has been disabled. Contact a Founder's Education admin if you think this is a mistake.",
   },
   reset: {
     "auth/expired-action-code": "This link has expired.",

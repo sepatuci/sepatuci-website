@@ -212,12 +212,16 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
             {settings.prerequisiteFormId !== null && prerequisite === null ? (
               <option value={settings.prerequisiteFormId}>A deliverable that was deleted</option>
             ) : null}
-            {candidates.map((form) => (
-              <option key={form.id} value={form.id}>
-                {form.title}
-                {form.status === "published" ? "" : ` (${form.status})`}
-              </option>
-            ))}
+            {/* Only released deliverables can be turned in, so only they are offered.
+                A choice made before one was unpublished stays visible until it is changed. */}
+            {candidates
+              .filter((form) => form.status === "published" || form.id === settings.prerequisiteFormId)
+              .map((form) => (
+                <option key={form.id} value={form.id}>
+                  {form.title}
+                  {form.status === "published" ? "" : ` (${form.status})`}
+                </option>
+              ))}
           </select>
           {errorFor("prerequisiteFormId") ? (
             <p role="alert" className="mt-1.5 text-xs text-danger-ink">
@@ -227,8 +231,8 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
           {brokenChain ? (
             <p className="mt-3 flex items-start gap-2 rounded-lg border border-warning-border bg-warning-subtle px-3 py-2.5 text-xs text-warning-ink">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-              That deliverable isn&apos;t published, so it can&apos;t be turned in. Until it is, this
-              one opens on its schedule without waiting.
+              That deliverable isn&apos;t published, so nobody can turn it in. Publish it first, or
+              choose another one. This one can&apos;t be published until then.
             </p>
           ) : null}
         </div>

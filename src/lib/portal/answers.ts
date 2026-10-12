@@ -17,14 +17,23 @@ type Normalized =
 const blank: Normalized = { ok: true, answer: null };
 const fail = (code: string, message: string): Normalized => ({ ok: false, code, message });
 
+/** The longest prefix within `max` UTF-16 units that does not split a character. */
+function cutToFit(value: string, max: number): string {
+  let cut = value.slice(0, max);
+  const last = cut.charCodeAt(cut.length - 1);
+  if (last >= 0xd800 && last <= 0xdbff) cut = cut.slice(0, -1);
+  return cut.trimEnd();
+}
+
 function normalizeText(question: AnswerableQuestion, raw: unknown, draft: boolean): Normalized {
   if (!isRecord(raw) || raw.kind !== "text") return fail("invalid", "This answer is malformed.");
   const multiline = question.type === "paragraph";
   const max = multiline ? LIMITS.paragraph : LIMITS.shortText;
   let read = readText(raw.value, max, multiline);
-  // A draft that has outgrown the limit keeps what fits instead of losing the whole answer.
+  // A draft that has outgrown the limit keeps what fits instead of losing the
+  // whole answer. The cut is made between characters, never inside one.
   if (draft && !read.ok && read.reason === "too_long" && typeof raw.value === "string") {
-    read = readText(raw.value.slice(0, max).trimEnd(), max, multiline);
+    read = readText(cutToFit(raw.value, max), max, multiline);
   }
   if (!read.ok) {
     return read.reason === "too_long"
@@ -44,7 +53,7 @@ function normalizeText(question: AnswerableQuestion, raw: unknown, draft: boolea
   // number, email or link is only judged when the deliverable is turned in.
   if (question.type === "short_text" && !draft) {
     if (question.validation === "number" && !isNumeric(value)) {
-      return fail("invalid_number", "Enter a number.");
+      return fail("invalid_number", "Enter a number, like 12 or 3.5.");
     }
     if (question.validation === "email" && !isEmail(value)) {
       return fail("invalid_email", "Enter a valid email address.");
@@ -56,19 +65,33 @@ function normalizeText(question: AnswerableQuestion, raw: unknown, draft: boolea
   return { ok: true, answer: { kind: "text", value } };
 }
 
-function readOther(raw: unknown, allowed: boolean): { ok: true; value: string | null } | { ok: false } {
-  if (raw === null || raw === undefined) return { ok: true, value: null };
+type OtherText =
+  | { ok: true; value: string | null; chosen: boolean }
+  | { ok: false };
+
+/**
+ * The free-text "Other" answer. `chosen` is true when the pledge picked
+ * "Other" at all, even before typing anything into it.
+ */
+function readOther(raw: unknown, allowed: boolean, draft: boolean): OtherText {
+  if (raw === null || raw === undefined) return { ok: true, value: null, chosen: false };
   if (!allowed) return { ok: false };
-  const read = readText(raw, LIMITS.otherText);
+  let read = readText(raw, LIMITS.otherText);
+  // A draft keeps what fits, the same as any other text answer.
+  if (draft && !read.ok && read.reason === "too_long" && typeof raw === "string") {
+    read = readText(cutToFit(raw, LIMITS.otherText), LIMITS.otherText);
+  }
   if (!read.ok) return { ok: false };
-  return { ok: true, value: read.value.length > 0 ? read.value : null };
+  return { ok: true, value: read.value.length > 0 ? read.value : null, chosen: true };
 }
 
-function normalizeChoice(question: AnswerableQuestion, raw: unknown): Normalized {
+const OTHER_EMPTY = "Type your other answer, or choose one of the options.";
+
+function normalizeChoice(question: AnswerableQuestion, raw: unknown, draft: boolean): Normalized {
   if (question.type !== "multiple_choice" && question.type !== "dropdown") return blank;
   if (!isRecord(raw) || raw.kind !== "choice") return fail("invalid", "This answer is malformed.");
 
-  const other = readOther(raw.other, question.type === "multiple_choice" && question.allowOther);
+  const other = readOther(raw.other, question.type === "multiple_choice" && question.allowOther, draft);
   if (!other.ok) return fail("invalid", "This answer is malformed.");
 
   const optionId = raw.optionId ?? null;
@@ -82,26 +105,33 @@ function normalizeChoice(question: AnswerableQuestion, raw: unknown): Normalized
   if (other.value !== null) {
     return { ok: true, answer: { kind: "choice", optionId: null, other: other.value } };
   }
+  // "Other" picked with nothing typed looks answered but says nothing. That
+  // only matters when an answer is required; otherwise it is simply blank.
+  if (other.chosen && !draft && question.required) return fail("other_empty", OTHER_EMPTY);
   return blank;
 }
 
-function normalizeChoices(question: AnswerableQuestion, raw: unknown): Normalized {
+function normalizeChoices(question: AnswerableQuestion, raw: unknown, draft: boolean): Normalized {
   if (question.type !== "checkboxes") return blank;
   if (!isRecord(raw) || raw.kind !== "choices" || !Array.isArray(raw.optionIds)) {
     return fail("invalid", "This answer is malformed.");
   }
-  const other = readOther(raw.other, question.allowOther);
+  const other = readOther(raw.other, question.allowOther, draft);
   if (!other.ok) return fail("invalid", "This answer is malformed.");
 
   const valid = new Set(question.options.map((option) => option.id));
   const chosen = new Set<string>();
   for (const optionId of raw.optionIds) {
     if (typeof optionId !== "string" || !valid.has(optionId)) {
+      // An option an admin has since removed drops out of a draft; the rest stays.
+      if (draft) continue;
       return fail("invalid_option", "Choose from the listed options.");
     }
     chosen.add(optionId);
   }
-  if (chosen.size === 0 && other.value === null) return blank;
+  if (chosen.size === 0 && other.value === null) {
+    return other.chosen && !draft && question.required ? fail("other_empty", OTHER_EMPTY) : blank;
+  }
   // Keep the options in the order the form lists them.
   const optionIds = question.options.map((option) => option.id).filter((id) => chosen.has(id));
   return { ok: true, answer: { kind: "choices", optionIds, other: other.value } };
@@ -132,9 +162,9 @@ function normalize(question: AnswerableQuestion, raw: unknown, draft = false): N
       return normalizeText(question, raw, draft);
     case "multiple_choice":
     case "dropdown":
-      return normalizeChoice(question, raw);
+      return normalizeChoice(question, raw, draft);
     case "checkboxes":
-      return normalizeChoices(question, raw);
+      return normalizeChoices(question, raw, draft);
     case "linear_scale":
       return normalizeScale(question, raw);
   }
@@ -195,8 +225,26 @@ export function sanitizeDraftAnswers(questions: Question[], input: unknown): Ans
   return answers;
 }
 
+/** True when an answer, as the page holds it, still says nothing. */
+function saysNothing(answer: Answer): boolean {
+  const otherBlank = (other: string | null) => other === null || other.trim().length === 0;
+  switch (answer.kind) {
+    case "text":
+      return answer.value.trim().length === 0;
+    case "choice":
+      return answer.optionId === null && otherBlank(answer.other);
+    case "choices":
+      return answer.optionIds.length === 0 && otherBlank(answer.other);
+    default:
+      return false;
+  }
+}
+
 export function countAnswered(questions: Question[], answers: Answers): number {
-  return answerable(questions).filter((question) => own(answers, question.id) !== undefined).length;
+  return answerable(questions).filter((question) => {
+    if (own(answers, question.id) === undefined) return false;
+    return !saysNothing(answers[question.id]);
+  }).length;
 }
 
 /** A response rendered as plain text, for tables and CSV export. */

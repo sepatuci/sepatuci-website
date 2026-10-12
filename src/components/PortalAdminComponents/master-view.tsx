@@ -372,7 +372,7 @@ const MasterView: React.FC = () => {
                       </td>
                       {hasTeams ? (
                         <td className="whitespace-nowrap px-5 py-3.5">
-                          {teamName ?? <span className="text-muted-foreground">Individual</span>}
+                          {teamName ?? <span className="text-muted-foreground">Working individually</span>}
                         </td>
                       ) : null}
                       <td className="px-5 py-3.5">

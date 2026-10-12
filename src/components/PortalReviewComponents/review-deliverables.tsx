@@ -40,7 +40,7 @@ const ReviewDeliverables: React.FC = () => {
         <EmptyState
           icon={<ClipboardList className="h-8 w-8" />}
           title="Nothing released yet"
-          body="Deliverables appear here once the chairs release them to pledges."
+          body="Deliverables appear here once an admin releases them to pledges."
         />
       </>
     );

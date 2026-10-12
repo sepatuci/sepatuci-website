@@ -145,11 +145,9 @@ const ResetForm: React.FC = () => {
             ? "Contact an active or a Founder's Education admin for a new one."
             : "Open the link from your message again to retry."}
         </p>
-        <Link href="/login" className="mt-6 block">
-          <Button variant="accent" className="h-11 w-full">
-            Back to sign in
-          </Button>
-        </Link>
+        <Button asChild variant="accent" className="mt-6 h-11 w-full">
+          <Link href="/login">Back to sign in</Link>
+        </Button>
       </div>
     );
   }
@@ -160,11 +158,9 @@ const ResetForm: React.FC = () => {
         <CheckCircle2 className="h-9 w-9 text-success-ink" />
         <h2 className="mt-4 text-xl font-medium text-foreground">All set</h2>
         <p className="mt-2 text-sm text-muted-foreground">{stage.message}</p>
-        <Link href="/login?notice=password_updated" className="mt-6 block">
-          <Button variant="accent" className="h-11 w-full">
-            Sign in
-          </Button>
-        </Link>
+        <Button asChild variant="accent" className="mt-6 h-11 w-full">
+          <Link href="/login?notice=password_updated">Sign in</Link>
+        </Button>
       </div>
     );
   }
@@ -176,7 +172,7 @@ const ResetForm: React.FC = () => {
         {welcome.current ? `Welcome to ${PROGRAM_NAME}. Choose your password` : "Choose a new password"}
       </h2>
       <p className="mt-1.5 text-sm text-muted-foreground">
-        {welcome.current ? "The chairs have set up your account. " : ""}
+        {welcome.current ? "An admin has set up your account. " : ""}
         You&apos;ll use it with <span className="text-foreground">{stage.email}</span> to sign in.
       </p>
 

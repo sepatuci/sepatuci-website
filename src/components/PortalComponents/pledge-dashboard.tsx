@@ -43,7 +43,7 @@ function cardDetail(card: FormCardDto, nowMs: number): string {
       // The earlier deliverable is only named once it has been released.
       const earlier = card.lockedByTitle ? `"${card.lockedByTitle}"` : "an earlier deliverable";
       if (card.lockReason === "prerequisite_missed") {
-        return `Locked because ${earlier} closed before you turned it in. Talk to the chairs.`;
+        return `Locked because ${earlier} closed before you turned it in. Talk to a Founder's Education admin.`;
       }
       return card.lockedByTitle
         ? `Unlocks when you turn in ${earlier}`
@@ -52,7 +52,9 @@ function cardDetail(card: FormCardDto, nowMs: number): string {
     case "submitted":
       return `Turned in ${formatDateTime(card.submittedAt)}`;
     case "missed":
-      return `Closed ${formatDateTime(card.allowLate ? (card.closesAt ?? card.dueAt) : card.dueAt)}`;
+      return `Closed ${formatDateTime(
+        card.allowLate ? (card.closesAt ?? card.dueAt) : card.dueAt,
+      )}. If you think this is wrong, talk to a Founder's Education admin.`;
     default:
       return "";
   }
@@ -80,18 +82,16 @@ const DeliverableCard: React.FC<{ card: FormCardDto; nowMs: number }> = ({ card,
         </p>
       </div>
       {open ? (
-        <Link href={`/portal/deliverables/${card.id}`} className="sm:shrink-0">
-          <Button variant="accent" className="w-full sm:w-auto">
+        <Button asChild variant="accent" className="w-full sm:w-auto sm:shrink-0">
+          <Link href={`/portal/deliverables/${card.id}`}>
             {card.draftUpdatedAt ? "Continue" : "Start"}
-          </Button>
-        </Link>
+          </Link>
+        </Button>
       ) : null}
       {card.state === "submitted" ? (
-        <Link href={`/portal/history/${card.id}`} className="sm:shrink-0">
-          <Button variant="outline" className="w-full sm:w-auto">
-            View response
-          </Button>
-        </Link>
+        <Button asChild variant="outline" className="w-full sm:w-auto sm:shrink-0">
+          <Link href={`/portal/history/${card.id}`}>View response</Link>
+        </Button>
       ) : null}
     </Card>
   );
@@ -139,6 +139,12 @@ const PunishmentAlert: React.FC<{ punishments: PunishmentDto[] }> = ({ punishmen
         </li>
       ))}
     </ul>
+    <p className="mt-4 text-xs text-danger-ink/70">
+      {punishments.length === 1
+        ? "It stays here until an admin marks it resolved."
+        : "They stay here until an admin marks them resolved."}{" "}
+      Questions? Talk to a Founder&apos;s Education admin.
+    </p>
   </div>
 );
 
@@ -197,7 +203,7 @@ const PledgeDashboard: React.FC = () => {
         <EmptyState
           icon={<ClipboardList className="h-8 w-8" />}
           title="Nothing to turn in yet"
-          body="When the chairs release a deliverable, it shows up here."
+          body="When an admin releases a deliverable, it shows up here."
         />
       ) : (
         <>

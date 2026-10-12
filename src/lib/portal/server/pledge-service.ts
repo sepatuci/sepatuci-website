@@ -1,7 +1,7 @@
 import { FieldPath, FieldValue, Timestamp, type Transaction } from "firebase-admin/firestore";
 import { applyHeartbeat } from "../activity";
 import { sanitizeDraftAnswers, validateAnswers } from "../answers";
-import { ID_PATTERN } from "../constants";
+import { ID_PATTERN, LIMITS } from "../constants";
 import { evaluateForm, lateAfterMs, type EvaluatedForm, type FormLike } from "../form-state";
 import { countAnswerable } from "../form-schema";
 import { isRecord } from "../parse";
@@ -452,7 +452,12 @@ export async function saveDraft(
   formId: string,
   body: unknown,
 ): Promise<DraftSavedDto> {
+  // A save that carries no answers at all is a broken request, not an empty
+  // draft. Treating it as empty would wipe what the pledge has typed so far.
   const answersInput = isRecord(body) ? body.answers : undefined;
+  if (!isRecord(answersInput)) {
+    throw invalid([{ path: "answers", code: "required", message: "The draft is malformed." }]);
+  }
   const cols = collections(admin.db);
   const draftRef = cols.drafts.doc(responseId(formId, user.uid));
   const stamp = Timestamp.fromDate(now);
@@ -501,7 +506,14 @@ export async function submitForm(
     if (!view.evaluated.canSubmit) throw notOpen(view.evaluated.state);
     // The page says which edit of the deliverable was answered. If an admin has
     // changed it since, the pledge reviews the new version before it is recorded.
-    if (typeof answeredVersion === "number" && answeredVersion !== contentVersion(view.form)) {
+    // A submission that does not say is not one the page made.
+    if (typeof answeredVersion !== "number") {
+      throw invalid(
+        [{ path: "formVersion", code: "required", message: "Say which version of the deliverable was answered." }],
+        "Reload the deliverable and submit again.",
+      );
+    }
+    if (answeredVersion !== contentVersion(view.form)) {
       throw new HttpError(
         409,
         "form_changed",
@@ -511,6 +523,18 @@ export async function submitForm(
 
     const validated = validateAnswers(view.form.questions, answersInput);
     if (!validated.ok) throw invalid(validated.issues, "Some answers need attention.");
+    // The response is stored with a copy of the questions it answered, and a
+    // stored document has a hard size limit. Very long answers to a very long
+    // deliverable are told so here, instead of failing with no reason given.
+    const storedBytes =
+      Buffer.byteLength(JSON.stringify(validated.value)) +
+      Buffer.byteLength(JSON.stringify(view.form.questions));
+    if (storedBytes > LIMITS.submissionStoredBytes) {
+      throw invalid(
+        [{ path: "answers", code: "too_long", message: "Your answers are too long to store together. Shorten the longest ones and try again." }],
+        "Some answers need attention.",
+      );
+    }
 
     const late = view.evaluated.late;
     const lateFromMs = lateAfterMs(view.like.settings);
@@ -531,7 +555,7 @@ export async function submitForm(
       durationSeconds: Math.round((nowMs - startedAtMs) / 1000),
       activeSeconds: draft?.activeSeconds ?? 0,
       late,
-      lateBySeconds: late && lateFromMs !== null ? Math.round((nowMs - lateFromMs) / 1000) : 0,
+      lateBySeconds: late && lateFromMs !== null ? Math.max(1, Math.ceil((nowMs - lateFromMs) / 1000)) : 0,
     });
     tx.update(cols.users.doc(user.uid), new FieldPath("submitted", formId), { submittedAt, late });
     if (draft) tx.delete(draftRef);

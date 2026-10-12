@@ -224,17 +224,86 @@ describe("validateFormDefinition", () => {
       expect(value.questions[0].title).toBe("What is your major?");
     });
 
-    it("falls back to safe defaults for wrongly typed optional flags", () => {
-      const value = expectValid(
-        rawForm({
-          questions: [
-            shortText("q1", { required: "yes", validation: "regex" }),
-            choice("q2", { required: 1, allowOther: "true" }),
-          ],
-        }),
-      );
-      expect(value.questions[0]).toMatchObject({ required: false, validation: "none" });
-      expect(value.questions[1]).toMatchObject({ required: false, allowOther: false });
+    it("falls back to no validation for a short text validation it does not know", () => {
+      const value = expectValid(rawForm({ questions: [shortText("q1", { validation: "regex" })] }));
+      expect(value.questions[0]).toMatchObject({ validation: "none" });
+    });
+
+    // A flag that is not a boolean is a broken request, not "off": the text "true"
+    // read as off would quietly make a required question optional.
+    describe("on/off settings", () => {
+      const MESSAGE = "This setting must be on or off.";
+      const notBooleans: Array<[string, unknown]> = [
+        ["the text true", "true"],
+        ["the text yes", "yes"],
+        ["the text false", "false"],
+        ["the number 1", 1],
+        ["the number 0", 0],
+        ["an empty string", ""],
+        ["an array", []],
+        ["an object", {}],
+      ];
+
+      it.each(notBooleans)("refuses a required that is %s", (_label, required) => {
+        expect(issuesOf(rawForm({ questions: [shortText("q1", { required })] }))).toEqual([
+          { path: "questions[0].required", code: "invalid", message: MESSAGE },
+        ]);
+      });
+
+      it.each(notBooleans)("refuses an allowOther that is %s", (_label, allowOther) => {
+        expect(issuesOf(rawForm({ questions: [choice("q1", { allowOther })] }))).toEqual([
+          { path: "questions[0].allowOther", code: "invalid", message: MESSAGE },
+        ]);
+      });
+
+      it.each(notBooleans)("refuses an allowLate that is %s", (_label, allowLate) => {
+        expect(issuesOf(rawForm({ settings: rawSettings({ allowLate }) }))).toEqual([
+          { path: "settings.allowLate", code: "invalid", message: MESSAGE },
+        ]);
+      });
+
+      it("names every flag at fault, under the question each belongs to", () => {
+        const issues = issuesOf(
+          rawForm({
+            questions: [shortText("q1", { required: "yes" }), choice("q2", { required: 1, allowOther: "true" })],
+            settings: rawSettings({ allowLate: "no" }),
+          }),
+        );
+        expect(issues.map((issue) => `${issue.path}:${issue.code}`)).toEqual([
+          "questions[0].required:invalid",
+          "questions[1].required:invalid",
+          "questions[1].allowOther:invalid",
+          "settings.allowLate:invalid",
+        ]);
+      });
+
+      it.each<[string, unknown]>([
+        ["missing", undefined],
+        ["null", null],
+      ])("reads a flag that is %s as off", (_label, blank) => {
+        const value = expectValid(
+          rawForm({
+            questions: [shortText("q1", { required: blank }), choice("q2", { required: blank, allowOther: blank })],
+            settings: rawSettings({ allowLate: blank }),
+          }),
+        );
+        expect(value.questions[0]).toMatchObject({ required: false });
+        expect(value.questions[1]).toMatchObject({ required: false, allowOther: false });
+        expect(value.settings.allowLate).toBe(false);
+      });
+
+      it("does not judge a flag on a question type that has no such setting", () => {
+        // A section is never required, and only multiple choice and checkboxes offer Other.
+        expectValid(
+          rawForm({
+            questions: [
+              { id: "s", type: "section", title: "S", description: "", required: "yes" },
+              shortText("q1", { allowOther: "yes" }),
+              { ...choice("q2"), type: "dropdown", allowOther: "yes" },
+            ],
+          }),
+        );
+      });
     });
 
     it.each<[string, unknown]>([
@@ -309,10 +378,22 @@ describe("validateFormDefinition", () => {
       expectIssue(rawForm({ questions }), "questions", "invalid");
     });
 
+    const many = (count: number) => Array.from({ length: count }, (_, i) => shortText(`q${i}`));
+
     it("accepts exactly the maximum number of questions and refuses one more", () => {
-      const many = (count: number) => Array.from({ length: count }, (_, i) => shortText(`q${i}`));
       expect(expectValid(rawForm({ questions: many(LIMITS.maxQuestions) })).questions).toHaveLength(60);
       expectIssue(rawForm({ questions: many(LIMITS.maxQuestions + 1) }), "questions", "too_many");
+    });
+
+    // A list that could not be read has one problem to report. Saying it is also
+    // empty would send the admin looking for a second thing to fix.
+    it("reports a list that is too long, or missing, as that one problem and not as empty too", () => {
+      expect(issuesOf(rawForm({ questions: many(LIMITS.maxQuestions + 1) }))).toEqual([
+        { path: "questions", code: "too_many", message: `A deliverable can have at most ${LIMITS.maxQuestions} questions.` },
+      ]);
+      expect(issuesOf(rawForm({ questions: undefined }))).toEqual([
+        { path: "questions", code: "invalid", message: "Questions are missing." },
+      ]);
     });
 
     it("refuses to publish a form with no questions", () => {
@@ -551,22 +632,28 @@ describe("validateFormDefinition", () => {
       expectIssue(rawForm({ settings }), "settings", "invalid");
     });
 
-    it("normalizes every date to a millisecond-precision UTC timestamp", () => {
+    // Every screen shows a schedule to the minute, so that is what is stored:
+    // seconds would make the stored time differ from the one everyone reads.
+    it("stores every date floored to the minute, as a UTC timestamp", () => {
       const value = expectValid(
         withSettings({
           visibleAt: "2026-10-01T00:00:00Z",
           opensAt: "2026-10-02T08:30:00.5Z",
           dueAt: "2026-10-09T06:59:59.999Z",
-          closesAt: "2026-10-12T00:00:00Z",
+          closesAt: "2026-10-14T23:59:30.123Z",
           allowLate: true,
         }),
       );
       expect(value.settings).toMatchObject({
         visibleAt: "2026-10-01T00:00:00.000Z",
-        opensAt: "2026-10-02T08:30:00.500Z",
-        dueAt: "2026-10-09T06:59:59.999Z",
-        closesAt: "2026-10-12T00:00:00.000Z",
+        opensAt: "2026-10-02T08:30:00.000Z",
+        dueAt: "2026-10-09T06:59:00.000Z",
+        closesAt: "2026-10-14T23:59:00.000Z",
       });
+    });
+
+    it("keeps a time that is already on the minute as it is", () => {
+      expect(expectValid(withSettings({ dueAt: "2026-10-09T07:00:00.000Z" })).settings.dueAt).toBe("2026-10-09T07:00:00.000Z");
     });
 
     it.each<[string, unknown]>([
@@ -640,15 +727,26 @@ describe("validateFormDefinition", () => {
         expect(value.settings).toMatchObject({ visibleAt: early, opensAt: early, dueAt: early, closesAt: early });
       });
 
-      it("accepts a schedule one millisecond apart at each step", () => {
-        expectValid(
+      it("accepts steps that fall within one minute, which flooring makes the same instant", () => {
+        const value = expectValid(
           withSettings({
             visibleAt: "2026-10-01T00:00:00.000Z",
             opensAt: "2026-10-01T00:00:00.001Z",
-            dueAt: "2026-10-01T00:00:00.002Z",
-            closesAt: "2026-10-01T00:00:00.003Z",
+            dueAt: "2026-10-01T00:00:30.000Z",
+            closesAt: "2026-10-01T00:00:59.999Z",
             allowLate: true,
           }),
+        );
+        const minute = "2026-10-01T00:00:00.000Z";
+        expect(value.settings).toMatchObject({ visibleAt: minute, opensAt: minute, dueAt: minute, closesAt: minute });
+      });
+
+      it("judges the order by the minute: seconds behind within one minute are not out of order, a minute behind is", () => {
+        expectValid(withSettings({ opensAt: "2026-10-01T00:00:45.000Z", dueAt: "2026-10-01T00:00:10.000Z" }));
+        expectIssue(
+          withSettings({ opensAt: "2026-10-01T00:01:00.000Z", dueAt: "2026-10-01T00:00:59.999Z" }),
+          "settings.dueAt",
+          "out_of_order",
         );
       });
     });
@@ -674,9 +772,16 @@ describe("validateFormDefinition", () => {
         expect(value.settings.closesAt).toBeNull();
       });
 
-      it("treats a non-boolean allowLate as off, which also clears closesAt", () => {
-        const value = expectValid(withSettings({ dueAt: due, closesAt: closes, allowLate: "true" }));
-        expect(value.settings).toMatchObject({ allowLate: false, closesAt: null });
+      it("refuses an allowLate that is not a boolean rather than reading it as off", () => {
+        expectIssue(withSettings({ dueAt: due, closesAt: closes, allowLate: "true" }), "settings.allowLate", "invalid");
+        expectIssue(withSettings({ dueAt: due, closesAt: closes, allowLate: 1 }), "settings.allowLate", "invalid");
+      });
+
+      it("reads a missing or null allowLate as off, which also clears closesAt", () => {
+        for (const allowLate of [undefined, null]) {
+          const value = expectValid(withSettings({ dueAt: due, closesAt: closes, allowLate }));
+          expect(value.settings).toMatchObject({ allowLate: false, closesAt: null });
+        }
       });
 
       // Nothing is late without a deadline, so a cut-off on its own would never be enforced.

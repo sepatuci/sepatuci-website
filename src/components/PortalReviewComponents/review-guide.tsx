@@ -11,9 +11,9 @@ const ReviewGuide: React.FC = () => (
       title="Guide"
       subtitle="What you can see as an active, and how to read it."
       actions={
-        <Link href="/portal/review">
-          <Button variant="accent">Go to pledges</Button>
-        </Link>
+        <Button asChild variant="accent">
+          <Link href="/portal/review">Go to pledges</Link>
+        </Button>
       }
     />
     <div className="space-y-5">

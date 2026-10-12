@@ -524,7 +524,7 @@ describe("everything a pledge can read", () => {
         await call(heartbeat, {}, { method: "POST", token: session.token, body: { formId } }),
         await call(completeOnboarding, {}, { method: "POST", token: session.token }),
         // Refused: required answers are missing. The refusal lists fields, not people.
-        await call(submit, { formId }, { method: "POST", token: session.token, body: { answers } }),
+        await call(submit, { formId }, { method: "POST", token: session.token, body: { answers, formVersion: 1 } }),
       ];
       expect(results.map((result) => result.status)).toEqual([200, 200, 200, 422]);
       for (const result of results) expect(leaksIn(result.text, session)).toEqual([]);
@@ -584,7 +584,7 @@ describe("two pledges on the same team", () => {
     const attempt = await call(submit, { formId: "week2interviews" }, {
       method: "POST",
       token: avery.token,
-      body: { answers: { ...INTERVIEWS, q_surprise: { kind: "text", value: "Overwritten by a teammate" } }, uid: jordan.uid },
+      body: { answers: { ...INTERVIEWS, q_surprise: { kind: "text", value: "Overwritten by a teammate" } }, formVersion: 1, uid: jordan.uid },
       ...naming(jordan),
     });
     // Avery already turned it in, so this is Avery's own second attempt and nothing more.
@@ -645,7 +645,7 @@ describe("two pledges on the same team", () => {
   });
 
   it("cannot read a response the other has turned in and they have not", async () => {
-    ok(await call(submit, { formId: "week2synthesis" }, { method: "POST", token: avery.token, body: { answers: SYNTHESIS, uid: jordan.uid } }));
+    ok(await call(submit, { formId: "week2synthesis" }, { method: "POST", token: avery.token, body: { answers: SYNTHESIS, formVersion: 1, uid: jordan.uid } }));
     expect(await docExists(`submissions/week2synthesis_${avery.uid}`)).toBe(true);
     expect(await docExists(`submissions/week2synthesis_${jordan.uid}`)).toBe(false);
 

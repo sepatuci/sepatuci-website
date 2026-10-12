@@ -9,7 +9,7 @@ import { Input, Label } from "@/components/ui/input";
 import { ApiError, apiFetch, errorMessage } from "@/lib/portal/client/api";
 import { getPortalAuth } from "@/lib/portal/client/firebase";
 import type { AccountStart, CreatePledgeResultDto, TeamDto } from "@/lib/portal/types";
-import { StartChoice, TemporaryPassword } from "./temporary-password-dialog";
+import { CopyWarning, StartChoice, TemporaryPassword, useCopyGuard } from "./temporary-password-dialog";
 
 interface CreatePledgeDialogProps {
   open: boolean;
@@ -49,6 +49,8 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
   const [formError, setFormError] = useState<string | null>(null);
   const [created, setCreated] = useState<Created | null>(null);
   const [copied, setCopied] = useState(false);
+  // A temporary password leaves with the window, so leaving without a copy asks once.
+  const guard = useCopyGuard(created?.temporaryPassword ?? null);
 
   const reset = (keepClass: boolean) => {
     setDisplayName("");
@@ -124,6 +126,11 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
     onOpenChange(next);
   };
 
+  /** Leaves the created account behind, once the password on show has been copied or the warning seen. */
+  const leave = (then: () => void) => {
+    if (guard.confirm()) then();
+  };
+
   return (
     <Dialog open={open} onOpenChange={close}>
       {created ? (
@@ -142,6 +149,7 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
                 name={created.name}
                 email={created.email}
                 isNew
+                onCopied={guard.onCopied}
               />
             </div>
           ) : (
@@ -168,12 +176,13 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
               </div>
             </div>
           ) : null}
+          {guard.warned ? <CopyWarning /> : null}
           <div className="mt-6 flex justify-end gap-2">
-            <Button variant="ghost" onClick={() => reset(true)}>
+            <Button variant="ghost" onClick={() => leave(() => reset(true))}>
               Add another
             </Button>
-            <Button variant="accent" onClick={() => close(false)}>
-              Done
+            <Button variant="accent" onClick={() => leave(() => close(false))}>
+              {guard.warned ? "Close anyway" : "Done"}
             </Button>
           </div>
         </DialogContent>

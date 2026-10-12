@@ -115,6 +115,21 @@ describe("isCivilDate", () => {
     },
   );
 
+  // Date.UTC reads a year under 100 as 19xx, which would make 0099 a leap year and 0000 not one.
+  it.each(["0000-01-01", "0000-02-29", "0001-01-01", "0099-12-31", "0004-02-29", "0100-01-01"])(
+    "accepts %s, in a year under 100 as written",
+    (value) => {
+      expect(isCivilDate(value)).toBe(true);
+    },
+  );
+
+  it.each(["0099-02-29", "0001-02-29", "0100-02-29", "0099-13-01", "0000-02-30"])(
+    "rejects %s, which does not exist in that year",
+    (value) => {
+      expect(isCivilDate(value)).toBe(false);
+    },
+  );
+
   it.each([
     "2026-02-30",
     "2026-02-29",
@@ -212,8 +227,10 @@ describe("formatDuration", () => {
     [3660, "1h 01m"],
     [7500, "2h 05m"],
     [35_999, "9h 59m"],
-    [86_400, "24h 00m"],
-    [360_000, "100h 00m"],
+    [86_399, "23h 59m"],
+    [86_400, "1d 00h"],
+    [74 * 60 * 60, "3d 02h"],
+    [360_000, "4d 04h"],
   ])("formats %d seconds as %s", (seconds, expected) => {
     expect(formatDuration(seconds)).toBe(expected);
   });

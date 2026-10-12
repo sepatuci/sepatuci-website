@@ -78,7 +78,7 @@ const TeamsPanel: React.FC = () => {
   const header = (
     <PageHeader
       title="Teams"
-      subtitle="Group pledges into teams. Everyone starts solo and can be moved at any time."
+      subtitle="Group pledges into teams. Everyone starts on their own and can be moved at any time."
       actions={
         <Button
           variant="accent"
@@ -107,7 +107,7 @@ const TeamsPanel: React.FC = () => {
     setBusy(true);
     try {
       await apiFetch(`/admin/teams/${removing.id}`, { method: "DELETE" });
-      notify(`Team "${removing.name}" deleted. Its members are individual again.`, "success");
+      notify(`Team "${removing.name}" deleted. Its members are working individually again.`, "success");
       setRemoving(null);
       reload();
     } catch (caught) {
@@ -131,7 +131,7 @@ const TeamsPanel: React.FC = () => {
         <EmptyState
           icon={<Users className="h-8 w-8" />}
           title="No teams yet"
-          body="Everyone is working solo. When teams form, create them here and pick who's on each. Joining a team doesn't change anyone's deliverables."
+          body="Everyone is working individually. When teams form, create them here and pick who's on each. Joining a team doesn't change anyone's deliverables."
           action={
             <Button
               variant="accent"

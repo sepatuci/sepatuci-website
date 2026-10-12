@@ -87,6 +87,40 @@ describe("readText", () => {
   it("accepts an empty string", () => {
     expect(readText("", 10)).toEqual({ ok: true, value: "" });
   });
+
+  // Pasted from a web page or a chat app, these take no space and mean nothing.
+  it("strips a zero-width space, a word joiner and a byte-order mark wherever they are", () => {
+    expect(readText("a​b⁠c﻿d", 100)).toEqual({ ok: true, value: "abcd" });
+    expect(readText("﻿a@b.co​", 100)).toEqual({ ok: true, value: "a@b.co" });
+    expect(readText(`${"x".repeat(10)}​⁠﻿`, 10)).toEqual({ ok: true, value: "x".repeat(10) });
+  });
+
+  it.each<[string, string]>([
+    ["a zero-width space", "​"],
+    ["blank braille", "⠀"],
+    ["several blank braille cells and spaces", "⠀ ⠀⠀ "],
+    ["a soft hyphen", "­"],
+    ["a left-to-right mark", "‎"],
+    ["a zero-width joiner on its own", "‍"],
+    ["format characters, blank braille and whitespace together", " ‎⠀\n­\t⁢ "],
+  ])("reads text made only of %s as empty", (_label, value) => {
+    expect(readText(value, 100)).toEqual({ ok: true, value: "" });
+    expect(readText(value, 100, true)).toEqual({ ok: true, value: "" });
+  });
+
+  // These two shape letters in some scripts and join emoji into one, so they stay.
+  it("keeps a zero-width non-joiner and a zero-width joiner inside text", () => {
+    const persian = "می‌خواهم";
+    const family = "👨‍👩‍👧";
+    expect(readText(persian, 100)).toEqual({ ok: true, value: persian });
+    expect(readText(family, 100)).toEqual({ ok: true, value: family });
+    expect(readText("a‍b", 100)).toEqual({ ok: true, value: "a‍b" });
+  });
+
+  it("still counts a joiner it keeps towards the limit", () => {
+    expect(readText("a‍b", 3)).toEqual({ ok: true, value: "a‍b" });
+    expect(readText("a‍b", 2)).toEqual({ ok: false, reason: "too_long" });
+  });
 });
 
 describe("readBoolean and readInteger", () => {
@@ -217,15 +251,45 @@ describe("isHttpUrl", () => {
   ])("rejects %s", (value) => {
     expect(isHttpUrl(value)).toBe(false);
   });
+
+  // A URL parser takes these, but nobody can follow them anywhere.
+  it.each([
+    "https://x",
+    "https://x/path",
+    "https://.",
+    "https:///x",
+    "https://x.com.",
+    "https://.x.com",
+    "https://x..com",
+    "https://-x.com",
+    "https://x-.com",
+    "https://x_y.com",
+  ])("rejects %s, whose host is not one people can reach", (value) => {
+    expect(isHttpUrl(value)).toBe(false);
+  });
+
+  it.each(["https://x.com", "https://x.com/", "https://a-b.c-d.org/x", "https://localhost", "https://localhost:3000/x", "https://LOCALHOST/x"])(
+    "accepts %s, a host made of dotted labels or localhost itself",
+    (value) => {
+      expect(isHttpUrl(value)).toBe(true);
+    },
+  );
 });
 
 describe("isEmail", () => {
-  it.each(["avery.chen@uci.edu", "a@b.co", "first+tag@sub.example.org", "UPPER@EXAMPLE.ORG"])(
-    "accepts %s",
-    (value) => {
-      expect(isEmail(value)).toBe(true);
-    },
-  );
+  it.each([
+    "avery.chen@uci.edu",
+    "a@b.co",
+    "first+tag@sub.example.org",
+    "UPPER@EXAMPLE.ORG",
+    "name+tag@uci.edu",
+    "A@B.CO",
+    "first.last@sub.example.org",
+    "o'brien@example.org",
+    "a@b-c.co",
+  ])("accepts %s", (value) => {
+    expect(isEmail(value)).toBe(true);
+  });
 
   it.each([
     "avery",
@@ -243,6 +307,32 @@ describe("isEmail", () => {
     expect(isEmail(value)).toBe(false);
   });
 
+  // The domain has to be one mail could reach: dotted labels of letters, digits
+  // and hyphens, ending in a top-level domain of at least two letters.
+  it.each([
+    "a@-.-",
+    "a@b..co",
+    "a@b.co.",
+    "a@.b.co",
+    "a@b.c",
+    "a@b.c0",
+    "a@-b.co",
+    "a@b-.co",
+    "a@b_c.co",
+    "a@[1.2.3.4]",
+    "a@1.2.3.4",
+  ])("rejects %s, whose domain is not one mail could reach", (value) => {
+    expect(isEmail(value)).toBe(false);
+  });
+
+  // Quoting and routing syntax is valid to the standard and used by nobody people write to.
+  it.each(['"a"@b.co', "a(b)@b.co", "a,b@b.co", "a:b@b.co", "a;b@b.co", "<a>@b.co", "a[b]@b.co", "a\\b@b.co"])(
+    "rejects %s, whose local part uses syntax nobody types",
+    (value) => {
+      expect(isEmail(value)).toBe(false);
+    },
+  );
+
   it("accepts an address of exactly 254 characters and rejects one more", () => {
     const domain = "@example.org";
     expect(isEmail("a".repeat(254 - domain.length) + domain)).toBe(true);
@@ -251,14 +341,14 @@ describe("isEmail", () => {
 });
 
 describe("isNumeric", () => {
-  it.each(["0", "7", "42", "-42", "3.14", "-0.5", "0.0", "007", "123456789012345678901234567890"])(
+  it.each(["0", "7", "42", "-42", "3.14", "-0.5", "0.0", "007", "123456789012345678901234567890", "1,000", "3,5", ".5", "5.", "+5"])(
     "accepts %s",
     (value) => {
       expect(isNumeric(value)).toBe(true);
     },
   );
 
-  it.each(["", " ", "abc", "4 interviews", "1e5", "1,000", ".5", "5.", "+5", "--5", "5-", "1.2.3", "0x1F", "Infinity", "NaN", " 5", "5 ", "5\n", "٥"])(
+  it.each(["", " ", "abc", "4 interviews", "1e5", "--5", "5-", "1.2.3", "1,000.5", "1,000,000.5", "0x1F", "Infinity", "NaN", " 5", "5 ", "5\n", "٥", ".", ",", "+", "-"])(
     "rejects %j",
     (value) => {
       expect(isNumeric(value)).toBe(false);

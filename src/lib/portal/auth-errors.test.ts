@@ -128,7 +128,7 @@ describe("describeAuthError", () => {
         [
           FALLBACK.sign_in,
           FALLBACK.reset,
-          "This account has been disabled. Contact the Founder's Education chairs if you think this is a mistake.",
+          "This account has been disabled. Contact a Founder's Education admin if you think this is a mistake.",
           "This account has been disabled.",
           "This link has expired.",
           "This link is no longer valid.",
@@ -232,7 +232,7 @@ describe("describeAuthError", () => {
       expect(describeAuthError(firebaseError(code), "reset"), code).not.toBe("We couldn't update your password. Try again.");
     }
     // A disabled account is told so at both, and whom to contact only where it tried to sign in.
-    expect(describeAuthError(firebaseError("auth/user-disabled"), "sign_in")).toMatch(/Contact the Founder's Education chairs/);
+    expect(describeAuthError(firebaseError("auth/user-disabled"), "sign_in")).toMatch(/Contact a Founder's Education admin/);
     expect(describeAuthError(firebaseError("auth/user-disabled"), "reset")).toBe("This account has been disabled.");
   });
 

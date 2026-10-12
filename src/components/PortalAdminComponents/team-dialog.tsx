@@ -163,7 +163,12 @@ const TeamDialog: React.FC<TeamDialogProps> = ({ open, onOpenChange, team, pledg
                         className="h-4 w-4 shrink-0 accent-accent"
                       />
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-sm text-foreground">{pledge.displayName}</span>
+                        <span className="block truncate text-sm text-foreground">
+                          {pledge.displayName}
+                          {pledge.status === "disabled" ? (
+                            <span className="ml-2 text-xs text-muted-foreground">Disabled</span>
+                          ) : null}
+                        </span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {elsewhere ? `Currently on ${elsewhere}` : pledge.email}
                         </span>

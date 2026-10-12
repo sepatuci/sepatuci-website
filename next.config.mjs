@@ -7,22 +7,6 @@ const nextConfig = {
   // Stops `next dev` from writing AGENTS.md and CLAUDE.md into the repository root.
   agentRules: false,
 
-  experimental: {
-    serverComponentsExternalPackages: [
-      "node-cron",
-      "rss-parser",
-      "pg",
-      "better-sqlite3",
-      "express",
-      "dotenv",
-      "@opentelemetry/api",
-      "@opentelemetry/core",
-      "@opentelemetry/sdk-trace-base",
-      "@opentelemetry/sdk-trace-node",
-      "@opentelemetry/context-async-hooks",
-    ],
-  },
-
   serverExternalPackages: [
     "node-cron",
     "rss-parser",

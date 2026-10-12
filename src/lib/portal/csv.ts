@@ -3,10 +3,16 @@ import type { Question, ResponseRowDto } from "./types";
 
 // Spreadsheet apps run a cell as a formula when it starts with one of these.
 const FORMULA_LEAD = /^[=+\-@\t\r]/;
+// A number every spreadsheet reads as one: a sign, digits, at most one point.
+const PLAIN_NUMBER = /^[-+]?\d+(\.\d+)?$/;
 
-/** Quotes one cell and defuses spreadsheet formulas in pledge-supplied text. */
+/**
+ * Quotes one cell and defuses spreadsheet formulas in pledge-supplied text.
+ * A plain number such as -3 or +1 is left alone: it cannot run anything, and
+ * a quote in front of it would turn a numeric column into text.
+ */
 export function csvCell(value: string): string {
-  const safe = FORMULA_LEAD.test(value) ? `'${value}` : value;
+  const safe = FORMULA_LEAD.test(value) && !PLAIN_NUMBER.test(value) ? `'${value}` : value;
   return `"${safe.replace(/"/g, '""')}"`;
 }
 

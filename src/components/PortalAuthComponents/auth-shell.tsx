@@ -32,7 +32,7 @@ const AuthShell: React.FC<AuthShellProps> = ({ children }) => (
         <div className="rounded-2xl border border-border bg-card p-6 shadow-xl sm:p-8">{children}</div>
 
         <p className="mt-6 text-center text-sm text-muted-foreground">
-          Accounts are created by the Founder&apos;s Education chairs. There is no sign-up.
+          Accounts are created by the Founder&apos;s Education admins. There is no sign-up.
         </p>
       </div>
     </div>

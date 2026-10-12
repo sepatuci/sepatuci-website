@@ -333,17 +333,17 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
                 </div>
                 {submission ? (
                   <div className="flex gap-2">
-                    <Link href={`/portal/admin/forms/${form.id}?tab=responses&pledge=${uid}`}>
-                      <Button variant="outline" size="sm">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/portal/admin/forms/${form.id}?tab=responses&pledge=${uid}`}>
                         View response
-                      </Button>
-                    </Link>
+                      </Link>
+                    </Button>
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => setReopen({ formId: form.id, title: form.title })}
                     >
-                      Reopen
+                      Delete and reopen
                     </Button>
                   </div>
                 ) : null}

@@ -337,13 +337,14 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
                 <dd className="text-foreground">{formatDuration(selected.durationSeconds)}</dd>
               </div>
               <div>
-                <dt className="text-muted-foreground">Active time on the form</dt>
+                <dt className="text-muted-foreground">Active time on the deliverable</dt>
                 <dd className="text-foreground">{formatDuration(selected.activeSeconds)}</dd>
               </div>
             </dl>
-            {selected.formVersion !== data.form.version ? (
+            {selected.formVersion < data.form.questionsVersion ? (
               <p className="mt-3 text-xs text-muted-foreground">
-                Shown as the form was when this was submitted. It has been edited since.
+                Shown as the deliverable was when this was submitted. Its questions have been
+                edited since.
               </p>
             ) : null}
           </Card>

@@ -1,6 +1,6 @@
 import { Check } from "lucide-react";
-import { DELIVERABLE_STATES, type GuideTopic } from "@/lib/portal/guide";
-import { StateChip } from "./primitives";
+import { DELIVERABLE_STATES, type DeliverableLabel, type GuideTopic } from "@/lib/portal/guide";
+import { Chip, StateChip } from "./primitives";
 
 /** One topic of the guide: a heading, a short paragraph and its points. */
 export const GuideTopicBlock: React.FC<{ topic: GuideTopic; headingLevel?: "h1" | "h2" }> = ({
@@ -34,6 +34,9 @@ export const GuideTopicBlock: React.FC<{ topic: GuideTopic; headingLevel?: "h1" 
   );
 };
 
+const legendKey = (row: DeliverableLabel): string =>
+  "chip" in row ? row.chip : `${row.state}-${row.late ? "late" : "on-time"}`;
+
 /** What each label on a deliverable means. */
 export const StateLegend: React.FC = () => (
   <div className="rounded-xl border border-border bg-muted/30 p-4">
@@ -41,12 +44,16 @@ export const StateLegend: React.FC = () => (
       The labels you&apos;ll see
     </p>
     <dl className="mt-3 space-y-2.5">
-      {DELIVERABLE_STATES.map(({ state, late, meaning }) => (
-        <div key={state} className="flex flex-wrap items-center gap-x-3 gap-y-1">
-          <dt className="w-24 shrink-0">
-            <StateChip state={state} late={late} />
+      {DELIVERABLE_STATES.map((row) => (
+        <div key={legendKey(row)} className="flex flex-wrap items-center gap-x-3 gap-y-1">
+          <dt className="w-32 shrink-0">
+            {"chip" in row ? (
+              <Chip tone={row.tone}>{row.chip}</Chip>
+            ) : (
+              <StateChip state={row.state} late={row.late} />
+            )}
           </dt>
-          <dd className="min-w-0 flex-1 text-sm text-muted-foreground">{meaning}</dd>
+          <dd className="min-w-0 flex-1 text-sm text-muted-foreground">{row.meaning}</dd>
         </div>
       ))}
     </dl>

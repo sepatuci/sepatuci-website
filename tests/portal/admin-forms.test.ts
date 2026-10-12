@@ -4,7 +4,7 @@
  * built, published, edited under pledges' feet, chained, archived and deleted.
  */
 import { Timestamp } from "firebase-admin/firestore";
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { GET as getAudit } from "@/app/api/portal/admin/audit/route";
 import { DELETE as reopenResponse } from "@/app/api/portal/admin/forms/[formId]/responses/[uid]/route";
 import { GET as getResponses } from "@/app/api/portal/admin/forms/[formId]/responses/route";
@@ -135,8 +135,11 @@ const dashboardOf = async (session: Session): Promise<DashboardDto> =>
 const stateOn = async (session: Session, formId: string): Promise<string | null> =>
   (await dashboardOf(session)).forms.find((form) => form.id === formId)?.state ?? null;
 const openForm = (session: Session, formId: string) => call(getForm, { formId }, { token: session.token });
-const submitAs = (session: Session, formId: string, answers: Answers) =>
-  call(submit, { formId }, { method: "POST", token: session.token, body: { answers } });
+/** Turns a deliverable in as the page does: with the version of it the pledge was shown. */
+const submitAs = async (session: Session, formId: string, answers: Answers): Promise<ApiResult> => {
+  const { version } = ok<PledgeFormDto>(await openForm(session, formId));
+  return call(submit, { formId }, { method: "POST", token: session.token, body: { answers, formVersion: version } });
+};
 const latestAudit = async () => (await storedAudit())[0];
 
 beforeAll(async () => {
@@ -611,6 +614,42 @@ describe("saving a deliverable", () => {
       }
     });
 
+    // The validator rebuilds every question in its own key order, and a store hands keys
+    // back in its own: Firestore sorts them. The two never agree byte for byte, so what
+    // decides whether pledges must re-check has to look past the order of the keys.
+    it("does not take a difference in key order for a change to the questions", async () => {
+      // Keys in descending order, the opposite of how the validator builds a question.
+      const reversed: Question = { validation: "none", type: "short_text", title: "One thing", required: true, id: "q_x", description: "" };
+      expect(Object.keys(reversed)).toEqual([...Object.keys(reversed)].sort().reverse());
+      const { id } = ok<{ id: string }>(await call(createForm, {}, { method: "POST", token: admin.token }));
+      try {
+        ok(await edit(id, { title: "Key order", status: "published", questions: [reversed] }));
+        // What the API stores is in the validator's order. The reversed order goes into the
+        // store directly, as the sorted keys production Firestore hands back disagree with
+        // the validator in the same way.
+        await testDb().doc(`forms/${id}`).update({ questions: [reversed] });
+        const before = await formOf(id);
+        expect(before.questions).toEqual([reversed]);
+        const opened = ok<PledgeFormDto>(await openForm(avery, id)).version;
+        expect(opened).toBe(before.questionsVersion);
+
+        ok(await edit(id, withSettings({ dueAt: fromNow(5 * DAY), confirmationMessage: "Thanks." })));
+        const after = await formOf(id);
+        expect(after.version).toBe(before.version + 1);
+        expect(after.questionsVersion).toBe(before.questionsVersion);
+        expect(ok<PledgeFormDto>(await openForm(avery, id)).version).toBe(opened);
+        // Avery's page, opened before the schedule change, is still current: the response is taken.
+        const submitted = ok<SubmitResultDto>(
+          await call(submit, { formId: id }, { method: "POST", token: avery.token, body: { answers: { q_x: text("Done") }, formVersion: opened } }),
+        );
+        expect(submitted.late).toBe(false);
+        expect(await docExists(`submissions/${id}_${avery.uid}`)).toBe(true);
+      } finally {
+        await call(reopenResponse, { formId: id, uid: avery.uid }, { method: "DELETE", token: admin.token });
+        await call(deleteForm, { formId: id }, { method: "DELETE", token: admin.token });
+      }
+    });
+
     it("holds a submission to the deliverable as it is now, not as it was when the pledge started", async () => {
       const old = refused(await submitAs(sam, checkInId, { q_a: text("Busy"), q_b: text("Lots going on.") }), 422, "invalid");
       expect(fieldCodes(old)).toEqual(["answers.q_c:required"]);
@@ -703,10 +742,11 @@ describe("moving a deadline", () => {
     const endOfDueMinute = Math.floor(dueMs / MINUTE) * MINUTE + MINUTE - 1;
     const submittedMs = Date.parse(stored.submittedAt);
     expect(submittedMs).toBeGreaterThan(endOfDueMinute);
-    expect(stored.lateBySeconds).toBe(Math.round((submittedMs - endOfDueMinute) / 1000));
-    expect(stored.lateBySeconds).toBeLessThanOrEqual(Math.round((submittedMs - dueMs) / 1000));
+    // Whole seconds, rounded up, and never none: after the deadline is late by at least a second.
+    expect(stored.lateBySeconds).toBe(Math.max(1, Math.ceil((submittedMs - endOfDueMinute) / 1000)));
+    expect(stored.lateBySeconds).toBeLessThanOrEqual(Math.ceil((submittedMs - dueMs) / 1000));
     // Due a minute ago: under a minute and a bit late, never the full time since the stored instant plus more.
-    expect(stored.lateBySeconds).toBeGreaterThanOrEqual(0);
+    expect(stored.lateBySeconds).toBeGreaterThanOrEqual(1);
     expect(stored.lateBySeconds).toBeLessThan(90);
   });
 
@@ -747,6 +787,58 @@ describe("unlock order", () => {
     expect(missing.fields?.[0]).toMatchObject({ path: "settings.prerequisiteFormId", message: "That deliverable no longer exists." });
     const unsafe = refused(await edit("week3mvpscope", prerequisite("../users")), 422, "invalid");
     expect(unsafe.fields?.[0]).toMatchObject({ path: "settings.prerequisiteFormId", message: "Choose a valid deliverable." });
+  });
+
+  // Until the earlier deliverable is released there is nothing to turn in, so this one
+  // would simply be open, and then lock later without anyone having changed it.
+  it("refuses a prerequisite that is still a draft, naming the one to publish first", async () => {
+    const draft = await formOf("pitchfeedback");
+    expect(draft.status).toBe("draft");
+    const body = refused(await edit("week3mvpscope", prerequisite("pitchfeedback")), 422, "invalid");
+    expect(fieldCodes(body)).toEqual(["settings.prerequisiteFormId:invalid"]);
+    expect(body.fields?.[0]).toMatchObject({
+      path: "settings.prerequisiteFormId",
+      message: `Publish "${draft.title}" first, then choose it here.`,
+    });
+    expect((await formOf("week3mvpscope")).settings.prerequisiteFormId).toBeNull();
+  });
+
+  // A draft that already points at one that is not published may still be edited: the
+  // choice is judged when it is made, and again when the draft is published.
+  it("lets a draft that already waits on an unpublished deliverable be edited, and refuses to publish it", async () => {
+    const gate = ok<{ id: string }>(await call(createForm, {}, { method: "POST", token: admin.token })).id;
+    const waiting = ok<{ id: string }>(await call(createForm, {}, { method: "POST", token: admin.token })).id;
+    try {
+      ok(await edit(gate, { title: "Gate", status: "published", questions: [CHECK_IN_QUESTIONS[0]] }));
+      ok(
+        await edit(waiting, (form) => ({
+          title: "Waits on the gate",
+          status: "draft",
+          questions: [CHECK_IN_QUESTIONS[0]],
+          settings: { ...form.settings, prerequisiteFormId: gate },
+        })),
+      );
+      // Taking the gate out of circulation is allowed: nothing published waits on it.
+      ok(await edit(gate, { status: "draft" }));
+
+      const reworded = ok<AdminFormDto>(await edit(waiting, (form) => ({ questions: [{ ...form.questions[0], title: "Reworded" }] })));
+      expect(reworded.settings.prerequisiteFormId).toBe(gate);
+      expect(reworded.questions[0].title).toBe("Reworded");
+
+      const publish = refused(await edit(waiting, { status: "published" }), 422, "invalid");
+      expect(fieldCodes(publish)).toEqual(["settings.prerequisiteFormId:invalid"]);
+      expect(publish.fields?.[0].message).toBe('Publish "Gate" first, then choose it here.');
+      expect(await formOf(waiting)).toMatchObject({ status: "draft", settings: { prerequisiteFormId: gate } });
+
+      // Choosing it afresh is refused on a draft too.
+      ok(await edit(waiting, withSettings({ prerequisiteFormId: null })));
+      const chosen = refused(await edit(waiting, withSettings({ prerequisiteFormId: gate })), 422, "invalid");
+      expect(fieldCodes(chosen)).toEqual(["settings.prerequisiteFormId:invalid"]);
+      expect((await formOf(waiting)).settings.prerequisiteFormId).toBeNull();
+    } finally {
+      await call(deleteForm, { formId: waiting }, { method: "DELETE", token: admin.token });
+      await call(deleteForm, { formId: gate }, { method: "DELETE", token: admin.token });
+    }
   });
 
   it("refuses a 2-deliverable loop", async () => {
@@ -874,14 +966,15 @@ describe("a deliverable that waits on one pledges cannot see yet", () => {
       if (Date.now() % MINUTE > 40_000) await sleep(MINUTE - (Date.now() % MINUTE) + 250);
       const startOfMinute = Math.floor(Date.now() / MINUTE) * MINUTE;
       if (Date.now() - startOfMinute < 2_000) await sleep(2_000);
-      // One second into this minute: an instant that has already gone by.
+      // One second into this minute, stored as the start of it: an instant that has already gone by.
       const due = new Date(startOfMinute + 1_000).toISOString();
+      const storedDue = new Date(startOfMinute).toISOString();
       const saved = ok<AdminFormDto>(await edit(gateId, withSettings({ dueAt: due })));
-      expect(saved.settings).toMatchObject({ dueAt: due, allowLate: false });
+      expect(saved.settings).toMatchObject({ dueAt: storedDue, allowLate: false });
       expect(Date.now()).toBeGreaterThan(Date.parse(due));
 
       expect(await stateOn(sam, gateId)).toBe("open");
-      expect(ok<PledgeFormDto>(await openForm(sam, gateId)).card).toMatchObject({ state: "open", late: false, dueAt: due });
+      expect(ok<PledgeFormDto>(await openForm(sam, gateId)).card).toMatchObject({ state: "open", late: false, dueAt: storedDue });
 
       const submitted = ok<SubmitResultDto>(await submitAs(sam, gateId, { q_a: text("Ready") }));
       expect(submitted.late).toBe(false);
@@ -911,6 +1004,36 @@ describe("a deliverable that waits on one pledges cannot see yet", () => {
       lockedByTitle: UNRELEASED_TITLE,
     });
   });
+
+  it(
+    "counts a response in the first second after the due minute as a second late, never none",
+    async () => {
+      // The submission below lands just after a minute boundary, so it follows the end of
+      // the due minute by well under a second: the case a rounded count would call no time late.
+      let boundary = Math.floor(Date.now() / MINUTE) * MINUTE + MINUTE;
+      if (boundary - Date.now() < 5_000) boundary += MINUTE;
+      // Due at the last instant before the boundary. Stored to the minute, its minute still ends there.
+      const due = new Date(boundary - 1).toISOString();
+      ok(await edit(gateId, withSettings({ dueAt: due, closesAt: fromNow(DAY), allowLate: true })));
+      expect(await stateOn(jordan, gateId)).toBe("open");
+
+      await sleep(boundary - Date.now() + 20);
+      const submitted = ok<SubmitResultDto>(await submitAs(jordan, gateId, { q_a: text("Just after") }));
+      expect(submitted.late).toBe(true);
+
+      const stored = ok<SubmissionDto>(await call(getSubmission, { formId: gateId }, { token: jordan.token }));
+      const endOfDueMinute = boundary - 1;
+      const submittedMs = Date.parse(stored.submittedAt);
+      expect(submittedMs).toBeGreaterThan(endOfDueMinute);
+      expect(submittedMs - endOfDueMinute).toBeLessThan(5_000);
+      expect(stored.lateBySeconds).toBe(Math.max(1, Math.ceil((submittedMs - endOfDueMinute) / 1000)));
+      expect(stored.lateBySeconds).toBeGreaterThanOrEqual(1);
+      const mine = (await responsesOf(gateId)).responses.find((response) => response.uid === jordan.uid);
+      expect(mine).toMatchObject({ late: true, lateBySeconds: stored.lateBySeconds });
+    },
+    // Waits for the next minute to begin, which can be most of a minute away.
+    SEED_TIMEOUT_MS,
+  );
 });
 
 describe("question types once there are responses", () => {
@@ -1128,22 +1251,85 @@ describe("reopening a response", () => {
   });
 });
 
+// A stored response holds the answers and a copy of the questions, and a Firestore
+// document may not exceed one mebibyte. The pledge is told, instead of the save failing.
+describe("a response too large to store", () => {
+  const PARAGRAPHS: Question[] = Array.from({ length: LIMITS.maxQuestions }, (_, index) => ({
+    id: `q${index}`,
+    type: "paragraph",
+    title: `P${index}`,
+    description: "",
+    required: false,
+  }));
+  /** What the response would take up in the store: the answers and the questions as they are. */
+  const storedBytes = (answers: Answers, questions: Question[]): number =>
+    Buffer.byteLength(JSON.stringify(answers)) + Buffer.byteLength(JSON.stringify(questions));
+  /** An answer of `length` three-byte characters to every paragraph, the last one `lastLength` long. */
+  const answersOf = (length: number, lastLength = length): Answers =>
+    Object.fromEntries(
+      PARAGRAPHS.map((question, index) => [question.id, text("字".repeat(index === PARAGRAPHS.length - 1 ? lastLength : length))]),
+    );
+  let formId: string;
+
+  afterAll(async () => {
+    await call(reopenResponse, { formId, uid: sam.uid }, { method: "DELETE", token: admin.token });
+    await call(deleteForm, { formId }, { method: "DELETE", token: admin.token });
+  });
+
+  it("refuses answers that, together with the questions, would not fit, and says what to do", async () => {
+    formId = ok<{ id: string }>(await call(createForm, {}, { method: "POST", token: admin.token })).id;
+    ok(await edit(formId, { title: "Sixty paragraphs", status: "published", questions: PARAGRAPHS }));
+    const { questions } = await formOf(formId);
+
+    // Sixty answers of five thousand three-byte characters: 900 KB of answers alone.
+    const tooMuch = answersOf(LIMITS.paragraph);
+    expect(storedBytes(tooMuch, questions)).toBeGreaterThan(LIMITS.submissionStoredBytes);
+    // Within what one request may carry, so it is the stored size that is refused, not the request.
+    expect(Buffer.byteLength(JSON.stringify({ answers: tooMuch, formVersion: 1 }))).toBeLessThan(LIMITS.answersBodyBytes);
+
+    const body = refused(await submitAs(sam, formId, tooMuch), 422, "invalid");
+    expect(body.error).toBe("Some answers need attention.");
+    expect(body.fields).toEqual([
+      { path: "answers", code: "too_long", message: "Your answers are too long to store together. Shorten the longest ones and try again." },
+    ]);
+    expect(await docExists(`submissions/${formId}_${sam.uid}`)).toBe(false);
+    expect(await stateOn(sam, formId)).toBe("open");
+  });
+
+  it("stores the same answers once they are shortened just enough to fit", async () => {
+    const { questions } = await formOf(formId);
+    const over = storedBytes(answersOf(LIMITS.paragraph), questions) - LIMITS.submissionStoredBytes;
+    // Each character is three bytes: this many fewer in the last answer lands within the limit by under three.
+    const fits = answersOf(LIMITS.paragraph, LIMITS.paragraph - Math.ceil(over / 3));
+    expect(storedBytes(fits, questions)).toBeLessThanOrEqual(LIMITS.submissionStoredBytes);
+    expect(storedBytes(fits, questions)).toBeGreaterThan(LIMITS.submissionStoredBytes - 3);
+
+    ok<SubmitResultDto>(await submitAs(sam, formId, fits));
+    const stored = ok<SubmissionDto>(await call(getSubmission, { formId }, { token: sam.token }));
+    expect(stored.answers).toEqual(fits);
+    expect(await stateOn(sam, formId)).toBe("submitted");
+  });
+});
+
 describe("audit log", () => {
   const page = async (query = "", session: Session = admin): Promise<AuditLogDto> =>
     ok<AuditLogDto>(await call(getAudit, {}, { token: session.token, query }));
 
-  /** Follows nextBefore until the log runs out and returns every entry id seen, in order. */
-  async function walk(): Promise<string[]> {
-    const ids: string[] = [];
+  /** Follows nextBefore until the log runs out and returns every entry seen, newest first. */
+  async function allEntries(): Promise<AuditLogDto["entries"]> {
+    const entries: AuditLogDto["entries"] = [];
     let query = "";
     for (let pages = 0; pages < 20; pages += 1) {
       const result = await page(query);
-      ids.push(...result.entries.map((entry) => entry.id));
-      if (result.nextBefore === null) return ids;
+      entries.push(...result.entries);
+      if (result.nextBefore === null) return entries;
       query = `?before=${encodeURIComponent(result.nextBefore)}`;
     }
     throw new Error("The audit log never reached its last page.");
   }
+
+  /** Every entry id in the log, in order. */
+  const walk = async (): Promise<string[]> => (await allEntries()).map((entry) => entry.id);
 
   const fixture = (at: number, label: string) => ({
     at: Timestamp.fromMillis(at),
@@ -1156,7 +1342,7 @@ describe("audit log", () => {
   });
 
   it("records every kind of change made to deliverables and responses in this file", async () => {
-    const actions = (await page()).entries.map((entry) => entry.action);
+    const actions = (await allEntries()).map((entry) => entry.action);
     for (const action of [
       "form.create",
       "form.duplicate",
@@ -1180,8 +1366,10 @@ describe("audit log", () => {
       expect(Object.keys(entry).sort()).toEqual(["action", "actorEmail", "at", "id", "summary", "targetId", "targetType"]);
       expect([ADMIN_ONE, ADMIN_TWO]).toContain(entry.actorEmail);
     }
-    // The oldest entry is the one the seed wrote.
-    expect(entries[entries.length - 1]).toMatchObject({ action: "form.publish", targetId: "week0onboarding" });
+    // The oldest entry, on whichever page the log ends, is the one the seed wrote.
+    const everything = await allEntries();
+    expect(everything).toHaveLength(await countAll("auditLog"));
+    expect(everything[everything.length - 1]).toMatchObject({ action: "form.publish", targetId: "week0onboarding" });
   });
 
   it("is readable by every admin and by no pledge", async () => {
@@ -1201,7 +1389,8 @@ describe("audit log", () => {
     const { entries } = await page();
     const cursor = entries[2].at;
     const older = await page(`?before=${encodeURIComponent(cursor)}`);
-    expect(older.entries.length).toBe(entries.length - 3);
+    // Everything but the three newest, or as much of that as fits on a page.
+    expect(older.entries.length).toBe(Math.min(LIMITS.auditPageSize, (await countAll("auditLog")) - 3));
     for (const entry of older.entries) expect(Date.parse(entry.at)).toBeLessThan(Date.parse(cursor));
     expect(older.entries[0].id).toBe(entries[3].id);
   });

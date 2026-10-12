@@ -272,19 +272,24 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={notify}>
       {children}
-      <div
-        aria-live="polite"
-        className="pointer-events-none fixed inset-x-0 bottom-6 z-[300] flex flex-col items-center gap-2 px-4"
-      >
-        {toasts.map((toast) => (
-          <div
-            key={toast.id}
-            className={cn(
-              "pointer-events-auto max-w-md rounded-lg border px-4 py-2.5 text-sm shadow-xl",
-              TOAST_TONES[toast.tone],
-            )}
-          >
-            {toast.message}
+      {/* Two live regions, both present from the start so a screen reader
+          announces whatever lands in them. Problems interrupt; the rest wait. */}
+      <div className="pointer-events-none fixed inset-x-0 bottom-6 z-[300] flex flex-col items-center gap-2 px-4">
+        {(["assertive", "polite"] as const).map((urgency) => (
+          <div key={urgency} aria-live={urgency} className="flex flex-col items-center gap-2">
+            {toasts
+              .filter((toast) => (toast.tone === "danger") === (urgency === "assertive"))
+              .map((toast) => (
+                <div
+                  key={toast.id}
+                  className={cn(
+                    "pointer-events-auto max-w-md rounded-lg border px-4 py-2.5 text-sm shadow-xl",
+                    TOAST_TONES[toast.tone],
+                  )}
+                >
+                  {toast.message}
+                </div>
+              ))}
           </div>
         ))}
       </div>

@@ -2,11 +2,12 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AlertTriangle, ArrowLeft, Heading, Loader2, PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Chip,
+  ConfirmDialog,
   ErrorNote,
   LoadingBlock,
   useToast,
@@ -16,7 +17,7 @@ import QuestionField from "@/components/PortalFormComponents/question-field";
 import { ApiError, apiFetch, errorMessage } from "@/lib/portal/client/api";
 import { useApi } from "@/lib/portal/client/use-api";
 import { LIMITS, PROGRAM_NAME } from "@/lib/portal/constants";
-import { blankQuestion, duplicateQuestion, moveItem } from "@/lib/portal/form-builder";
+import { blankQuestion, describeSchedule, duplicateQuestion, moveItem } from "@/lib/portal/form-builder";
 import type {
   AdminFormDto,
   AdminFormsDto,
@@ -45,9 +46,21 @@ function definitionOf(form: AdminFormDto): FormDefinition {
   };
 }
 
+/** The in-app link a click was heading for, or null when the click is not a plain link. */
+function linkTarget(event: MouseEvent): string | null {
+  if (event.defaultPrevented || event.button !== 0) return null;
+  if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return null;
+  const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+  if (!(anchor instanceof HTMLAnchorElement) || anchor.target === "_blank") return null;
+  if (anchor.origin !== window.location.origin) return null;
+  const here = window.location.pathname + window.location.search;
+  return anchor.pathname + anchor.search === here ? null : anchor.pathname + anchor.search;
+}
+
 /** The form builder: Questions, Preview, Responses and Settings for one deliverable. */
 const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
   const params = useSearchParams();
+  const router = useRouter();
   const notify = useToast();
   const { data, error, loading, reload } = useApi<AdminFormDto>(`/admin/forms/${formId}`);
   const others = useApi<AdminFormsDto>("/admin/forms");
@@ -60,6 +73,10 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>(params.get("tab") === "responses" ? "responses" : "questions");
   const [previewAnswers, setPreviewAnswers] = useState<Answers>({});
+  /** A status change waiting for the admin to confirm it. */
+  const [pendingStatus, setPendingStatus] = useState<"published" | "draft" | null>(null);
+  /** Where a click was heading while there were unsaved edits. */
+  const [leavingTo, setLeavingTo] = useState<string | null>(null);
 
   useEffect(() => {
     if (!data) return;
@@ -77,11 +94,25 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
     [saved, draft],
   );
 
+  // Unsaved edits are kept until the admin chooses to leave. Closing the tab
+  // gets the browser's own warning; a link inside the site gets ours, because
+  // the browser does not warn for those.
   useEffect(() => {
     if (!dirty) return;
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
+    const intercept = (event: MouseEvent) => {
+      const href = linkTarget(event);
+      if (href === null) return;
+      event.preventDefault();
+      event.stopPropagation();
+      setLeavingTo(href);
+    };
     window.addEventListener("beforeunload", warn);
-    return () => window.removeEventListener("beforeunload", warn);
+    document.addEventListener("click", intercept, true);
+    return () => {
+      window.removeEventListener("beforeunload", warn);
+      document.removeEventListener("click", intercept, true);
+    };
   }, [dirty]);
 
   const back = (
@@ -169,6 +200,15 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
   const lockedTypes = new Set(saved.responseCount > 0 ? saved.questions.map((question) => question.id) : []);
   const issuesAt = (prefix: string) => issues.filter((issue) => issue.path.startsWith(prefix));
   const statusChip = STATUS_CHIPS[saved.status];
+  const title = draft.title || "Untitled deliverable";
+  const prerequisiteTitle =
+    others.data?.forms.find((form) => form.id === draft.settings.prerequisiteFormId)?.title ?? null;
+  const publishing = pendingStatus === "published";
+  const confirmStatus = async () => {
+    if (!pendingStatus) return;
+    await save({ status: pendingStatus });
+    setPendingStatus(null);
+  };
   const general = issues.filter(
     (issue) => issue.path === "questions" || issue.path === "" || issue.path === "status",
   );
@@ -202,16 +242,55 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
               Save
             </Button>
             {saved.status === "published" ? (
-              <Button variant="ghost" onClick={() => void save({ status: "draft" })} disabled={saving}>
-                Unpublish
+              <Button variant="ghost" onClick={() => setPendingStatus("draft")} disabled={saving}>
+                {dirty ? "Save and unpublish" : "Unpublish"}
               </Button>
             ) : (
-              <Button variant="accent" onClick={() => void save({ status: "published" })} disabled={saving}>
-                Publish
+              <Button variant="accent" onClick={() => setPendingStatus("published")} disabled={saving}>
+                {dirty ? "Save and publish" : "Publish"}
               </Button>
             )}
           </div>
         </div>
+        <ConfirmDialog
+          open={pendingStatus !== null}
+          onOpenChange={(open) => {
+            if (!open) setPendingStatus(null);
+          }}
+          title={publishing ? `Publish "${title}"?` : `Unpublish "${title}"?`}
+          description={
+            publishing
+              ? `Pledges see it on their dashboards on this schedule.${dirty ? " Your unsaved edits go out with it." : ""}`
+              : `Pledges lose access straight away, including anyone with a draft open. Responses already turned in are kept.${dirty ? " Your unsaved edits are saved too." : ""}`
+          }
+          confirmLabel={publishing ? "Publish" : "Unpublish"}
+          destructive={!publishing}
+          busy={saving}
+          onConfirm={() => void confirmStatus()}
+        >
+          {publishing ? (
+            <ul className="mt-4 space-y-1.5 rounded-lg border border-border bg-muted/40 px-4 py-3 text-sm text-muted-foreground">
+              {describeSchedule(draft.settings, prerequisiteTitle).map((line) => (
+                <li key={line}>{line}</li>
+              ))}
+            </ul>
+          ) : null}
+        </ConfirmDialog>
+        <ConfirmDialog
+          open={leavingTo !== null}
+          onOpenChange={(open) => {
+            if (!open) setLeavingTo(null);
+          }}
+          title="Leave without saving?"
+          description="Your edits to this deliverable haven't been saved. Leave now and they're lost."
+          confirmLabel="Leave"
+          destructive
+          onConfirm={() => {
+            const href = leavingTo;
+            setLeavingTo(null);
+            if (href) router.push(href);
+          }}
+        />
         <div role="tablist" aria-label="Deliverable" className="mt-4 flex gap-1 overflow-x-auto">
           {tabs.map((item) => (
             <button
