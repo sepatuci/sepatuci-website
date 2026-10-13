@@ -12,7 +12,7 @@ const ReviewGuide: React.FC = () => (
       subtitle="What you can see as an active, and how to read it."
       actions={
         <Button asChild variant="accent">
-          <Link href="/portal/review">Go to new members</Link>
+          <Link href="/portal/review">Go to pledges</Link>
         </Button>
       }
     />

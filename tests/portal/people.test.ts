@@ -257,7 +257,7 @@ describe("a role change that is refused", () => {
     for (const role of ["pledge", "active"]) {
       const body = refused(await change(outsideUid, role), 422, "invalid");
       expect(fieldCodes(body)).toEqual(["role:invalid_email"]);
-      expect(body.fields?.[0].message).toBe("Only a UCI address can be a new member or an active.");
+      expect(body.fields?.[0].message).toBe("Only a UCI address can be a pledge or an active.");
     }
   });
 

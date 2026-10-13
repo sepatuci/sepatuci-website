@@ -78,8 +78,8 @@ export function describeSchedule(settings: FormSettings, prerequisiteTitle: stri
   const lines: string[] = [];
   lines.push(
     settings.visibleAt
-      ? `Appears on new member dashboards ${formatDateTime(settings.visibleAt, true)}.`
-      : "Appears on new member dashboards as soon as it is published.",
+      ? `Appears on pledge dashboards ${formatDateTime(settings.visibleAt, true)}.`
+      : "Appears on pledge dashboards as soon as it is published.",
   );
   lines.push(
     settings.opensAt
@@ -97,7 +97,7 @@ export function describeSchedule(settings: FormSettings, prerequisiteTitle: stri
     lines.push("Closes at the deadline. Late responses are not accepted.");
   }
   if (prerequisiteTitle) {
-    lines.push(`Stays locked for each new member until they turn in "${prerequisiteTitle}".`);
+    lines.push(`Stays locked for each pledge until they turn in "${prerequisiteTitle}".`);
   }
   return lines;
 }

@@ -97,7 +97,7 @@ const WelcomeTour: React.FC = () => {
             {last ? (
               <Button variant="accent" onClick={() => void finish()} disabled={finishing}>
                 {finishing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                {viewer ? "Go to the new members" : "Go to my deliverables"}
+                {viewer ? "Go to the pledges" : "Go to my deliverables"}
               </Button>
             ) : (
               <Button variant="accent" onClick={() => setIndex(index + 1)}>

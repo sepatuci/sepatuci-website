@@ -90,7 +90,7 @@ export function memberClaims(
     temp: true,
     // When it was issued, so that it stops working three days later.
     tempAt: Math.floor(temporary.issuedAt.getTime() / 1000),
-    // Tells the sign-in page whether to greet a new member or a returning one.
+    // Tells the sign-in page whether to greet a pledge or a returning one.
     ...(temporary.brandNew ? { tempNew: true } : {}),
   };
 }

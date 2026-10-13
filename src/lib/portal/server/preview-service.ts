@@ -29,7 +29,7 @@ import { collections, deleteMatching, emptyStoredActivity, iso, type UserDoc } f
 
 /**
  * An admin's preview account: a sandbox pledge or active, one per admin, for
- * going through a new member's first visit in a separate tab. It is created
+ * going through a new pledge's first visit in a separate tab. It is created
  * and reset exactly as a real account is, and left out of every list the
  * portal makes. The admin reaches it through a one-time link: until the link
  * is opened the account has a password nobody knows, and opening it is what
@@ -272,7 +272,7 @@ export async function startPreview(caller: Caller, body: unknown): Promise<Previ
   const input = isRecord(body) ? body : {};
   const role = readEnum<MemberRole>(input.role, ["pledge", "active"]);
   if (!role) {
-    throw invalid([{ path: "role", code: "invalid", message: "Choose whether to preview as a new member or an active." }]);
+    throw invalid([{ path: "role", code: "invalid", message: "Choose whether to preview as a pledge or an active." }]);
   }
   // The sandbox's address is the admin's own with a tag. On any other domain
   // that would be some stranger's UCI mailbox, and a reset email from Firebase
@@ -315,7 +315,7 @@ export async function startPreview(caller: Caller, body: unknown): Promise<Previ
       "preview.start",
       "user",
       target.uid,
-      `${current ? "Started over" : "Started"} a preview as a new ${role === "pledge" ? "member" : "active"}, ${target.email}`,
+      `${current ? "Started over" : "Started"} a preview as a new ${role}, ${target.email}`,
     ),
   );
   await batch.commit();

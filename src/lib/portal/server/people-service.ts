@@ -147,7 +147,7 @@ async function refusal(
   // A pledge or an active is only ever on a UCI address. An admin need not be.
   if (role !== "admin" && !UCI_EMAIL_PATTERN.test(email)) {
     return invalid([
-      { path: "role", code: "invalid_email", message: "Only a UCI address can be a new member or an active." },
+      { path: "role", code: "invalid_email", message: "Only a UCI address can be a pledge or an active." },
     ]);
   }
   // A temporary password is a member's way in, and is replaced on a member's

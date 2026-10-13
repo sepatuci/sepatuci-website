@@ -68,7 +68,7 @@ export const SummaryCard: React.FC<SummaryCardProps> = ({ summary, questionType 
           <BarList buckets={summary.buckets} total={summary.answered} />
           {summary.multiple ? (
             <p className="mt-3 text-xs text-muted-foreground">
-              New members could choose more than one, so percentages can add up to more than 100.
+              Pledges could choose more than one, so percentages can add up to more than 100.
             </p>
           ) : null}
           {summary.otherResponses.length > 0 ? (

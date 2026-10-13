@@ -5,7 +5,7 @@ import { NO_NAMES, UNKNOWN_PAGE, dwellSeconds, isPortalPath, pageLabel, type Pag
 describe("isPortalPath", () => {
   it.each([
     "/portal",
-    "/portal/admin/new-members/abc123",
+    "/portal/admin/pledges/abc123",
     "/portal/deliverables/week1",
     "/portal/account",
     "/portal/admin/activity/abc123/XYZ789",
@@ -90,11 +90,11 @@ describe("pageLabel", () => {
     ["/portal/account", "Account"],
     ["/portal/guide", "Guide"],
     ["/portal/welcome", "Welcome tour"],
-    ["/portal/review", "New members"],
+    ["/portal/review", "Pledges"],
     ["/portal/review/deliverables", "Deliverables"],
     ["/portal/review/guide", "Guide"],
     ["/portal/review/welcome", "Welcome tour"],
-    ["/portal/admin", "New members"],
+    ["/portal/admin", "Pledges"],
     ["/portal/admin/people", "People"],
     ["/portal/admin/actives", "People"],
     ["/portal/admin/forms", "Deliverables"],
@@ -117,8 +117,8 @@ describe("pageLabel", () => {
   });
 
   it.each<[string, string]>([
-    ["/portal/review/new-members/abc123", "New member: Avery Chen"],
-    ["/portal/admin/new-members/u2", "New member: Priya Shah"],
+    ["/portal/review/pledges/abc123", "Pledge: Avery Chen"],
+    ["/portal/admin/pledges/u2", "Pledge: Priya Shah"],
     ["/portal/admin/activity/abc123", "Activity: Avery Chen"],
     ["/portal/admin/activity/u2/session9", "Session: Priya Shah"],
   ])("names %s from the person's name", (path, label) => {
@@ -130,8 +130,8 @@ describe("pageLabel", () => {
     ["/portal/history/gone", "Response: a deliverable since removed"],
     ["/portal/review/deliverables/gone", "Deliverable: a deliverable since removed"],
     ["/portal/admin/forms/gone", "Editor: a deliverable since removed"],
-    ["/portal/review/new-members/gone", "New member: an account since removed"],
-    ["/portal/admin/new-members/gone", "New member: an account since removed"],
+    ["/portal/review/pledges/gone", "Pledge: an account since removed"],
+    ["/portal/admin/pledges/gone", "Pledge: an account since removed"],
     ["/portal/admin/activity/gone", "Activity: an account since removed"],
     ["/portal/admin/activity/gone/session9", "Session: an account since removed"],
   ])("falls back for %s when the id has no name, without showing the id", (path, label) => {
@@ -144,12 +144,12 @@ describe("pageLabel", () => {
   it("looks a deliverable up among the deliverables and a person among the people, never across", () => {
     const crossed: PageNames = { forms: names.people, people: names.forms };
     expect(pageLabel("/portal/deliverables/week1", crossed)).toBe("Deliverable: a deliverable since removed");
-    expect(pageLabel("/portal/admin/new-members/abc123", crossed)).toBe("New member: an account since removed");
+    expect(pageLabel("/portal/admin/pledges/abc123", crossed)).toBe("Pledge: an account since removed");
   });
 
   it("is not fooled by an id that is a name every object has", () => {
     expect(pageLabel("/portal/deliverables/constructor", names)).toBe("Deliverable: a deliverable since removed");
-    expect(pageLabel("/portal/admin/new-members/__proto__", names)).toBe("New member: an account since removed");
+    expect(pageLabel("/portal/admin/pledges/__proto__", names)).toBe("Pledge: an account since removed");
     expect(pageLabel("/portal/admin/activity/toString/hasOwnProperty", names)).toBe("Session: an account since removed");
   });
 
@@ -157,8 +157,8 @@ describe("pageLabel", () => {
     "/portal/nope",
     "/portal/admin/nope",
     "/portal/admin/people/u2",
-    "/portal/review/new-members",
-    "/portal/admin/new-members",
+    "/portal/review/pledges",
+    "/portal/admin/pledges",
     "/portal/deliverables/week1/extra",
     "/portal/admin/activity/u2/session9/more",
     "/portal/admin/forms/",
@@ -193,9 +193,9 @@ describe("pageLabel", () => {
 
   it("takes everything after the last slash as the id, and shows none of it", () => {
     // Such a path never reaches the log, since isPortalPath refuses it; even so, nothing of it comes back.
-    for (const path of ["/portal/admin/forms/f2?mode=edit", "/portal/deliverables/week1#q3", "/portal/admin/new-members/<script>"]) {
+    for (const path of ["/portal/admin/forms/f2?mode=edit", "/portal/deliverables/week1#q3", "/portal/admin/pledges/<script>"]) {
       const label = pageLabel(path, names);
-      expect(label, path).toMatch(/^(Editor|Deliverable|New member): (a deliverable|an account) since removed$/);
+      expect(label, path).toMatch(/^(Editor|Deliverable|Pledge): (a deliverable|an account) since removed$/);
       expect(label, path).not.toMatch(/[?#<>=]/);
     }
   });

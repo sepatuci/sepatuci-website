@@ -142,9 +142,9 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
             <p className="mt-1 text-sm text-muted-foreground">
               {expected > 0
                 ? `${percent(responses.length, expected)}% of the ${expected} ${
-                    expected === 1 ? "new member" : "new members"
+                    expected === 1 ? "pledge" : "pledges"
                   } this applies to`
-                : "No new members have been assigned this yet"}
+                : "No pledges have been assigned this yet"}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -236,7 +236,7 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
             {nonResponders.map((pledge) => (
               <Link
                 key={pledge.uid}
-                href={`/portal/admin/new-members/${pledge.uid}`}
+                href={`/portal/admin/pledges/${pledge.uid}`}
                 className="flex items-center justify-between gap-3 px-6 py-3.5 transition-colors hover:bg-muted/40"
               >
                 <span className="min-w-0">
@@ -256,7 +256,7 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
           <Inbox className="mb-3 h-8 w-8 text-muted-foreground" />
           <p className="text-base font-medium text-foreground">Waiting for responses</p>
           <p className="mt-1.5 text-sm text-muted-foreground">
-            Responses appear here as new members turn this in.
+            Responses appear here as pledges turn this in.
           </p>
         </Card>
       ) : view === "summary" ? (
@@ -312,10 +312,10 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
             </div>
             <dl className="mt-4 grid gap-x-8 gap-y-2 border-t border-border pt-4 text-sm sm:grid-cols-2">
               <div>
-                <dt className="text-muted-foreground">New member</dt>
+                <dt className="text-muted-foreground">Pledge</dt>
                 <dd>
                   <Link
-                    href={`/portal/admin/new-members/${selected.uid}`}
+                    href={`/portal/admin/pledges/${selected.uid}`}
                     className="text-foreground hover:text-accent-ink"
                   >
                     {selected.displayName}
@@ -362,7 +362,7 @@ const ResponsesPanel: React.FC<ResponsesPanelProps> = ({ formId, focusUid, onCha
           if (!open) setReopening(null);
         }}
         title="Delete this response?"
-        description={`${reopening?.displayName ?? "The new member"} will be able to turn this in again, if it is still open. The deleted response can't be recovered.`}
+        description={`${reopening?.displayName ?? "The pledge"} will be able to turn this in again, if it is still open. The deleted response can't be recovered.`}
         confirmLabel="Delete and reopen"
         destructive
         busy={busy}

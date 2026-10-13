@@ -31,12 +31,12 @@ const STATUSES: { value: FormStatus; label: string; detail: string }[] = [
   {
     value: "published",
     label: "Published",
-    detail: "New members see it according to the schedule below.",
+    detail: "Pledges see it according to the schedule below.",
   },
   {
     value: "archived",
     label: "Archived",
-    detail: "Hidden from new members who haven't turned it in. Existing responses are kept.",
+    detail: "Hidden from pledges who haven't turned it in. Existing responses are kept.",
   },
 ];
 
@@ -146,7 +146,7 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
         <DateField
           id="setting-visible"
           label="Visible from"
-          help="When this appears on new member dashboards as coming up."
+          help="When this appears on pledge dashboards as coming up."
           value={settings.visibleAt}
           error={errorFor("visibleAt")}
           onChange={(visibleAt) => set({ visibleAt })}
@@ -154,7 +154,7 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
         <DateField
           id="setting-opens"
           label="Opens"
-          help="When new members can start filling it in. Until then they only see the title and dates."
+          help="When pledges can start filling it in. Until then they only see the title and dates."
           value={settings.opensAt}
           error={errorFor("opensAt")}
           onChange={(opensAt) => set({ opensAt })}
@@ -171,7 +171,7 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
           <div>
             <p className="text-sm font-medium text-foreground">Accept late responses</p>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              New members can still turn it in after the deadline, and it is marked late. When off, it
+              Pledges can still turn it in after the deadline, and it is marked late. When off, it
               closes at the deadline.
             </p>
           </div>
@@ -199,7 +199,7 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
             Open only after another deliverable is turned in
           </label>
           <p className="mt-0.5 text-xs text-muted-foreground">
-            Each new member sees this one as locked until they submit the deliverable you choose. It
+            Each pledge sees this one as locked until they submit the deliverable you choose. It
             still has to be within its own schedule.
           </p>
           <select
@@ -262,8 +262,8 @@ const FormSettingsPanel: React.FC<FormSettingsPanelProps> = ({
           {status !== "published" ? (
             <li>
               {status === "draft"
-                ? "Not visible to new members yet. Publish it to start the schedule."
-                : "Archived. Hidden from new members who have not turned it in."}
+                ? "Not visible to pledges yet. Publish it to start the schedule."
+                : "Archived. Hidden from pledges who have not turned it in."}
             </li>
           ) : null}
           {describeSchedule(settings, prerequisite && !brokenChain ? prerequisite.title : null).map(

@@ -188,7 +188,7 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
         </DialogContent>
       ) : (
         <DialogContent
-          title="Add a new member"
+          title="Add a pledge"
           description="They choose their own password, then see a short welcome. It happens once."
         >
           <form onSubmit={submit} noValidate className="mt-5 space-y-4">
@@ -233,7 +233,7 @@ const CreatePledgeDialog: React.FC<CreatePledgeDialogProps> = ({
             </div>
             <div>
               <Label htmlFor="new-pledge-class">
-                Class <span className="font-normal text-muted-foreground">(optional)</span>
+                Pledge class <span className="font-normal text-muted-foreground">(optional)</span>
               </Label>
               <Input
                 id="new-pledge-class"

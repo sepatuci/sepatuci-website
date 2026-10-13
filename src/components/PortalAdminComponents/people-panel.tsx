@@ -36,13 +36,13 @@ import CreatePledgeDialog from "./create-pledge-dialog";
 import PreviewCard from "./preview-card";
 import { CopyWarning, TemporaryPassword, useCopyGuard } from "./temporary-password-dialog";
 
-const ROLE_LABEL: Record<Role, string> = { admin: "Admin", active: "Active", pledge: "New member" };
+const ROLE_LABEL: Record<Role, string> = { admin: "Admin", active: "Active", pledge: "Pledge" };
 
 /** The groups in the order they appear, each with its heading. */
 const GROUPS: { role: Role; title: string }[] = [
   { role: "admin", title: "Admins" },
   { role: "active", title: "Actives" },
-  { role: "pledge", title: "New members" },
+  { role: "pledge", title: "Pledges" },
 ];
 
 /** Where each kind of member's account is managed. Admin accounts have no such actions. */
@@ -108,7 +108,7 @@ const PeoplePanel: React.FC = () => {
   const header = (
     <PageHeader
       title="People"
-      subtitle="Everyone with a portal account: admins, actives and new members. Change roles, reset passwords and add accounts here."
+      subtitle="Everyone with a portal account: admins, actives and pledges. Change roles, reset passwords and add accounts here."
       actions={
         <>
           <Button variant="outline" onClick={() => setBulkChoosing(true)}>
@@ -119,7 +119,7 @@ const PeoplePanel: React.FC = () => {
           </Button>
           <Button variant="accent" onClick={() => setPledgeOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Add new member
+            Add pledge
           </Button>
         </>
       }
@@ -193,7 +193,7 @@ const PeoplePanel: React.FC = () => {
         >
           <div className="mt-5 grid gap-2 sm:grid-cols-2">
             <Button variant="outline" onClick={() => startBulk("pledge")}>
-              New members
+              Pledges
             </Button>
             <Button variant="outline" onClick={() => startBulk("active")}>
               Actives
@@ -227,14 +227,14 @@ const PeoplePanel: React.FC = () => {
         <EmptyState
           icon={<Users className="h-8 w-8" />}
           title="No accounts yet"
-          body="Add new members and actives with their name and UCI email. Each one chooses their own password at their first sign-in."
+          body="Add pledges and actives with their name and UCI email. Each one chooses their own password at their first sign-in."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button variant="outline" onClick={() => setBulkChoosing(true)}>
                 Add several
               </Button>
               <Button variant="accent" onClick={() => setPledgeOpen(true)}>
-                Add the first new member
+                Add the first pledge
               </Button>
             </div>
           }
@@ -295,7 +295,7 @@ const PeoplePanel: React.FC = () => {
                         <div className="flex flex-wrap items-center gap-2">
                           {person.role === "pledge" ? (
                             <Link
-                              href={`/portal/admin/new-members/${person.uid}`}
+                              href={`/portal/admin/pledges/${person.uid}`}
                               className="font-medium text-foreground hover:text-accent-ink"
                             >
                               {person.displayName}
