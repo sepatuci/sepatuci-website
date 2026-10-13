@@ -52,8 +52,13 @@ const ACTIONS: Record<string, string> = {
   "response.reopen": "Deleted a response",
 };
 
+interface AuditTableProps {
+  /** False when the table sits inside another page that already has a header. */
+  withHeader?: boolean;
+}
+
 /** A record of every change an admin has made in the portal. */
-const AuditTable: React.FC = () => {
+const AuditTable: React.FC<AuditTableProps> = ({ withHeader = true }) => {
   const notify = useToast();
   const { data, error, loading, reload } = useApi<AuditLogDto>("/admin/audit");
   const [entries, setEntries] = useState<AuditEntryDto[]>([]);
@@ -80,14 +85,14 @@ const AuditTable: React.FC = () => {
     }
   };
 
-  const header = (
+  const header = withHeader ? (
     <PageHeader
-      title="Activity"
+      title="Admin log"
       subtitle="Every change an admin has made to accounts, punishments and deliverables."
     />
-  );
+  ) : null;
 
-  if (loading && !data) return <>{header}<LoadingBlock label="Loading activity" /></>;
+  if (loading && !data) return <>{header}<LoadingBlock label="Loading the admin log" /></>;
   if (error && !data) return <>{header}<ErrorNote error={error} onRetry={reload} /></>;
 
   if (entries.length === 0) {

@@ -445,6 +445,10 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
                   <th scope="col" className="px-5 py-3 font-medium">Time out</th>
                   <th scope="col" className="px-5 py-3 font-medium">Length</th>
                   <th scope="col" className="px-5 py-3 font-medium">Active</th>
+                  <th scope="col" className="px-5 py-3 font-medium">Pages</th>
+                  <th scope="col" className="px-5 py-3 font-medium">
+                    <span className="sr-only">Details</span>
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -453,7 +457,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
                   const endMs = msOrNull(session.endedAt) ?? startMs;
                   const live = session.current && isOnline(endMs, nowMs);
                   return (
-                    <tr key={`${session.startedAt}-${session.current}`}>
+                    <tr key={session.id ?? `${session.startedAt}-${session.current}`}>
                       <td className="whitespace-nowrap px-5 py-3 text-foreground">
                         {formatDateTime(session.startedAt, true)}
                       </td>
@@ -466,6 +470,19 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
                       <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">
                         {formatDuration(session.activeSeconds)}
                       </td>
+                      <td className="whitespace-nowrap px-5 py-3 text-muted-foreground">{session.pageCount}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-right">
+                        {session.id ? (
+                          <Link
+                            href={`/portal/admin/activity/${uid}/${session.id}`}
+                            className="text-sm text-accent-ink hover:underline"
+                          >
+                            Pages visited
+                          </Link>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Not kept</span>
+                        )}
+                      </td>
                     </tr>
                   );
                 })}
@@ -475,7 +492,10 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
         </Card>
       )}
       <p className="mt-2 px-1 text-xs text-muted-foreground">
-        &quot;Active&quot; counts only time with the portal tab open and in view.
+        &quot;Active&quot; counts only time with the portal tab open and in view.{" "}
+        <Link href={`/portal/admin/activity/${uid}`} className="text-accent-ink hover:underline">
+          Full activity
+        </Link>
       </p>
 
       <Dialog open={pending === "edit"} onOpenChange={(open) => setPending(open ? "edit" : null)}>

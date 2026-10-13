@@ -19,6 +19,8 @@ const MINUTE = 60_000;
 const HOUR = 3_600_000;
 /** `auth_time` is in seconds, as Firebase sends it. */
 const signedIn = (msAgo: number): number => (NOW - msAgo) / SECOND;
+/** When the default claims below say the person signed in, as the gate passes it on: a minute before NOW, in milliseconds. */
+const SIGNED_IN_AT_MS = NOW - 60 * SECOND;
 /** `tempAt` is in seconds too: when a chair issued the temporary password. */
 const issuedAt = (msAgo: number): number => (NOW - msAgo) / SECOND;
 /** What an account carries while it is on a temporary password a chair issued an hour ago. */
@@ -88,14 +90,14 @@ describe("evaluateGate", () => {
     it("admits a pledge with a verified email and the pledge role", () => {
       expect(evaluateGate(pledge(), live("pledge"))).toEqual({
         ok: true,
-        user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" },
+        user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
 
     it("admits an allow-listed admin with a verified email and the admin role", () => {
       expect(evaluateGate(admin(), live("admin"))).toEqual({
         ok: true,
-        user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin" },
+        user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
 
@@ -116,10 +118,33 @@ describe("evaluateGate", () => {
       });
     });
 
-    it("returns only uid, email and role, whatever else the token carries", () => {
+    it("returns only uid, email, role and the sign-in time, whatever else the token carries", () => {
       const claims = { ...pledge(), admin: true, name: "Avery", picture: "x" } as GateClaims;
       const result = evaluateGate(claims, live());
-      expect(result).toEqual({ ok: true, user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" } });
+      expect(result).toEqual({ ok: true, user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge", signedInAtMs: SIGNED_IN_AT_MS } });
+    });
+
+    it("reports when the person signed in as the token's auth_time, in milliseconds", () => {
+      for (const claimsOf of [pledge, admin, active]) {
+        for (const msAgo of [0, 60 * SECOND, HOUR, TIMING.maxSessionAgeMs]) {
+          const claims = claimsOf({ auth_time: signedIn(msAgo) });
+          const result = evaluateGate(claims, live());
+          expect(result.ok, `${String(claims.role)} signed in ${msAgo} ms ago`).toBe(true);
+          if (!result.ok) continue;
+          expect(result.user.signedInAtMs).toBe((claims.auth_time as number) * 1000);
+          expect(result.user.signedInAtMs).toBe(NOW - msAgo);
+        }
+      }
+      // A fraction of a second in the token is kept, and a time a moment ahead of the clock is taken as it is.
+      expect(evaluateGate(pledge({ auth_time: signedIn(HOUR) + 0.25 }), live())).toMatchObject({ user: { signedInAtMs: NOW - HOUR + 250 } });
+      expect(evaluateGate(pledge({ auth_time: signedIn(-5 * SECOND) }), live())).toMatchObject({ user: { signedInAtMs: NOW + 5 * SECOND } });
+    });
+
+    it("does not move the sign-in time when the token is refreshed", () => {
+      // A refreshed token carries a new iat and exp, and the same auth_time.
+      const refreshed = { ...pledge({ auth_time: signedIn(HOUR) }), iat: NOW / SECOND, exp: NOW / SECOND + 3600 } as GateClaims;
+      expect(evaluateGate(refreshed, live())).toMatchObject({ ok: true, user: { signedInAtMs: NOW - HOUR } });
+      expect(evaluateGate(refreshed, live("any", { nowMs: NOW + HOUR }))).toMatchObject({ ok: true, user: { signedInAtMs: NOW - HOUR } });
     });
   });
 
@@ -241,7 +266,7 @@ describe("evaluateGate", () => {
       const options = live("admin", { adminEmails: ["advisor@example.org"] });
       expect(evaluateGate(outside, options)).toEqual({
         ok: true,
-        user: { uid: "admin1", email: "advisor@example.org", role: "admin" },
+        user: { uid: "admin1", email: "advisor@example.org", role: "admin", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
 
@@ -377,7 +402,7 @@ describe("evaluateGate", () => {
       for (const need of ["any", "admin"] as const) {
         expect(evaluateGate(granted(), live(need))).toEqual({
           ok: true,
-          user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin" },
+          user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin", signedInAtMs: SIGNED_IN_AT_MS },
         });
         expect(evaluateGate(granted(), emulators(need)).ok).toBe(true);
       }
@@ -430,10 +455,10 @@ describe("evaluateGate", () => {
       expect(denied(evaluateGate(granted({ ...TEMP }), live("admin"))).code).toBe("password_change_required");
     });
 
-    it("returns only uid, email and role for them too: the claim itself is not passed on", () => {
+    it("returns only uid, email, role and the sign-in time for them too: the claim itself is not passed on", () => {
       expect(evaluateGate(granted(), live("admin"))).toEqual({
         ok: true,
-        user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin" },
+        user: { uid: "granted1", email: "former.pledge@uci.edu", role: "admin", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
   });
@@ -520,7 +545,7 @@ describe("evaluateGate", () => {
 
     it("admits a sign-in with a password alone to its own routes and the shared ones, for all three roles", () => {
       for (const [role, claimsOf] of CALLERS) {
-        const expected = { ok: true, user: { uid: claimsOf().uid, email: claimsOf().email, role } };
+        const expected = { ok: true, user: { uid: claimsOf().uid, email: claimsOf().email, role, signedInAtMs: SIGNED_IN_AT_MS } };
         for (const claims of [claimsOf(), saying(claimsOf(), PASSWORD_ONLY), saying(claimsOf(), {}), saying(claimsOf(), { sign_in_second_factor: "" })]) {
           for (const need of ["any", role] as const) {
             expect(evaluateGate(claims, live(need)), `${role} on a route for ${need}`).toEqual(expected);
@@ -584,7 +609,7 @@ describe("evaluateGate", () => {
         // Set to true, a sign-in with a password alone is still let through to its own routes.
         expect(evaluateGate(saying(claimsOf(), PASSWORD_ONLY), withStray(live(role), true)), role).toEqual({
           ok: true,
-          user: { uid: claimsOf().uid, email: claimsOf().email, role },
+          user: { uid: claimsOf().uid, email: claimsOf().email, role, signedInAtMs: SIGNED_IN_AT_MS },
         });
       }
     });
@@ -675,17 +700,17 @@ describe("evaluateGate", () => {
       message: "This account doesn't have access to the portal.",
     };
 
-    it("admits an active on a route for actives, as an active and with nothing but uid, email and role", () => {
+    it("admits an active on a route for actives, as an active and with nothing but uid, email, role and the sign-in time", () => {
       expect(evaluateGate(active(), live("active"))).toEqual({
         ok: true,
-        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active" },
+        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
 
     it("admits an active on a route that any signed-in user may call", () => {
       expect(evaluateGate(active(), live("any"))).toEqual({
         ok: true,
-        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active" },
+        user: { uid: "active1", email: "priya.shah@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS },
       });
     });
 
@@ -877,7 +902,7 @@ describe("evaluateGate", () => {
         const claims = claimsOf({ ...TEMP });
         const result = evaluateGate(claims, choosing("any"));
         // As themselves, and with nothing about the password in what the route is given.
-        expect(result, role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+        expect(result, role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role, signedInAtMs: SIGNED_IN_AT_MS } });
       }
     });
 
@@ -886,7 +911,7 @@ describe("evaluateGate", () => {
         for (const claims of [claimsOf({ ...TEMP }), claimsOf({ ...TEMP, issued: undefined })]) {
           expect(evaluateGate(claims, emulators("any", { passwordSetup: true })), role).toEqual({
             ok: true,
-            user: { uid: claims.uid, email: claims.email, role },
+            user: { uid: claims.uid, email: claims.email, role, signedInAtMs: SIGNED_IN_AT_MS },
           });
         }
       }
@@ -959,7 +984,7 @@ describe("evaluateGate", () => {
                     else if (need !== "any" && need !== role) expected = "forbidden";
                     else expected = "ok";
 
-                    if (expected === "ok") expect(result, label).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+                    if (expected === "ok") expect(result, label).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role, signedInAtMs: authTime * SECOND } });
                     else if (expected === "temporary_password_expired") expect(denied(result), label).toEqual(EXPIRED);
                     else if (expected === "password_change_required") expect(denied(result), label).toEqual(CHANGE_REQUIRED);
                     else if (expected === "session_expired") expect(denied(result), label).toEqual(SESSION_EXPIRED);
@@ -998,7 +1023,7 @@ describe("evaluateGate", () => {
         for (const [role, claimsOf] of CALLERS) {
           // At the limit: the account can still choose a password, and still do nothing else.
           const claims = claimsOf({ temp: true, tempAt: atLimit });
-          expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+          expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role, signedInAtMs: SIGNED_IN_AT_MS } });
           expect(denied(evaluateGate(claims, live())), role).toEqual(CHANGE_REQUIRED);
           // The same token a millisecond later, and one issued a second earlier.
           expect(denied(evaluateGate(claims, choosing("any", { nowMs: NOW + 1 }))), role).toEqual(EXPIRED);
@@ -1075,7 +1100,7 @@ describe("evaluateGate", () => {
           expect(temporaryPasswordExpired(tempAt, NOW)).toBe(false);
           for (const [role, claimsOf] of CALLERS) {
             const claims = claimsOf({ temp: true, tempAt });
-            expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+            expect(evaluateGate(claims, choosing()), role).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role, signedInAtMs: SIGNED_IN_AT_MS } });
             expect(denied(evaluateGate(claims, live())), role).toEqual(CHANGE_REQUIRED);
           }
         });
@@ -1152,7 +1177,7 @@ describe("evaluateGate", () => {
         for (const [role, claimsOf] of CALLERS) {
           const atLimit = claimsOf({ ...TEMP, auth_time: signedIn(LIMIT) });
           for (const options of [choosing(), emulators("any", { passwordSetup: true })]) {
-            expect(evaluateGate(atLimit, options), role).toEqual({ ok: true, user: { uid: atLimit.uid, email: atLimit.email, role } });
+            expect(evaluateGate(atLimit, options), role).toEqual({ ok: true, user: { uid: atLimit.uid, email: atLimit.email, role, signedInAtMs: NOW - LIMIT } });
             expect(denied(evaluateGate(atLimit, { ...options, nowMs: NOW + 1 })), role).toEqual(SESSION_EXPIRED);
             expect(denied(evaluateGate(claimsOf({ ...TEMP, auth_time: signedIn(LIMIT + SECOND) }), options)), role).toEqual(SESSION_EXPIRED);
           }
@@ -1186,8 +1211,10 @@ describe("evaluateGate", () => {
               for (const base of [live(need), emulators(need)]) {
                 const fresh = evaluateGate(claimsOf(), base);
                 const claims = claimsOf({ auth_time: signedIn(msAgo) });
-                expect(evaluateGate(claims, { ...base, passwordSetup: true }), `${role} on a route for ${need}`).toEqual(fresh);
-                expect(evaluateGate(claims, base), `${role} on a route for ${need}`).toEqual(fresh);
+                // The same answer as for a fresh sign-in, apart from when it says the person signed in.
+                const asFresh: GateResult = fresh.ok ? { ...fresh, user: { ...fresh.user, signedInAtMs: NOW - msAgo } } : fresh;
+                expect(evaluateGate(claims, { ...base, passwordSetup: true }), `${role} on a route for ${need}`).toEqual(asFresh);
+                expect(evaluateGate(claims, base), `${role} on a route for ${need}`).toEqual(asFresh);
                 compared += 1;
               }
             }
@@ -1444,7 +1471,7 @@ describe("evaluateGate", () => {
           }
           expect(evaluateGate(claimsOf({ temp }), live(role)), role).toEqual({
             ok: true,
-            user: { uid: claimsOf().uid, email: claimsOf().email, role },
+            user: { uid: claimsOf().uid, email: claimsOf().email, role, signedInAtMs: SIGNED_IN_AT_MS },
           });
         }
       });
@@ -1456,7 +1483,7 @@ describe("evaluateGate", () => {
           for (const need of NEEDS) {
             const claims = claimsOf({ temp, tempAt: issuedAt(TIMING.temporaryPasswordMs + SECOND), auth_time: signedIn(HOUR) });
             const result = evaluateGate(claims, choosing(need));
-            if (need === "any" || need === role) expect(result, `${role} on a route for ${need}`).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role } });
+            if (need === "any" || need === role) expect(result, `${role} on a route for ${need}`).toEqual({ ok: true, user: { uid: claims.uid, email: claims.email, role, signedInAtMs: NOW - HOUR } });
             else expect(denied(result), `${role} on a route for ${need}`).toEqual(FORBIDDEN);
           }
         }

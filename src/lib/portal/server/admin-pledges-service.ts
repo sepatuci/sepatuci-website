@@ -1,7 +1,7 @@
 import { randomBytes } from "node:crypto";
 import type { UserRecord } from "firebase-admin/auth";
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
-import { isOnline } from "../activity";
+import { isOnline, resolveSessionEnd } from "../activity";
 import { ID_PATTERN, LIMITS, UCI_EMAIL_PATTERN } from "../constants";
 import { toIso } from "../dates";
 import { isRecord, readEnum, readText } from "../parse";
@@ -29,9 +29,11 @@ import { findTeamName, loadTeams } from "./admin-teams-service";
 import { auditEntry } from "./audit";
 import { HttpError, invalid } from "./http";
 import type { Caller } from "./pledge-service";
+import { sessionDto } from "./sessions";
 import { fingerprint, nextSecond } from "./temporary-password";
 import {
   activityToDto,
+  activityToPure,
   collections,
   deleteMatching,
   emptyStoredActivity,
@@ -109,24 +111,29 @@ export function lastSignIn(record: UserRecord | undefined): IsoDateTime | null {
   return toIso(ms);
 }
 
+/** Disabled on the profile or at the sign-in: either alone keeps the person out. */
+export function statusOf(profile: UserDoc, record: UserRecord | undefined): UserStatus {
+  return profile.status === "disabled" || record?.disabled === true ? "disabled" : "active";
+}
+
+/**
+ * "Invited" means the person has never reached the portal: no sign-in and no
+ * recorded visit, or still on the temporary password they were given.
+ */
+export function accountStateOf(profile: UserDoc, record: UserRecord | undefined): AccountState {
+  if (statusOf(profile, record) === "disabled") return "disabled";
+  if (onTemporaryPassword(record)) return "invited";
+  if (profile.activity.firstSeenAt === null && lastSignIn(record) === null) return "invited";
+  return "active";
+}
+
 function toPledgeRow(
   uid: string,
   profile: UserDoc,
   record: UserRecord | undefined,
   activePunishments: number,
 ): PledgeRowDto {
-  const lastSignInAt = lastSignIn(record);
-  const status: UserStatus =
-    profile.status === "disabled" || record?.disabled === true ? "disabled" : "active";
-
-  // "Invited" means the pledge has never reached the portal: no sign-in and
-  // no recorded visit.
-  const hasVisited = profile.activity.firstSeenAt !== null;
-  let accountState: AccountState = "active";
-  if (status === "disabled") accountState = "disabled";
-  else if (onTemporaryPassword(record)) accountState = "invited";
-  else if (!hasVisited && lastSignInAt === null) accountState = "invited";
-
+  const status = statusOf(profile, record);
   return {
     uid,
     email: profile.email,
@@ -135,9 +142,9 @@ function toPledgeRow(
     teamId: profile.teamId,
     status,
     signInBlocked: record ? record.disabled : status === "disabled",
-    accountState,
+    accountState: accountStateOf(profile, record),
     createdAt: iso(profile.createdAt),
-    lastSignInAt,
+    lastSignInAt: lastSignIn(record),
     onboardedAt: isoOrNull(profile.onboardedAt),
     activity: activityToDto(profile.activity),
     submitted: submittedToWire(profile.submitted),
@@ -407,24 +414,22 @@ export async function getPledgeDetail({ admin, now }: Caller, uid: string): Prom
     .map((doc) => punishmentDto(doc.id, doc.data()))
     .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1));
 
-  const sessions: SessionDto[] = sessionsSnap.docs.map((doc) => {
-    const session = doc.data();
-    return {
-      startedAt: iso(session.startedAt),
-      endedAt: iso(session.endedAt),
-      activeSeconds: session.activeSeconds,
-      current: false,
-    };
-  });
-  // The latest session stays on the profile until a later visit closes it, so
-  // it is "current" only while the pledge is actually still around.
-  const current = profile.activity.current;
-  if (current) {
+  const nowMs = now.getTime();
+  const current = activityToPure(profile.activity).current;
+  // Each session has a document of its own, open or closed. The one in
+  // progress is "current" only while the person is actually still around.
+  const sessions: SessionDto[] = sessionsSnap.docs.map((doc) => sessionDto(doc.id, doc.data(), current, nowMs));
+  // A visit begun before sessions had documents is still only on the profile.
+  if (current && current.sessionId === null) {
     sessions.push({
-      startedAt: iso(current.startedAt),
-      endedAt: iso(current.lastSeenAt),
+      id: null,
+      startedAt: toIso(current.startedAtMs),
+      endedAt: toIso(current.lastSeenAtMs),
+      endReason: resolveSessionEnd(current, nowMs)?.endReason ?? null,
       activeSeconds: current.activeSeconds,
-      current: isOnline(current.lastSeenAt.toMillis(), now.getTime()),
+      pageCount: 0,
+      device: "",
+      current: isOnline(current.lastSeenAtMs, nowMs),
     });
   }
   sessions.sort((a, b) => (a.startedAt < b.startedAt ? 1 : -1));
@@ -443,7 +448,9 @@ export async function getPledgeDetail({ admin, now }: Caller, uid: string): Prom
       .map((doc) => submissionSummary(doc.data()))
       .sort((a, b) => (a.submittedAt < b.submittedAt ? 1 : -1)),
     punishments,
-    sessions: sessions.slice(0, LIMITS.sessionHistory),
+    // An admin's preview account is in no activity view, so nothing links to
+    // its sessions from here either.
+    sessions: isPreviewProfile(profile) ? [] : sessions.slice(0, LIMITS.sessionHistory),
     teams,
   };
 }

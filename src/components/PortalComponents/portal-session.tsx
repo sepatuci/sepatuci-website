@@ -106,10 +106,31 @@ const PortalSessionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const clockOffset = useRef(0);
   const leaving = useRef(false);
   const signedInAt = useRef("");
-  const pledge = useRef(false);
-  pledge.current = me?.role === "pledge";
   const currentPath = useRef(pathname);
   currentPath.current = pathname;
+  const lastBeat = useRef(0);
+  const lastNavigationBeat = useRef(0);
+  const beatPath = useRef<string | null>(null);
+
+  /**
+   * One heartbeat: which page this tab is on, whether it has just come back
+   * into view, and whether it is closing. Nothing else about the visit is sent.
+   */
+  const sendBeat = useCallback((options: { resume: boolean; keepalive?: boolean; leaving?: boolean }) => {
+    if (leaving.current) return;
+    beatPath.current = currentPath.current;
+    const match = DELIVERABLE_PATH.exec(currentPath.current);
+    void apiFetch("/heartbeat", {
+      method: "POST",
+      keepalive: options.keepalive === true,
+      body: {
+        resume: options.resume,
+        leaving: options.leaving === true,
+        path: currentPath.current,
+        ...(match ? { formId: match[1] } : {}),
+      },
+    }).catch(() => undefined);
+  }, []);
 
   const signOut = useCallback(
     async (reason: SignOutReason = "signed_out") => {
@@ -120,17 +141,17 @@ const PortalSessionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (reason !== "ended") {
         const quietly = { method: "POST", keepalive: true } as const;
         // Choosing "Sign out" ends the sign-in on the server, so it stops
-        // working everywhere, and credits the last stretch of the visit in the
-        // same request. An idle timeout only clears this tab, because the same
-        // person may be in the middle of something in another one; it just
-        // credits the time.
+        // working everywhere, and closes the session in the same request. An
+        // idle timeout only clears this tab, because the same person may be in
+        // the middle of something in another one; a last beat tells the server
+        // to close the session as idle and keep the sign-in.
         const farewell: Promise<boolean> =
           reason === "signed_out"
             ? apiFetch("/sign-out", quietly).then(
                 () => true,
                 () => false,
               )
-            : (pledge.current ? apiFetch("/heartbeat", quietly) : Promise.resolve()).then(
+            : apiFetch("/heartbeat", { ...quietly, body: { idle: true } }).then(
                 () => true,
                 () => true,
               );
@@ -227,41 +248,72 @@ const PortalSessionProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [needsWelcome, welcomePath, router]);
 
   // Time on the site: one beat a minute while this tab is actually being looked
-  // at. Only pledges are timed; nothing is recorded about how admins use the portal.
+  // at, and one as it closes. Everyone who signs in is timed, admins included.
   useEffect(() => {
-    if (!me || me.role !== "pledge") return;
-    let lastBeat = 0;
-    const beat = (resume: boolean, closing = false) => {
+    if (!me) return;
+    const beat = (resume: boolean, keepalive = false) => {
       // The server ignores beats closer together than this, so they are not sent.
-      if (leaving.current || Date.now() - lastBeat < TIMING.heartbeatMinIntervalMs) return;
-      lastBeat = Date.now();
-      const match = DELIVERABLE_PATH.exec(currentPath.current);
-      void apiFetch("/heartbeat", {
-        method: "POST",
-        keepalive: closing,
-        body: { resume, ...(match ? { formId: match[1] } : {}) },
-      }).catch(() => undefined);
+      if (Date.now() - lastBeat.current < TIMING.heartbeatMinIntervalMs) return;
+      lastBeat.current = Date.now();
+      sendBeat({ resume, keepalive });
     };
     beat(true);
     const timer = window.setInterval(() => {
       if (document.visibilityState === "visible") beat(false);
     }, TIMING.heartbeatIntervalMs);
-    // Coming back marks the pledge present without counting the time away.
-    // Leaving counts the time up to that moment, in a request that survives
-    // the tab closing.
-    const onVisibility = () => {
-      const visible = document.visibilityState === "visible";
-      beat(visible, !visible);
+    // Coming back marks the person present without counting the time away.
+    // Going out of view counts the time up to that moment, in a request that
+    // survives the tab closing. Closing is always reported, so the session
+    // can be recorded as left rather than as having gone quiet.
+    // Closing a tab hides it first. The hidden beat waits a moment and is
+    // dropped when a closing beat follows, so the two never race to say
+    // whether the tab is still there.
+    let hiddenBeat: number | null = null;
+    const dropHiddenBeat = () => {
+      if (hiddenBeat !== null) window.clearTimeout(hiddenBeat);
+      hiddenBeat = null;
     };
-    const onPageHide = () => beat(false, true);
+    const onVisibility = () => {
+      dropHiddenBeat();
+      if (document.visibilityState === "visible") {
+        beat(true);
+        return;
+      }
+      hiddenBeat = window.setTimeout(() => {
+        hiddenBeat = null;
+        beat(false, true);
+      }, 400);
+    };
+    const onPageHide = () => {
+      dropHiddenBeat();
+      sendBeat({ resume: false, keepalive: true, leaving: true });
+    };
     document.addEventListener("visibilitychange", onVisibility);
     window.addEventListener("pagehide", onPageHide);
     return () => {
       window.clearInterval(timer);
+      dropHiddenBeat();
       document.removeEventListener("visibilitychange", onVisibility);
       window.removeEventListener("pagehide", onPageHide);
     };
-  }, [me]);
+  }, [me, sendBeat]);
+
+  // Each change of page is reported as it happens, so a session's log shows
+  // where the person went. A quick run of changes reports the last of them.
+  useEffect(() => {
+    if (!me || pathname === beatPath.current) return;
+    const report = () => {
+      lastNavigationBeat.current = Date.now();
+      sendBeat({ resume: false });
+    };
+    const waited = Date.now() - lastNavigationBeat.current;
+    if (waited >= TIMING.navigationBeatMinIntervalMs) {
+      report();
+      return;
+    }
+    const timer = window.setTimeout(report, TIMING.navigationBeatMinIntervalMs - waited);
+    return () => window.clearTimeout(timer);
+  }, [me, pathname, sendBeat]);
 
   // Sign out after a stretch with no input, in case the tab was left open on a shared computer.
   useEffect(() => {

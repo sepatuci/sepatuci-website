@@ -352,10 +352,18 @@ export interface AdminOverviewDto {
   teams: TeamDto[];
 }
 
+/** How a session came to an end. Null while it is still open. */
+export type SessionEndReason = "signed_out" | "idle" | "left" | "timed_out" | "expired";
+
 export interface SessionDto {
+  /** Null only for a session recorded before sessions had their own documents. */
+  id: string | null;
   startedAt: IsoDateTime;
   endedAt: IsoDateTime | null;
+  endReason: SessionEndReason | null;
   activeSeconds: number;
+  pageCount: number;
+  device: string;
   current: boolean;
 }
 
@@ -369,6 +377,78 @@ export interface PledgeDetailDto {
   /** Newest first. */
   sessions: SessionDto[];
   teams: TeamDto[];
+}
+
+// ── Activity (admin only) ────────────────────────────────────────────────────
+
+export interface ActivityPersonDto {
+  uid: string;
+  email: string;
+  displayName: string;
+  role: Role;
+  status: UserStatus;
+  accountState: AccountState;
+  online: boolean;
+  /** The page they are on, while online. */
+  currentPath: string | null;
+  currentPageLabel: string | null;
+  currentSessionId: string | null;
+  firstSeenAt: IsoDateTime | null;
+  lastSeenAt: IsoDateTime | null;
+  lastSignInAt: IsoDateTime | null;
+  /** Seconds of activity on the day the overview names. */
+  todayActiveSeconds: number;
+  totalActiveSeconds: number;
+  sessionCount: number;
+}
+
+export interface ActivityOverviewDto {
+  serverNow: IsoDateTime;
+  /** The civil date that "today" means, in the portal's time zone. */
+  day: string;
+  timeZone: string;
+  /** Everyone with an account, online first, then by last seen. Preview accounts are left out. */
+  people: ActivityPersonDto[];
+}
+
+export interface ActivitySessionDto {
+  id: string;
+  /** When the sign-in behind this session happened. Null for sessions recorded before it was kept. */
+  signedInAt: IsoDateTime | null;
+  startedAt: IsoDateTime;
+  lastSeenAt: IsoDateTime;
+  endedAt: IsoDateTime | null;
+  endReason: SessionEndReason | null;
+  activeSeconds: number;
+  pageCount: number;
+  device: string;
+  current: boolean;
+}
+
+export interface ActivityPersonDetailDto {
+  serverNow: IsoDateTime;
+  person: ActivityPersonDto;
+  /** Newest first. */
+  sessions: ActivitySessionDto[];
+}
+
+export interface SessionPageDto {
+  path: string;
+  label: string;
+  at: IsoDateTime;
+  /** Time until the next page, or until the session was last seen. */
+  dwellSeconds: number;
+  /** The page they are on now, for a session that is still open. */
+  current: boolean;
+}
+
+export interface SessionDetailDto {
+  serverNow: IsoDateTime;
+  person: ActivityPersonDto;
+  session: ActivitySessionDto;
+  pages: SessionPageDto[];
+  /** True when more pages were visited than the log keeps. */
+  pageLogFull: boolean;
 }
 
 /** How a new account gets its first password. */

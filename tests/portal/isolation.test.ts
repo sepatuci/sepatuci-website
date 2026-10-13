@@ -736,6 +736,7 @@ function hostile(route: (typeof DISCOVERED)[number], caller: Session, victim: { 
     else if (name === "uid") params[name] = victim.uid;
     else if (name === "teamId") params[name] = TEAM_ATLAS;
     else if (name === "id") params[name] = punishmentIds.get(victim.uid) ?? "";
+    else if (name === "sessionId") params[name] = "abc123";
     else throw new Error(`No value for the route parameter ${name}: add one here so the new route is covered.`);
   }
   return call(route.handler, params, {

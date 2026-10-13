@@ -10,6 +10,8 @@ export interface AuthedUser {
   uid: string;
   email: string;
   role: Role;
+  /** When this sign-in happened, by the token. Refreshing the token does not move it. */
+  signedInAtMs: number;
 }
 
 /** A route is open to everyone signed in, or to exactly one role. */
@@ -148,5 +150,5 @@ export function evaluateGate(claims: GateClaims, options: GateOptions): GateResu
   if (options.need !== "any" && options.need !== role) {
     return deny("forbidden", "You don't have permission to do that.");
   }
-  return { ok: true, user: { uid: claims.uid, email, role } };
+  return { ok: true, user: { uid: claims.uid, email, role, signedInAtMs: signedInMs } };
 }

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import AuditTable from "@/components/PortalAdminComponents/audit-table";
+import { ActivityPanel } from "@/components/PortalAdminComponents/activity-panel";
 
 export const metadata: Metadata = { title: "Activity" };
 
 export default function AdminActivityPage() {
-  return <AuditTable />;
+  return <ActivityPanel />;
 }

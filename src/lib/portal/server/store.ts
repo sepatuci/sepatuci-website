@@ -27,6 +27,7 @@ import type {
   Role,
   SubmittedMap,
   SubmissionSummaryDto,
+  SessionEndReason,
   UserStatus,
 } from "../types";
 
@@ -37,12 +38,26 @@ import type {
 
 export type StoredSubmitted = Record<string, { submittedAt: Timestamp; late: boolean }>;
 
+export type StoredCurrentSession = {
+  /** The session's document under users/{uid}/sessions. Null for one begun before sessions had documents. */
+  sessionId: string | null;
+  signedInAt: Timestamp | null;
+  startedAt: Timestamp;
+  lastSeenAt: Timestamp;
+  activeSeconds: number;
+  lastPath: string | null;
+  pageCount: number;
+  leaving: boolean;
+};
+
 export type StoredActivity = {
   firstSeenAt: Timestamp | null;
   lastSeenAt: Timestamp | null;
   totalActiveSeconds: number;
   sessionCount: number;
-  current: { startedAt: Timestamp; lastSeenAt: Timestamp; activeSeconds: number } | null;
+  current: StoredCurrentSession | null;
+  /** Seconds of activity on one civil date in the portal's time zone. Absent until the first beat. */
+  today?: { date: string; activeSeconds: number } | null;
 };
 
 export type UserDoc = {
@@ -164,11 +179,23 @@ export type PunishmentDoc = {
   resolvedBy: string | null;
 };
 
+export type StoredPageVisit = { path: string; at: Timestamp };
+
+/** One session, written when it starts and kept up to date by each beat until it ends. */
 export type SessionDoc = {
   uid: string;
+  signedInAt: Timestamp | null;
   startedAt: Timestamp;
-  endedAt: Timestamp;
+  lastSeenAt: Timestamp;
+  /** Null while the session is open. */
+  endedAt: Timestamp | null;
+  endReason: SessionEndReason | null;
   activeSeconds: number;
+  /** "Chrome on macOS" and the like. Empty for sessions recorded before it was kept. */
+  device: string;
+  /** In order of visiting, at most LIMITS.sessionPages. */
+  pages: StoredPageVisit[];
+  pageCount: number;
 };
 
 export type AuditDoc = {
@@ -212,6 +239,33 @@ const userConverter = converter<UserDoc>((data) => ({
   activity: (data.activity as StoredActivity | undefined) ?? emptyStoredActivity(),
 }));
 
+// Sessions recorded before pages, reasons and devices were kept read back
+// whole, and so do partial reads that leave the page log out.
+export function sessionFromData(data: DocumentData): SessionDoc {
+  const endedAt = (data.endedAt as Timestamp | null | undefined) ?? null;
+  // A document a merge write landed on after its start was lost still reads.
+  const startedAt =
+    (data.startedAt as Timestamp | undefined) ??
+    (data.lastSeenAt as Timestamp | undefined) ??
+    endedAt ??
+    Timestamp.fromMillis(0);
+  return {
+    uid: typeof data.uid === "string" ? data.uid : "",
+    signedInAt: (data.signedInAt as Timestamp | null | undefined) ?? null,
+    startedAt,
+    lastSeenAt: (data.lastSeenAt as Timestamp | undefined) ?? endedAt ?? startedAt,
+    endedAt,
+    endReason:
+      (data.endReason as SessionEndReason | null | undefined) ?? (endedAt ? "timed_out" : null),
+    activeSeconds: typeof data.activeSeconds === "number" ? data.activeSeconds : 0,
+    device: typeof data.device === "string" ? data.device : "",
+    pages: Array.isArray(data.pages) ? (data.pages as StoredPageVisit[]) : [],
+    pageCount: typeof data.pageCount === "number" ? data.pageCount : 0,
+  };
+}
+
+const sessionConverter = converter<SessionDoc>(sessionFromData);
+
 export interface Collections {
   users: CollectionReference<UserDoc>;
   forms: CollectionReference<FormDoc>;
@@ -236,8 +290,7 @@ export function collections(db: Firestore): Collections {
     submissions: db.collection("submissions").withConverter(passthrough<SubmissionDoc>()),
     punishments: db.collection("punishments").withConverter(passthrough<PunishmentDoc>()),
     teams: db.collection("teams").withConverter(passthrough<TeamDoc>()),
-    sessions: (uid) =>
-      db.collection("users").doc(uid).collection("sessions").withConverter(passthrough<SessionDoc>()),
+    sessions: (uid) => db.collection("users").doc(uid).collection("sessions").withConverter(sessionConverter),
     audit: db.collection("auditLog").withConverter(passthrough<AuditDoc>()),
     previewCodes: db.collection("previewCodes").withConverter(passthrough<PreviewCodeDoc>()),
   };
@@ -297,19 +350,28 @@ export function submittedToWire(submitted: StoredSubmitted): SubmittedMap {
   return wire;
 }
 
+// A profile's current session from before pages and sign-in times were kept
+// reads back with those parts empty, and carries on from there.
 export function activityToPure(activity: StoredActivity): Activity {
+  const current = activity.current;
   return {
     firstSeenAtMs: activity.firstSeenAt?.toMillis() ?? null,
     lastSeenAtMs: activity.lastSeenAt?.toMillis() ?? null,
     totalActiveSeconds: activity.totalActiveSeconds,
     sessionCount: activity.sessionCount,
-    current: activity.current
+    current: current
       ? {
-          startedAtMs: activity.current.startedAt.toMillis(),
-          lastSeenAtMs: activity.current.lastSeenAt.toMillis(),
-          activeSeconds: activity.current.activeSeconds,
+          sessionId: typeof current.sessionId === "string" ? current.sessionId : null,
+          signedInAtMs: current.signedInAt?.toMillis() ?? null,
+          startedAtMs: current.startedAt.toMillis(),
+          lastSeenAtMs: current.lastSeenAt.toMillis(),
+          activeSeconds: current.activeSeconds,
+          lastPath: typeof current.lastPath === "string" ? current.lastPath : null,
+          pageCount: typeof current.pageCount === "number" ? current.pageCount : 0,
+          leaving: current.leaving === true,
         }
       : null,
+    today: activity.today ?? null,
   };
 }
 
@@ -324,11 +386,17 @@ export function activityToStored(activity: Activity): StoredActivity {
     sessionCount: activity.sessionCount,
     current: activity.current
       ? {
+          sessionId: activity.current.sessionId,
+          signedInAt: fromMs(activity.current.signedInAtMs),
           startedAt: Timestamp.fromMillis(activity.current.startedAtMs),
           lastSeenAt: Timestamp.fromMillis(activity.current.lastSeenAtMs),
           activeSeconds: activity.current.activeSeconds,
+          lastPath: activity.current.lastPath,
+          pageCount: activity.current.pageCount,
+          leaving: activity.current.leaving,
         }
       : null,
+    today: activity.today,
   };
 }
 

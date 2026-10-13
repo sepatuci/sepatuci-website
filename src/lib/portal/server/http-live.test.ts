@@ -93,6 +93,8 @@ const SECOND = 1000;
 const MINUTE = 60_000;
 const HOUR = 3_600_000;
 const TOKEN = "aaa.bbb.ccc";
+/** When the default claims below say the person signed in, as the gate hands it to the handler: a minute before NOW. */
+const SIGNED_IN_AT_MS = NOW - MINUTE;
 /** What an account carries while it is on a temporary password a chair issued an hour ago. */
 const TEMP = { temp: true, tempAt: (NOW - HOUR) / SECOND };
 /** The same, for one issued this long ago. */
@@ -201,9 +203,9 @@ describe("a route on the live site", () => {
   // token says of a second factor makes any difference to what it is let through to.
   describe("sign-in with an email and a password only", () => {
     const CALLERS: ReadonlyArray<["admin" | "active" | "pledge", (overrides?: Record<string, unknown>) => Record<string, unknown>, AuthedUser]> = [
-      ["admin", adminClaims, { uid: "admin1", email: "chair.one@uci.edu", role: "admin" }],
-      ["active", activeClaims, { uid: "active1", email: "priya.shah@uci.edu", role: "active" }],
-      ["pledge", pledgeClaims, { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }],
+      ["admin", adminClaims, { uid: "admin1", email: "chair.one@uci.edu", role: "admin", signedInAtMs: SIGNED_IN_AT_MS }],
+      ["active", activeClaims, { uid: "active1", email: "priya.shah@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS }],
+      ["pledge", pledgeClaims, { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge", signedInAtMs: SIGNED_IN_AT_MS }],
     ];
     /** Everything a token might say of the sign-in under `firebase`. */
     const SIGN_INS: ReadonlyArray<[string, unknown]> = [
@@ -298,14 +300,23 @@ describe("a route on the live site", () => {
       const result = await send(handler);
       expect(result.status).toBe(200);
       expect(result.body).toEqual({ ok: true, uid: "pledge1" });
-      expect(reached).toEqual([{ user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }, nowMs: NOW, body: undefined }]);
+      expect(reached).toEqual([{ user: { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge", signedInAtMs: SIGNED_IN_AT_MS }, nowMs: NOW, body: undefined }]);
     });
 
     it("runs an admin route for an allow-listed admin", async () => {
       stub.claims = adminClaims();
       const { handler, reached } = route("admin");
       expect((await send(handler, "POST")).status).toBe(200);
-      expect(reached).toEqual([{ user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin" }, nowMs: NOW, body: {} }]);
+      expect(reached).toEqual([{ user: { uid: "admin1", email: "chair.one@uci.edu", role: "admin", signedInAtMs: SIGNED_IN_AT_MS }, nowMs: NOW, body: {} }]);
+    });
+
+    it("tells the handler when the person signed in, from the token's auth_time in seconds", async () => {
+      for (const msAgo of [60_000, HOUR, TIMING.maxSessionAgeMs]) {
+        stub.claims = pledgeClaims({ auth_time: (NOW - msAgo) / SECOND });
+        const { handler, reached } = route("pledge");
+        expect((await send(handler)).status).toBe(200);
+        expect(reached.map((call) => call.user.signedInAtMs)).toEqual([NOW - msAgo]);
+      }
     });
   });
 
@@ -430,7 +441,7 @@ describe("a route on the live site", () => {
       const result = await send(handler);
       expect(result.status).toBe(200);
       expect(result.body).toEqual({ ok: true, uid: "active1" });
-      expect(reached).toEqual([{ user: { uid: "active1", email: "priya.shah@uci.edu", role: "active" }, nowMs: NOW, body: undefined }]);
+      expect(reached).toEqual([{ user: { uid: "active1", email: "priya.shah@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS }, nowMs: NOW, body: undefined }]);
     });
 
     it("lets an active onto a route every role shares, and still as an active", async () => {
@@ -488,7 +499,7 @@ describe("a route on the live site", () => {
 
       const actives = route("active");
       expect((await send(actives.handler)).status).toBe(200);
-      expect(actives.reached.map((call) => call.user)).toEqual([{ uid: "active1", email: "chair.one@uci.edu", role: "active" }]);
+      expect(actives.reached.map((call) => call.user)).toEqual([{ uid: "active1", email: "chair.one@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS }]);
     });
 
     it("refuses an active whose sign-in is 13 hours old with 401 session_expired", async () => {
@@ -521,8 +532,8 @@ describe("a route on the live site", () => {
     const KINDS_OF_ROUTE = ["any", "pledge", "active", "admin"] as const;
 
     const temporary: ReadonlyArray<[string, () => Record<string, unknown>, AuthedUser]> = [
-      ["a pledge", () => pledgeClaims({ ...TEMP }), { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge" }],
-      ["an active", () => activeClaims({ ...TEMP }), { uid: "active1", email: "priya.shah@uci.edu", role: "active" }],
+      ["a pledge", () => pledgeClaims({ ...TEMP }), { uid: "pledge1", email: "avery.chen@uci.edu", role: "pledge", signedInAtMs: SIGNED_IN_AT_MS }],
+      ["an active", () => activeClaims({ ...TEMP }), { uid: "active1", email: "priya.shah@uci.edu", role: "active", signedInAtMs: SIGNED_IN_AT_MS }],
     ];
 
     it.each(temporary)("lets %s through a route for choosing a password, as themselves", async (_label, claims, user) => {
@@ -862,7 +873,8 @@ describe("a route on the live site", () => {
           const later = await send(handler, "POST");
           expect(later.status).toBe(401);
           expect(later.body).toEqual(SESSION_EXPIRED);
-          expect(reached.map((call) => call.user)).toEqual([user]);
+          // Signed in exactly fifteen minutes before, not the minute the default claims say.
+          expect(reached.map((call) => call.user)).toEqual([{ ...user, signedInAtMs: NOW - LIMIT }]);
           resetRateLimits();
         }
       });
@@ -1163,18 +1175,21 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
     for (const spy of muted) spy.mockRestore();
   });
 
-  it("are forty-six, none of them for a second factor, and each one role's, everyone's, or the one that is anyone's", () => {
+  it("are forty-nine, none of them for a second factor, and each one role's, everyone's, or the one that is anyone's", () => {
     const labels = REAL_ROUTES.map((candidate) => candidate.label);
-    expect(labels).toHaveLength(46);
+    expect(labels).toHaveLength(49);
     expect(labels.filter((label) => /mfa|factor|totp|passcode|two-step|enrol/i.test(label))).toEqual([]);
     expect(labels).not.toContain("POST /admin/pledges/[uid]/reset-mfa");
     expect(labels).not.toContain("POST /admin/actives/[uid]/reset-mfa");
     expect(labels.filter((label) => needOf(label) === "any").sort()).toEqual(SHARED);
     expect(labels.filter((label) => needOf(label) === "active").sort()).toEqual(["GET /review/forms/[formId]", "GET /review/overview"]);
     expect(labels.filter((label) => needOf(label) === "pledge")).toHaveLength(6);
-    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(32);
+    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(35);
+    expect(labels).toEqual(
+      expect.arrayContaining(["GET /admin/activity", "GET /admin/activity/[uid]", "GET /admin/activity/[uid]/sessions/[sessionId]"]),
+    );
     expect(labels.filter((label) => needOf(label) === "public")).toEqual([REDEEM_PREVIEW]);
-    expect(SIGNED_IN_ROUTES).toHaveLength(45);
+    expect(SIGNED_IN_ROUTES).toHaveLength(48);
   });
 
   // The one route open to anyone is reached with no token at all, and its requests are
