@@ -56,7 +56,7 @@ const QuestionPreview: React.FC<{ question: Question }> = ({ question }) => (
 /** One deliverable as an active sees it: the responses, who is still missing, and the questions. */
 const ReviewForm: React.FC<{ formId: string }> = ({ formId }) => {
   const params = useSearchParams();
-  const focusUid = params.get("member");
+  const focusUid = params.get("pledge");
   const { data, error, loading, reload } = useApi<ReviewFormDto>(`/review/forms/${formId}`);
   const [view, setView] = useState<View>(focusUid ? "individual" : "summary");
   const [selectedUid, setSelectedUid] = useState<string | null>(focusUid);
@@ -146,9 +146,9 @@ const ReviewForm: React.FC<{ formId: string }> = ({ formId }) => {
         <p className="mt-1 text-sm text-muted-foreground">
           {expected > 0
             ? `${percent(responses.length, expected)}% of the ${expected} ${
-                expected === 1 ? "new member" : "new members"
+                expected === 1 ? "pledge" : "pledges"
               } this applies to${late > 0 ? ` · ${late} late` : ""}`
-            : "No new members have been assigned this yet"}
+            : "No pledges have been assigned this yet"}
         </p>
         <div role="tablist" aria-label="View" className="mt-5 flex flex-wrap gap-1 border-t border-border pt-4">
           {tabs.map((tab) => (
@@ -181,7 +181,7 @@ const ReviewForm: React.FC<{ formId: string }> = ({ formId }) => {
             {notTurnedIn.map((pledge) => (
               <Link
                 key={pledge.uid}
-                href={`/portal/review/new-members/${pledge.uid}`}
+                href={`/portal/review/pledges/${pledge.uid}`}
                 className="flex items-center justify-between gap-3 px-6 py-3.5 transition-colors hover:bg-muted/50"
               >
                 <span className="min-w-0">
@@ -212,7 +212,7 @@ const ReviewForm: React.FC<{ formId: string }> = ({ formId }) => {
         <EmptyState
           icon={<Inbox className="h-8 w-8" />}
           title="No responses yet"
-          body="Responses appear here as new members turn this in."
+          body="Responses appear here as pledges turn this in."
         />
       ) : view === "summary" ? (
         summaries.map((summary) => (

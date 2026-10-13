@@ -18,7 +18,7 @@ interface PreviewCardProps {
 }
 
 const BODY =
-  "Go through a new member's first visit in a separate tab, from signing in with a temporary password to the welcome and the dashboard. Nothing you do there affects real members.";
+  "Go through a new pledge's first visit in a separate tab, from signing in with a temporary password to the welcome and the dashboard. Nothing you do there affects real members.";
 
 const STAGES: Record<PreviewStage, { label: string; tone: Tone }> = {
   ready: { label: "Ready for a first sign-in", tone: "accent" },
@@ -27,9 +27,9 @@ const STAGES: Record<PreviewStage, { label: string; tone: Tone }> = {
 const NO_PREVIEW = { label: "No preview account yet", tone: "neutral" as const };
 
 const ROLES: MemberRole[] = ["pledge", "active"];
-/** What each sandbox is called, and the same with "a new" in front, so no button reads "a new new member". */
-const NOUN: Record<MemberRole, string> = { pledge: "new member", active: "active" };
-const AS_NEW: Record<MemberRole, string> = { pledge: "a new member", active: "a new active" };
+/** What each sandbox is called, and the same with "a new" in front for the buttons. */
+const NOUN: Record<MemberRole, string> = { pledge: "pledge", active: "active" };
+const AS_NEW: Record<MemberRole, string> = { pledge: "a new pledge", active: "a new active" };
 
 /** What the server's refusals mean here. Anything else shows the server's own message. */
 const REFUSALS: Record<string, string> = {
@@ -48,7 +48,7 @@ type Pending = { kind: "remove" } | { kind: "start"; role: MemberRole; replaces:
 
 /**
  * Lets an admin start, open and remove their own preview account: a sandbox
- * pledge or active for going through a new member's first visit. One per
+ * pledge or active for going through a new pledge's first visit. One per
  * admin, so starting one as the other role replaces it.
  */
 const PreviewCard: React.FC<PreviewCardProps> = ({ preview, onChanged }) => {
@@ -123,7 +123,7 @@ const PreviewCard: React.FC<PreviewCardProps> = ({ preview, onChanged }) => {
             ))}
             {preview?.role === "pledge" ? (
               <Button asChild variant="outline" size="sm">
-                <Link href={`/portal/admin/new-members/${preview.uid}`}>Open the new member&apos;s page</Link>
+                <Link href={`/portal/admin/pledges/${preview.uid}`}>Open the pledge&apos;s page</Link>
               </Button>
             ) : null}
             {preview ? (

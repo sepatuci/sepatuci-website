@@ -16,7 +16,7 @@ const AdminGuide: React.FC = () => {
     <div className="mx-auto max-w-3xl">
       <PageHeader
         title="Guide"
-        subtitle="How to run Founder's Education from this portal, and what new members see."
+        subtitle="How to run Founder's Education from this portal, and what pledges see."
       />
       <div className="space-y-5">
         {loading && !data ? <LoadingBlock label="Checking your progress" /> : null}
@@ -30,7 +30,7 @@ const AdminGuide: React.FC = () => {
         ))}
 
         <Card className="p-6 sm:p-8">
-          <h2 className="text-lg font-medium text-foreground">What a new member goes through</h2>
+          <h2 className="text-lg font-medium text-foreground">What a pledge goes through</h2>
           <ol className="mt-4 list-decimal space-y-2 pl-5 text-sm text-foreground">
             <li>
               They sign in with the temporary password you gave them, or open the emailed link, and
@@ -45,7 +45,7 @@ const AdminGuide: React.FC = () => {
           <p className="mt-4 text-sm text-muted-foreground">
             On the{" "}
             <Link href="/portal/admin" className="text-accent-ink underline-offset-4 hover:underline">
-              New members page
+              Pledges page
             </Link>
             , each account shows how far along these steps it is.
           </p>

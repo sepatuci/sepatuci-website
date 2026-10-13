@@ -398,7 +398,7 @@ describe("everyone is timed", () => {
     expect(body.people.find((person) => person.uid === priya.uid)).toMatchObject({
       role: "active",
       online: true,
-      currentPageLabel: "New members",
+      currentPageLabel: "Pledges",
       sessionCount: 1,
     });
     expect((await personOf(admin.uid)).sessions[0]).toMatchObject({ current: true, device: "Chrome on macOS" });
@@ -410,7 +410,7 @@ describe("everyone is timed", () => {
   });
 
   it("lists everyone with an account, the never-seen included, and labels a page by the person it is about", async () => {
-    ok(await beat(admin, { path: `/portal/admin/new-members/${avery.uid}` }));
+    ok(await beat(admin, { path: `/portal/admin/pledges/${avery.uid}` }));
     const body = await overview();
     expect(body.people.map((person) => person.uid)).toContain(caseyUid);
     expect(body.people.find((person) => person.uid === caseyUid)).toMatchObject({
@@ -420,10 +420,10 @@ describe("everyone is timed", () => {
       lastSeenAt: null,
       accountState: "invited",
     });
-    expect(body.people.find((person) => person.uid === admin.uid)?.currentPageLabel).toBe("New member: Avery Chen");
+    expect(body.people.find((person) => person.uid === admin.uid)?.currentPageLabel).toBe("Pledge: Avery Chen");
   });
 
-  it("still lists a new member's visit on their own page, the open one first", async () => {
+  it("still lists a pledge's visit on their own page, the open one first", async () => {
     ok(await beat(avery, { path: "/portal" }));
     const detail = ok<PledgeDetailDto>(await call(getPledgeDetail, { uid: avery.uid }, { token: admin.token }));
     expect(detail.sessions[0]).toMatchObject({ current: true, endReason: null, pageCount: 1, device: "Chrome on macOS" });

@@ -223,7 +223,7 @@ describe("before any preview", () => {
       expect(await countAll("users")).toBe(SEEDED_ACCOUNTS + 1);
       expect(await countAll("previewCodes")).toBe(0);
       expect(ok<PreviewStatusDto>(await state(outside.token))).toEqual({ preview: null });
-      await expect(testAuth().getUserByEmail("advisor+preview-new-member@uci.edu")).rejects.toMatchObject({ code: "auth/user-not-found" });
+      await expect(testAuth().getUserByEmail("advisor+preview-pledge@uci.edu")).rejects.toMatchObject({ code: "auth/user-not-found" });
       expect(await auditOf("preview.start")).toEqual([]);
     } finally {
       await testAuth().deleteUser(outside.uid);
@@ -250,9 +250,9 @@ describe("starting a preview as a pledge", () => {
     const expected = previewAccount(ADMIN_ONE, admin.uid, "pledge");
     ({ uid, email } = expected);
     expect(uid).toBe(`previewpledge${admin.uid}`);
-    expect(email).toBe("chair.one+preview-new-member@uci.edu");
+    expect(email).toBe("chair.one+preview-pledge@uci.edu");
     expect(Object.keys(started.preview).sort()).toEqual(STATE_KEYS);
-    expect(started.preview).toMatchObject({ uid, role: "pledge", email, displayName: "Preview New Member", stage: "ready" });
+    expect(started.preview).toMatchObject({ uid, role: "pledge", email, displayName: "Preview Pledge", stage: "ready" });
     expect(Math.abs(Date.parse(started.preview.createdAt) - Date.now())).toBeLessThan(60_000);
     // No password is in the answer: none exists yet. Opening the link is what makes one.
     expect(result.text).not.toMatch(PASSWORD_ANYWHERE);
@@ -263,7 +263,7 @@ describe("starting a preview as a pledge", () => {
     const profile = await docData(`users/${uid}`);
     expect(profile).toMatchObject({
       email,
-      displayName: "Preview New Member",
+      displayName: "Preview Pledge",
       role: "pledge",
       status: "active",
       pledgeClass: null,
@@ -283,7 +283,7 @@ describe("starting a preview as a pledge", () => {
   it("makes a sign-in account on a temporary password, with a new pledge's claims", async () => {
     const record = await testAuth().getUser(uid);
     expect(record.email).toBe(email);
-    expect(record.displayName).toBe("Preview New Member");
+    expect(record.displayName).toBe("Preview Pledge");
     expect(record.emailVerified).toBe(true);
     expect(record.disabled).toBe(false);
     expect(record.passwordHash).toBeDefined();
@@ -310,7 +310,7 @@ describe("starting a preview as a pledge", () => {
       targetId: uid,
       actorUid: admin.uid,
       actorEmail: ADMIN_ONE,
-      summary: `Started a preview as a new member, ${email}`,
+      summary: `Started a preview as a new pledge, ${email}`,
     });
     const log = JSON.stringify(await storedAudit());
     expect(log).not.toContain(started.code);
@@ -330,7 +330,7 @@ describe("starting a preview as a pledge", () => {
   it("is in no list, and on nobody's page, from the moment it exists", async () => {
     const now = await everyListing();
     expect(now).toEqual(listingsBefore);
-    for (const value of [uid, email, "Preview New Member"]) expect(listingsNaming(now, value), value).toEqual([]);
+    for (const value of [uid, email, "Preview Pledge"]) expect(listingsNaming(now, value), value).toEqual([]);
   });
 });
 
@@ -497,7 +497,7 @@ describe("the preview account's first visit", () => {
       expect(me).toMatchObject({
         uid,
         email,
-        displayName: "Preview New Member",
+        displayName: "Preview Pledge",
         role: "pledge",
         pledgeClass: null,
         team: null,
@@ -534,7 +534,7 @@ describe("the preview account's first visit", () => {
     const punishment = ok<PunishmentDto>(await call(addPunishment, { uid }, { method: "POST", token: admin.token, body: { title: "Preview punishment", details: "" } }));
     expect(punishment.uid).toBe(uid);
     const detail = ok<PledgeDetailDto>(await call(getPledgeDetail, { uid }, { token: admin.token }));
-    expect(detail.pledge).toMatchObject({ uid, email, displayName: "Preview New Member", teamId: null, activePunishments: 1 });
+    expect(detail.pledge).toMatchObject({ uid, email, displayName: "Preview Pledge", teamId: null, activePunishments: 1 });
     expect(detail.submissions.map((submission) => submission.formId)).toEqual(["week2interviews"]);
     expect(detail.punishments).toHaveLength(1);
     const dashboard = ok<DashboardDto>(await call(getDashboard, {}, { token: session.token }));
@@ -546,7 +546,7 @@ describe("the preview account's first visit", () => {
   it("is in no list, now that it has done everything a pledge does", async () => {
     const now = await everyListing();
     expect(now).toEqual(listingsBefore);
-    for (const value of [uid, email, "Preview New Member", "PREVIEW-ONLY-ANSWER-55120", "Preview punishment"]) {
+    for (const value of [uid, email, "Preview Pledge", "PREVIEW-ONLY-ANSWER-55120", "Preview punishment"]) {
       expect(listingsNaming(now, value), value).toEqual([]);
     }
   });
@@ -646,20 +646,20 @@ describe("starting over", () => {
     expect(await countWhere("punishments", "uid", uid)).toBe(1);
 
     const started = ok<PreviewStartResultDto>(await start("pledge"));
-    expect(started.preview).toMatchObject({ uid, email, role: "pledge", stage: "ready", displayName: "Preview New Member" });
+    expect(started.preview).toMatchObject({ uid, email, role: "pledge", stage: "ready", displayName: "Preview Pledge" });
     expect(await countAll("users")).toBe(SEEDED_ACCOUNTS + 1);
 
     for (const collection of ["submissions", "punishments", "drafts"]) expect(await countWhere(collection, "uid", uid), collection).toBe(0);
     expect(await countSessions(uid)).toBe(0);
     const profile = await docData(`users/${uid}`);
-    expect(profile).toMatchObject({ onboardedAt: null, submitted: {}, activity: NO_ACTIVITY, teamId: null, status: "active", displayName: "Preview New Member", previewOwnerUid: admin.uid });
+    expect(profile).toMatchObject({ onboardedAt: null, submitted: {}, activity: NO_ACTIVITY, teamId: null, status: "active", displayName: "Preview Pledge", previewOwnerUid: admin.uid });
     expect(Object.keys(profile ?? {}).sort()).toEqual(PREVIEW_PROFILE_KEYS);
     expect(await storedFingerprint(uid)).toEqual(A_KEPT_FINGERPRINT);
     expect(await storedClaims(uid)).toEqual(temporaryClaims("pledge", email, true));
 
     refused(await call(getMe, {}, { token: earlier.token }), 401, "session_revoked");
     expect(await signInFailure(email, OWN_PASSWORD)).toMatch(/INVALID|PASSWORD/);
-    expect(await latestAudit()).toMatchObject({ action: "preview.start", targetId: uid, summary: `Started over a preview as a new member, ${email}` });
+    expect(await latestAudit()).toMatchObject({ action: "preview.start", targetId: uid, summary: `Started over a preview as a new pledge, ${email}` });
     // The link works for the fresh password.
     const redeemed = ok<PreviewRedeemDto>(await redeem(started.code));
     expect((await signIn(redeemed.email, redeemed.temporaryPassword)).uid).toBe(uid);
@@ -736,7 +736,7 @@ describe("when the address is in the way", () => {
   it("says whose it is when the address is another admin's preview account", async () => {
     // Another admin's sandbox at that address, as one would be if two admins shared a local part.
     const record = await testAuth().createUser({ email: theirs().email, emailVerified: true });
-    await createProfile(record.uid, theirs().email, "pledge", "Preview New Member");
+    await createProfile(record.uid, theirs().email, "pledge", "Preview Pledge");
     await testDb().doc(`users/${record.uid}`).update({ previewOwnerUid: admin.uid, previewOwnerEmail: ADMIN_ONE });
     try {
       const result = refused(await start("pledge", adminTwo.token), 409, "preview_email_taken");
@@ -755,7 +755,7 @@ describe("when the address is in the way", () => {
   it("refuses to start over into an address somebody else holds, and undoes nothing", async () => {
     const started = ok<PreviewStartResultDto>(await start("pledge", adminTwo.token));
     const { uid, email } = started.preview;
-    const earlierAddress = email.replace("+preview-new-member@", "+preview-pledge@");
+    const earlierAddress = email.replace("+preview-pledge@", "+preview-new-member@");
     await testAuth().updateUser(uid, { email: earlierAddress });
     await testDb().doc(`users/${uid}`).update({ email: earlierAddress });
     const stranger = await testAuth().createUser({ email, emailVerified: true });

@@ -313,7 +313,7 @@ beforeAll(async () => {
     ["a resolved punishment's title", "Late onboarding survey"],
     ["a resolved punishment's details", "Set up the room before the Week 1 session"],
     ["the draft deliverable's title", "Pitch Night Feedback"],
-    ["the draft deliverable's description", "Not visible to new members yet"],
+    ["the draft deliverable's description", "Not visible to pledges yet"],
     ["a question of the draft deliverable", "How did your pitch go?"],
     ["the draft deliverable's id", SEEDED_DRAFT],
     ["the archived deliverable's title", ARCHIVED_TITLE],

@@ -3,7 +3,7 @@ import type { MemberRole } from "./types";
 
 /**
  * An admin's preview account: a sandbox pledge or active for going through a
- * new member's first visit. This module is pure and shared with the browser.
+ * pledge's first visit. This module is pure and shared with the browser.
  * The one thing that marks a profile as a preview is `previewOwnerUid`, and
  * every list the portal makes leaves such profiles out.
  */
@@ -23,9 +23,9 @@ export interface PreviewAccount {
 const UID_ROOM = 64 - "previewactive".length;
 
 /** The role as it reads in the sandbox's address tag and display name. */
-const ADDRESS_TAGS: Record<MemberRole, string> = { pledge: "new-member", active: "active" };
+const ADDRESS_TAGS: Record<MemberRole, string> = { pledge: "pledge", active: "active" };
 const DISPLAY_NAMES: Record<MemberRole, string> = {
-  pledge: "Preview New Member",
+  pledge: "Preview Pledge",
   active: "Preview Active",
 };
 

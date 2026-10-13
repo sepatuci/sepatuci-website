@@ -76,7 +76,7 @@ export const ActivityPerson: React.FC<{ uid: string }> = ({ uid }) => {
         actions={
           person.role === "pledge" ? (
             <Button variant="outline" asChild>
-              <Link href={`/portal/admin/new-members/${person.uid}`}>New member&apos;s page</Link>
+              <Link href={`/portal/admin/pledges/${person.uid}`}>Pledge&apos;s page</Link>
             </Button>
           ) : undefined
         }

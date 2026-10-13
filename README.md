@@ -149,7 +149,7 @@ Write markdown here with **bold**, [links](/rush), etc.
 
 ## Founder's Education Portal
 
-A members-only area at `/login` and `/portal`. New members turn in their Founder's Education deliverables there. Admins manage accounts and teams, build the forms and read the responses. It runs on Firebase.
+A members-only area at `/login` and `/portal`. Pledges turn in their Founder's Education deliverables there. Admins manage accounts and teams, build the forms and read the responses. It runs on Firebase.
 
 Try it locally with demo data and no Firebase project (needs the Firebase CLI and Java 21+):
 

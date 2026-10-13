@@ -15,7 +15,7 @@ function stepsFor(overview: AdminOverviewDto): Step[] {
   const { pledges, forms, teams } = overview;
   return [
     {
-      title: "Add your new members",
+      title: "Add your pledges",
       detail: "One at a time or a whole class at once. Each one chooses their own password.",
       href: "/portal/admin",
       done: pledges.length > 0,
@@ -28,7 +28,7 @@ function stepsFor(overview: AdminOverviewDto): Step[] {
     },
     {
       title: "Publish it",
-      detail: "New members only ever see deliverables you have published.",
+      detail: "Pledges only ever see deliverables you have published.",
       href: "/portal/admin/forms",
       done: forms.some((form) => form.status === "published"),
     },
@@ -39,7 +39,7 @@ function stepsFor(overview: AdminOverviewDto): Step[] {
       done: forms.some((form) => form.responseCount > 0),
     },
     {
-      title: "Group new members into teams",
+      title: "Group pledges into teams",
       detail: "Everyone starts on their own. Do this whenever teams form.",
       href: "/portal/admin/teams",
       done: teams.length > 0,

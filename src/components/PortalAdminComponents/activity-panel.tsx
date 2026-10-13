@@ -21,7 +21,7 @@ import type { ActivityOverviewDto, ActivityPersonDto, Role } from "@/lib/portal/
 import { cn } from "@/lib/utils";
 import AuditTable from "./audit-table";
 
-export const ROLE_LABEL: Record<Role, string> = { admin: "Admin", active: "Active", pledge: "New member" };
+export const ROLE_LABEL: Record<Role, string> = { admin: "Admin", active: "Active", pledge: "Pledge" };
 
 type Tab = "sessions" | "log";
 type RoleFilter = "all" | Role;
@@ -35,7 +35,7 @@ const ROLE_FILTERS: ReadonlyArray<{ value: RoleFilter; label: string }> = [
   { value: "all", label: "Everyone" },
   { value: "admin", label: "Admins" },
   { value: "active", label: "Actives" },
-  { value: "pledge", label: "New members" },
+  { value: "pledge", label: "Pledges" },
 ];
 
 /** The day's clock, in words people use. */

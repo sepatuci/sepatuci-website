@@ -18,8 +18,8 @@ interface ChangeRoleDialogProps {
 }
 
 const ROLES: { value: Role; label: string; note: string }[] = [
-  { value: "pledge", label: "New member", note: "Turns in deliverables and sees their own progress." },
-  { value: "active", label: "Active", note: "Reads new members' progress and responses, changes nothing." },
+  { value: "pledge", label: "Pledge", note: "Turns in deliverables and sees their own progress." },
+  { value: "active", label: "Active", note: "Reads pledges' progress and responses, changes nothing." },
   { value: "admin", label: "Admin", note: "Manages accounts, teams, deliverables and punishments." },
 ];
 
@@ -31,7 +31,7 @@ const REFUSALS: Record<string, string> = {
   same_role: "They already have that role.",
   on_temporary_password:
     "They are still on a temporary password. Wait until they have chosen their own, or send them a password link first.",
-  invalid_email: "Only a UCI address can be a new member or an active.",
+  invalid_email: "Only a UCI address can be a pledge or an active.",
 };
 
 /** Looks a refusal up by its own code only, on the error or on one of its fields. */
@@ -64,7 +64,7 @@ const ChangeRoleDialog: React.FC<ChangeRoleDialogProps> = ({ person, onOpenChang
     "They are signed out everywhere and get the new access at their next sign-in.",
     ...(person?.role === "pledge"
       ? [
-          "Moving a new member to active or admin takes them off their team and out of the progress views. Their past responses stay in the deliverables' records.",
+          "Moving a pledge to active or admin takes them off their team and out of the progress views. Their past responses stay in the deliverables' records.",
         ]
       : []),
     ...(role === "admin" ? ["Admins can change anyone's role, including yours."] : []),

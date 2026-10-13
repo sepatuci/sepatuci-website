@@ -128,14 +128,14 @@ const TeamDialog: React.FC<TeamDialogProps> = ({ open, onOpenChange, team, pledg
               Members <span className="font-normal text-muted-foreground">({members.size} chosen)</span>
             </legend>
             <p className="mt-0.5 text-xs text-muted-foreground">
-              A new member is on one team at a time. Choosing someone from another team moves them here.
+              A pledge is on one team at a time. Choosing someone from another team moves them here.
             </p>
             {pledges.length > 8 ? (
               <div className="relative mt-3">
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  aria-label="Search new members"
-                  placeholder="Search new members"
+                  aria-label="Search pledges"
+                  placeholder="Search pledges"
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   className="pl-9"
@@ -145,7 +145,7 @@ const TeamDialog: React.FC<TeamDialogProps> = ({ open, onOpenChange, team, pledg
             <div className="mt-3 max-h-64 space-y-0.5 overflow-y-auto rounded-lg border border-border p-1.5">
               {shown.length === 0 ? (
                 <p className="px-2 py-6 text-center text-sm text-muted-foreground">
-                  {pledges.length === 0 ? "Add new members first, then put them on teams." : "No new member matches."}
+                  {pledges.length === 0 ? "Add pledges first, then put them on teams." : "No pledge matches."}
                 </p>
               ) : (
                 shown.map((pledge) => {

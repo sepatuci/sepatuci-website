@@ -40,7 +40,7 @@ const MemberList: React.FC<{ members: Member[] }> = ({ members }) => (
     {members.map(({ pledge, completionPct }) => (
       <li key={pledge.uid} className="flex items-center justify-between gap-4 px-5 py-3">
         <Link
-          href={`/portal/admin/new-members/${pledge.uid}`}
+          href={`/portal/admin/pledges/${pledge.uid}`}
           className="min-w-0 flex-1 truncate text-sm text-foreground hover:text-accent-ink"
         >
           {pledge.displayName}
@@ -78,7 +78,7 @@ const TeamsPanel: React.FC = () => {
   const header = (
     <PageHeader
       title="Teams"
-      subtitle="Group new members into teams. Everyone starts on their own and can be moved at any time."
+      subtitle="Group pledges into teams. Everyone starts on their own and can be moved at any time."
       actions={
         <Button
           variant="accent"
@@ -123,7 +123,7 @@ const TeamsPanel: React.FC = () => {
 
       <div className="mb-8 grid gap-4 sm:grid-cols-3">
         <StatTile label="Teams" value={String(data.teams.length)} />
-        <StatTile label="New members on a team" value={String(members.length - individual.length)} />
+        <StatTile label="Pledges on a team" value={String(members.length - individual.length)} />
         <StatTile label="Working individually" value={String(individual.length)} />
       </div>
 
@@ -208,7 +208,7 @@ const TeamsPanel: React.FC = () => {
               <MemberList members={individual} />
             </Card>
           ) : (
-            <p className="text-sm text-muted-foreground">Every new member is on a team.</p>
+            <p className="text-sm text-muted-foreground">Every pledge is on a team.</p>
           )}
         </section>
       ) : null}

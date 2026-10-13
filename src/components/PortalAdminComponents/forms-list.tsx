@@ -81,7 +81,7 @@ const FormsList: React.FC = () => {
   const header = (
     <PageHeader
       title="Deliverables"
-      subtitle="The deliverables new members fill in for Founder's Education."
+      subtitle="The deliverables pledges fill in for Founder's Education."
       actions={
         <Button variant="accent" onClick={() => void create()} disabled={creating}>
           {creating && busyId === null ? (
@@ -149,7 +149,7 @@ const FormsList: React.FC = () => {
                     {form.responseCount} {form.responseCount === 1 ? "response" : "responses"}
                   </span>
                   <span className="block text-xs text-muted-foreground">
-                    {data.pledgeCount} {data.pledgeCount === 1 ? "new member" : "new members"}
+                    {data.pledgeCount} {data.pledgeCount === 1 ? "pledge" : "pledges"}
                   </span>
                 </span>
                 <div className="flex gap-1">

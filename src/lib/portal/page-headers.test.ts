@@ -40,7 +40,7 @@ function directives(policy: string | undefined): Record<string, string> {
 }
 
 const PUBLIC_PAGES = ["/", "/rush", "/blog/some-post"];
-const PRIVATE_PAGES = ["/login", "/login/reset", "/portal", "/portal/admin", "/portal/admin/new-members/abc123"];
+const PRIVATE_PAGES = ["/login", "/login/reset", "/portal", "/portal/admin", "/portal/admin/pledges/abc123"];
 
 describe("the headers next.config.mjs sets", () => {
   // The sign-in page is reached from the public pages without a fresh page load, so a

@@ -361,9 +361,9 @@ export async function getResponses({ admin, now }: Caller, formId: string): Prom
       const profile = profiles.get(submission.uid);
       return {
         uid: submission.uid,
-        // No profile among the new members: the account was removed, or the
+        // No profile among the pledges: the account was removed, or the
         // person has since been made an active or an admin. Both are covered.
-        displayName: profile?.displayName ?? "No longer a new member",
+        displayName: profile?.displayName ?? "Former pledge",
         email: profile?.email ?? "",
         teamId: profile?.teamId ?? null,
         answers: submission.answers,

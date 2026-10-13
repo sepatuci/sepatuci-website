@@ -33,8 +33,8 @@ describe("previewAccount", () => {
   it("names the account after the role and the admin, so each admin has one per role", () => {
     expect(previewAccount("chair.one@uci.edu", ADMIN_UID, "pledge")).toEqual({
       uid: `previewpledge${ADMIN_UID}`,
-      email: "chair.one+preview-new-member@uci.edu",
-      displayName: "Preview New Member",
+      email: "chair.one+preview-pledge@uci.edu",
+      displayName: "Preview Pledge",
     });
     expect(previewAccount("chair.one@uci.edu", ADMIN_UID, "active")).toEqual({
       uid: `previewactive${ADMIN_UID}`,
@@ -76,29 +76,29 @@ describe("previewAccount", () => {
     for (const adminEmail of ["chair.one@uci.edu", "advisor@example.org", "Chair.One@UCI.EDU"]) {
       const { email } = previewAccount(adminEmail, ADMIN_UID, "pledge");
       expect(email, adminEmail).toMatch(UCI_EMAIL_PATTERN);
-      expect(email.endsWith("+preview-new-member@uci.edu"), adminEmail).toBe(true);
+      expect(email.endsWith("+preview-pledge@uci.edu"), adminEmail).toBe(true);
     }
     expect(previewAccount("advisor@example.org", ADMIN_UID, "active").email).toBe("advisor+preview-active@uci.edu");
   });
 
   it("lower-cases the admin's local part and keeps only the characters an address may have", () => {
-    expect(previewAccount("Chair.One@UCI.EDU", ADMIN_UID, "pledge").email).toBe("chair.one+preview-new-member@uci.edu");
-    expect(previewAccount("o'neil_%-x@uci.edu", ADMIN_UID, "pledge").email).toBe("oneil_%-x+preview-new-member@uci.edu");
-    expect(previewAccount("chair one@uci.edu", ADMIN_UID, "pledge").email).toBe("chairone+preview-new-member@uci.edu");
+    expect(previewAccount("Chair.One@UCI.EDU", ADMIN_UID, "pledge").email).toBe("chair.one+preview-pledge@uci.edu");
+    expect(previewAccount("o'neil_%-x@uci.edu", ADMIN_UID, "pledge").email).toBe("oneil_%-x+preview-pledge@uci.edu");
+    expect(previewAccount("chair one@uci.edu", ADMIN_UID, "pledge").email).toBe("chairone+preview-pledge@uci.edu");
   });
 
   // Mail to a tagged address goes to the mailbox before the tag, so the sandbox's
   // address is made from that part alone: the admin's own mailbox, with one tag.
   it("drops a tag the admin's own address carries, so the preview's tag is the only one", () => {
-    expect(previewAccount("chair.one+portal@uci.edu", ADMIN_UID, "pledge").email).toBe("chair.one+preview-new-member@uci.edu");
-    expect(previewAccount("a+b@uci.edu", ADMIN_UID, "pledge").email).toBe("a+preview-new-member@uci.edu");
+    expect(previewAccount("chair.one+portal@uci.edu", ADMIN_UID, "pledge").email).toBe("chair.one+preview-pledge@uci.edu");
+    expect(previewAccount("a+b@uci.edu", ADMIN_UID, "pledge").email).toBe("a+preview-pledge@uci.edu");
     expect(previewAccount("a+b+c@uci.edu", ADMIN_UID, "active").email).toBe("a+preview-active@uci.edu");
-    expect(previewAccount("chair.one+preview-new-member@uci.edu", ADMIN_UID, "pledge").email).toBe("chair.one+preview-new-member@uci.edu");
+    expect(previewAccount("chair.one+preview-pledge@uci.edu", ADMIN_UID, "pledge").email).toBe("chair.one+preview-pledge@uci.edu");
   });
 
   it("falls back to a plain name when nothing of the local part can be kept", () => {
-    expect(previewAccount("+@uci.edu", ADMIN_UID, "pledge").email).toBe("admin+preview-new-member@uci.edu");
-    expect(previewAccount("+b@uci.edu", ADMIN_UID, "pledge").email).toBe("admin+preview-new-member@uci.edu");
+    expect(previewAccount("+@uci.edu", ADMIN_UID, "pledge").email).toBe("admin+preview-pledge@uci.edu");
+    expect(previewAccount("+b@uci.edu", ADMIN_UID, "pledge").email).toBe("admin+preview-pledge@uci.edu");
     expect(previewAccount("@uci.edu", ADMIN_UID, "active").email).toBe("admin+preview-active@uci.edu");
   });
 });

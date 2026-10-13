@@ -42,7 +42,7 @@ const ALL_TEAMS = "all";
 const NO_TEAM = "none";
 
 const COLUMNS: { key: SortKey | null; label: string; className?: string }[] = [
-  { key: "name", label: "New member" },
+  { key: "name", label: "Pledge" },
   { key: "team", label: "Team" },
   { key: null, label: "Account" },
   { key: "progress", label: "Progress", className: "min-w-[13rem]" },
@@ -139,7 +139,7 @@ const MasterView: React.FC = () => {
 
   const header = (
     <PageHeader
-      title="New members"
+      title="Pledges"
       subtitle="Everyone in Founder's Education, their deliverables and their activity."
       actions={
         <>
@@ -148,7 +148,7 @@ const MasterView: React.FC = () => {
           </Button>
           <Button variant="accent" onClick={() => setCreateOpen(true)}>
             <UserPlus className="mr-2 h-4 w-4" />
-            Add new member
+            Add pledge
           </Button>
         </>
       }
@@ -168,7 +168,7 @@ const MasterView: React.FC = () => {
     </Fragment>
   );
 
-  if (loading && !data) return <>{header}<LoadingBlock label="Loading new members" /></>;
+  if (loading && !data) return <>{header}<LoadingBlock label="Loading pledges" /></>;
   if (error && !data) return <>{header}<ErrorNote error={error} onRetry={reload} /></>;
   if (!data) return null;
 
@@ -190,15 +190,15 @@ const MasterView: React.FC = () => {
         </div>
         <EmptyState
           icon={<Users className="h-8 w-8" />}
-          title="No new members yet"
-          body="Add new members one at a time, or paste the whole class at once. Each one chooses their own password."
+          title="No pledges yet"
+          body="Add pledges one at a time, or paste the whole class at once. Each one chooses their own password."
           action={
             <div className="flex flex-wrap justify-center gap-2">
               <Button variant="outline" onClick={() => setBulkOpen(true)}>
                 Add several
               </Button>
               <Button variant="accent" onClick={() => setCreateOpen(true)}>
-                Add the first new member
+                Add the first pledge
               </Button>
             </div>
           }
@@ -223,7 +223,7 @@ const MasterView: React.FC = () => {
       </div>
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-5">
         <StatTile
-          label="New members"
+          label="Pledges"
           value={String(enabled.length)}
           hint={rows.length > enabled.length ? `${rows.length - enabled.length} disabled` : undefined}
         />
@@ -241,7 +241,7 @@ const MasterView: React.FC = () => {
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
-            aria-label="Search new members"
+            aria-label="Search pledges"
             placeholder="Search by name or email"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
@@ -287,7 +287,7 @@ const MasterView: React.FC = () => {
 
       {visibleRows.length === 0 ? (
         <Card className="px-6 py-10 text-center text-sm text-muted-foreground">
-          No new members match{query.trim() ? <> &quot;{query}&quot;</> : " this filter"}.
+          No pledges match{query.trim() ? <> &quot;{query}&quot;</> : " this filter"}.
         </Card>
       ) : view === "matrix" ? (
         <ProgressMatrix
@@ -297,7 +297,7 @@ const MasterView: React.FC = () => {
             cells: row.byForm,
           }))}
           forms={publishedForms}
-          pledgeHref={(uid) => `/portal/admin/new-members/${uid}`}
+          pledgeHref={(uid) => `/portal/admin/pledges/${uid}`}
           formHref={(formId) => `/portal/admin/forms/${formId}`}
         />
       ) : (
@@ -351,7 +351,7 @@ const MasterView: React.FC = () => {
               <tbody className="divide-y divide-border">
                 {visibleRows.map(({ pledge, teamName, progress, lastSeenMs }) => {
                   const chip = ACCOUNT_CHIPS[pledge.accountState];
-                  const href = `/portal/admin/new-members/${pledge.uid}`;
+                  const href = `/portal/admin/pledges/${pledge.uid}`;
                   return (
                     <tr key={pledge.uid} className="transition-colors hover:bg-muted/40">
                       <td className="px-5 py-3.5">

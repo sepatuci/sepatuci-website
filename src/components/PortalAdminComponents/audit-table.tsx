@@ -17,8 +17,8 @@ import { formatDateTime } from "@/lib/portal/dates";
 import type { AuditEntryDto, AuditLogDto } from "@/lib/portal/types";
 
 const ACTIONS: Record<string, string> = {
-  "pledge.create": "Created a new member's account",
-  "pledge.update": "Edited a new member",
+  "pledge.create": "Created a pledge account",
+  "pledge.update": "Edited a pledge",
   "pledge.disable": "Disabled an account",
   "pledge.enable": "Re-enabled an account",
   "pledge.remove": "Removed an account",

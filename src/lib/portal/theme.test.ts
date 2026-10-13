@@ -69,7 +69,7 @@ const THEMED_PATHS = [
   "/portal/",
   "/portal/account",
   "/portal/admin",
-  "/portal/admin/new-members/abc123",
+  "/portal/admin/pledges/abc123",
   "/portal/review",
   "/portal/review/deliverables/week2interviews",
   "/portal/welcome",

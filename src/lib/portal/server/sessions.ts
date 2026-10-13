@@ -41,7 +41,7 @@ export function viewSession(
   return { endedAtMs: null, endReason: null, live: true, online: isOnline(current.lastSeenAtMs, nowMs) };
 }
 
-/** A session as the new member's own page lists it. The visit in progress shows when it was last seen. */
+/** A session as the pledge's own page lists it. The visit in progress shows when it was last seen. */
 export function sessionDto(
   id: string,
   session: SessionDoc,

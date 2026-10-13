@@ -545,7 +545,7 @@ export interface CreateActiveResultDto {
 
 // ── An admin's preview account ───────────────────────────────────────────────
 // A sandbox pledge or active that belongs to one admin, for going through a
-// new member's first visit. It is in none of the portal's lists.
+// pledge's first visit. It is in none of the portal's lists.
 
 /**
  * ready: nobody has signed in yet, or a temporary password has been issued
