@@ -33,7 +33,9 @@ password rules, and admins should use a long one that they use nowhere else.
 - An active sees the new members' work, view only: names, teams, progress, released deliverables
   and submitted responses. Not punishments, time on site, emails, account details, or anything not
   yet released. An active cannot change anything.
-- Admins see everything. Every change an admin makes is recorded under Activity.
+- Admins see everything. Every change an admin makes is recorded in the Admin log, and every
+  sign-in, admins' included, is recorded under Activity: when, from what kind of device, which
+  pages were opened, and how the visit ended. Never what anyone typed.
 
 Actives read responses in full, so anything a new member types into an answer is visible to them.
 
@@ -196,6 +198,15 @@ so the new access applies at their next sign-in.
 - Deliverables are still turned in by each new member. Deleting a team keeps its members and their
   work.
 
+**Activity.** The Activity page lists everyone with an account, online first, with the page they
+are on, their time today and in total, and their number of sessions. Open a person for their
+sessions, newest first, and a session for its timeline: the sign-in, each page in the order it was
+opened with the time spent on it, and how the visit ended (signed out, signed out after sitting
+idle, closed the tab, went quiet, or the sign-in expired). A session ends on sign-out or after five
+minutes without a sign of life. Only the pages opened are recorded, never what anyone typed, and
+nothing about the device beyond its browser and system. Time today runs by Pacific time. The Admin
+log tab on the same page is the record of every change an admin has made.
+
 **Disable or remove.** Disable signs the person out at once and blocks sign-in, keeping their work.
 Remove deletes the account and everything attached to it, for good.
 
@@ -259,7 +270,8 @@ running it neither creates nor removes granted admins.
   down.
 - **Email.** Firebase's built-in mailer sends at most 150 password emails a day.
 - **Time on site.** Counts time with a portal tab open and in view, as the person's browser
-  reports it. A visit is one session until they have been away five minutes. It measures use; it
+  reports it. A visit is one session until they sign out or have been away five minutes. Each
+  session keeps up to 300 page visits; later ones are counted, not listed. It measures use; it
   is not a timesheet.
 - **Uploads.** None. New members paste an `https://` link to a Google Doc or Drive file.
 - **Answer length.** 500 characters for a short answer, 5,000 for a paragraph, about 800 words. The

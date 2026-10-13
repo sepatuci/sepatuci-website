@@ -160,13 +160,17 @@ describe("what a pledge is told about their team", () => {
 });
 
 describe("time tracking", () => {
-  it("records nothing about how an admin uses the portal", async () => {
+  it("times an admin's visit like anyone's, without making them a draft of a deliverable they named", async () => {
     const before = await docData(`users/${admin.uid}`);
+    const visitsBefore = await countSessions(admin.uid);
     for (const body of [{ resume: true }, {}, { formId: "week2interviews" }]) {
       expect(ok(await call(heartbeat, {}, { method: "POST", token: admin.token, body }))).toEqual({ ok: true });
     }
-    expect(await docData(`users/${admin.uid}`)).toEqual(before);
-    expect(await countSessions(admin.uid)).toBe(0);
+    const after = await docData(`users/${admin.uid}`);
+    expect(after).not.toEqual(before);
+    expect(after?.activity).toMatchObject({ current: expect.objectContaining({ activeSeconds: 0 }) });
+    expect(await countSessions(admin.uid)).toBe(visitsBefore + 1);
+    expect(await docExists(`drafts/week2interviews_${admin.uid}`)).toBe(false);
   });
 });
 
@@ -395,7 +399,7 @@ describe("the welcome tour", () => {
         expect(ok<{ onboardedAt: string }>(await finishTour(active)).onboardedAt).toBe(finishedAt);
       }
       expect(await docData(`users/${active.uid}`)).toEqual(before);
-      // An active's visits are not timed, before or after.
+      // This active has never sent a beat, so nothing of a visit has been recorded.
       expect(before?.activity).toEqual({ firstSeenAt: null, lastSeenAt: null, totalActiveSeconds: 0, sessionCount: 0, current: null });
       expect(await countSessions(active.uid)).toBe(0);
     });

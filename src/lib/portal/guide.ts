@@ -146,6 +146,20 @@ export const ADMIN_TOPICS: GuideTopic[] = [
     ],
   },
   {
+    title: "Activity",
+    body:
+      "The Activity page shows who has been in the portal: everyone with an account, admins " +
+      "included. Open a person for their sessions, and a session for the pages they opened, in " +
+      "order, with the time spent on each.",
+    points: [
+      "A session runs from the first page opened until the person signs out or has been away for five minutes.",
+      "Each session says how it ended: signed out, signed out after sitting idle, closed the tab, went quiet, or the sign-in expired.",
+      "Only which pages were opened is recorded, never what anyone typed. Time counts only minutes with a portal tab open and in view.",
+      "Time today runs by the chapter's clock, Pacific time.",
+      "The Admin log tab is the record of every change an admin has made.",
+    ],
+  },
+  {
     title: "Punishments and privacy",
     body:
       "New members are not told about punishments anywhere in the portal. One appears as a notice " +
@@ -153,7 +167,7 @@ export const ADMIN_TOPICS: GuideTopic[] = [
     points: [
       "New members can only ever see their own responses, notices and account.",
       "Actives can read responses, which may include whatever a new member typed into an answer.",
-      "Everything every admin does is recorded under Activity.",
+      "Every change an admin makes is in the Admin log, and admins' own sessions appear on the Activity page like everyone else's.",
       "Time on site counts only time with a portal tab open and in view.",
     ],
   },

@@ -737,8 +737,10 @@ describe("time tracking", () => {
     expect(Math.abs(Date.parse(after.pledge.activity.lastSeenAt ?? "") - Date.now())).toBeLessThan(60_000);
     expect(after.pledge.activity.firstSeenAt).toBe(before.pledge.activity.firstSeenAt);
     expect(after.sessions.filter((session) => session.current)).toHaveLength(1);
-    // The visit in progress is kept on the profile. Nothing is filed until it is known to be over.
-    expect(await countSessions(avery.uid)).toBe(3);
+    // The visit in progress has a document of its own from its first beat.
+    expect(await countSessions(avery.uid)).toBe(4);
+    expect(after.sessions[0]).toMatchObject({ endReason: null, pageCount: 0 });
+    expect(typeof after.sessions[0].id).toBe("string");
   });
 
   it("ignores a second heartbeat moments later, as from another tab, whether or not it says the tab has just come back", async () => {
@@ -808,13 +810,15 @@ describe("time tracking", () => {
     expect(after.pledge.activity.currentSessionStartedAt).not.toBeNull();
     expect(after.sessions.filter((session) => session.current)).toHaveLength(1);
     expect((await visitOf(avery))?.startedAt).toEqual(visitBefore?.startedAt);
-    expect(await countSessions(avery.uid)).toBe(3);
+    expect(await countSessions(avery.uid)).toBe(4);
   });
 
   it(
-    "keeps the same visit when the pledge signs out and straight back in",
+    "ends the visit when the pledge signs out, and starts a new one when they are back",
     async () => {
       const before = await activityOf(avery);
+      const open = before.sessions[0];
+      expect(open.current).toBe(true);
       // Revocation is recorded to the second, so the token must be from an earlier second.
       await sleep(1100);
       // What the page does on the way out: one last beat, then the sign-out.
@@ -822,25 +826,35 @@ describe("time tracking", () => {
       ok(await call(signOut, {}, { method: "POST", token: avery.token }));
       refused(await beat(avery), 401, "session_revoked");
 
-      // Straight back in: the first beat of the new page lands seconds after the last one.
+      // The visit ended with the sign-out, and says so.
+      const signedOut = await activityOf(avery);
+      expect(signedOut.pledge.activity.currentSessionStartedAt).toBeNull();
+      expect(signedOut.sessions[0]).toMatchObject({ id: open.id, current: false, endReason: "signed_out" });
+      expect(Date.parse(signedOut.sessions[0].endedAt ?? "")).toBeGreaterThan(Date.now() - 10_000);
+      expect(await countSessions(avery.uid)).toBe(4);
+
+      // Straight back in: a new visit, however soon the first beat lands.
       avery = await signIn(AVERY);
       ok(await beat(avery, { resume: true }));
       ok(await beat(avery));
-      const straightBack = await activityOf(avery);
-      expect(straightBack.pledge.activity).toEqual(before.pledge.activity);
-      expect(straightBack.sessions.filter((session) => session.current)).toHaveLength(1);
+      const back = await activityOf(avery);
+      expect(back.pledge.activity.sessionCount).toBe(5);
+      expect(back.pledge.activity.totalActiveSeconds).toBe(before.pledge.activity.totalActiveSeconds);
+      expect(back.sessions.filter((session) => session.current)).toHaveLength(1);
+      expect(back.sessions[0].id).not.toBe(open.id);
+      expect(back.sessions).toHaveLength(before.sessions.length + 1);
+      expect(await countSessions(avery.uid)).toBe(5);
 
-      // Back in a minute later instead: the beat counts, and it is still the same visit.
+      // Back in a minute later: the beat counts, and it is still that visit.
       await ageLastHeartbeat(avery.uid, MINUTE);
       const visitBefore = await visitOf(avery);
       ok(await beat(avery, { resume: true }));
       const after = await activityOf(avery);
-      expect(after.pledge.activity.sessionCount).toBe(4);
+      expect(after.pledge.activity.sessionCount).toBe(5);
       expect(after.pledge.activity.totalActiveSeconds).toBe(before.pledge.activity.totalActiveSeconds);
       expect((await visitOf(avery))?.startedAt).toEqual(visitBefore?.startedAt);
       expect(Math.abs(Date.parse(after.pledge.activity.lastSeenAt ?? "") - Date.now())).toBeLessThan(10_000);
-      expect(after.sessions).toHaveLength(before.sessions.length);
-      expect(await countSessions(avery.uid)).toBe(3);
+      expect(await countSessions(avery.uid)).toBe(5);
     },
     SLOW_TEST_MS,
   );
@@ -854,14 +868,14 @@ describe("time tracking", () => {
     ok(await beat(avery));
 
     const after = await activityOf(avery);
-    expect(after.pledge.activity.sessionCount).toBe(4);
+    expect(after.pledge.activity.sessionCount).toBe(5);
     expect((await visitOf(avery))?.startedAt).toEqual(visitBefore?.startedAt);
     expect(after.sessions.filter((session) => session.current)).toHaveLength(1);
     expect(after.sessions).toHaveLength(before.sessions.length);
-    expect(await countSessions(avery.uid)).toBe(3);
+    expect(await countSessions(avery.uid)).toBe(5);
   });
 
-  it("starts a new visit only after more than five minutes of silence, and files the old one under the pledge's own profile", async () => {
+  it("starts a new visit only after more than five minutes of silence, and closes the old one under the pledge's own profile", async () => {
     const before = await activityOf(avery);
     const ending = before.sessions[0];
     expect(ending.current).toBe(true);
@@ -870,21 +884,24 @@ describe("time tracking", () => {
     ok(await beat(avery));
 
     const after = await activityOf(avery);
-    expect(after.pledge.activity.sessionCount).toBe(5);
+    expect(after.pledge.activity.sessionCount).toBe(6);
     // Nothing is credited for the silence.
     expect(after.pledge.activity.totalActiveSeconds).toBe(before.pledge.activity.totalActiveSeconds);
     expect(after.sessions).toHaveLength(before.sessions.length + 1);
-    expect(after.sessions[0]).toMatchObject({ current: true, activeSeconds: 0 });
-    expect(after.sessions[1]).toMatchObject({ current: false, activeSeconds: ending.activeSeconds });
+    expect(after.sessions[0]).toMatchObject({ current: true, activeSeconds: 0, endReason: null });
+    // Ageing the visit moved its start back too, so it is found by its id rather than its place.
+    const closed = after.sessions.find((session) => session.id === ending.id);
+    expect(closed).toMatchObject({ current: false, activeSeconds: ending.activeSeconds, endReason: "timed_out" });
     // The old visit ended when the pledge was last seen, not when they came back.
-    expect(Date.parse(after.sessions[1].endedAt ?? "")).toBeLessThan(Date.now() - TIMING.sessionGapMs);
+    expect(Date.parse(closed?.endedAt ?? "")).toBeLessThan(Date.now() - TIMING.sessionGapMs);
 
-    expect(await countSessions(avery.uid)).toBe(4);
-    const filed = await testDb().collection(`users/${avery.uid}/sessions`).orderBy("startedAt", "desc").limit(1).get();
-    expect(filed.docs[0].data()).toEqual({
+    expect(await countSessions(avery.uid)).toBe(6);
+    expect(await docData(`users/${avery.uid}/sessions/${ending.id}`)).toMatchObject({
       uid: avery.uid,
       startedAt: aged?.startedAt,
+      lastSeenAt: aged?.lastSeenAt,
       endedAt: aged?.lastSeenAt,
+      endReason: "timed_out",
       activeSeconds: ending.activeSeconds,
     });
     // Visits are no longer kept in a collection of their own.
@@ -900,11 +917,11 @@ describe("time tracking", () => {
       ok(await beat(avery, { final: true, resume: true }));
     }
     const after = await activityOf(avery);
-    expect(after.pledge.activity.sessionCount).toBe(5);
+    expect(after.pledge.activity.sessionCount).toBe(6);
     expect(after.pledge.activity.currentSessionStartedAt).toBe(before.pledge.activity.currentSessionStartedAt);
     expect(after.sessions).toHaveLength(before.sessions.length);
     expect(after.sessions.filter((session) => session.current)).toHaveLength(1);
-    expect(await countSessions(avery.uid)).toBe(4);
+    expect(await countSessions(avery.uid)).toBe(6);
   });
 
   it("shows the visit in progress as current only while the pledge was seen within the last two and a half minutes", async () => {
@@ -915,14 +932,14 @@ describe("time tracking", () => {
     await ageLastHeartbeat(avery.uid, TIMING.onlineWindowMs + 5 * SECOND);
     const quiet = await activityOf(avery);
     expect(quiet.sessions.filter((session) => session.current)).toEqual([]);
-    expect(quiet.sessions[0]).toMatchObject({ current: false, endedAt: quiet.pledge.activity.lastSeenAt });
+    expect(quiet.sessions[0]).toMatchObject({ current: false, endedAt: quiet.pledge.activity.lastSeenAt, endReason: null });
     expect(quiet.pledge.activity.currentSessionStartedAt).not.toBeNull();
-    expect(quiet.pledge.activity.sessionCount).toBe(5);
+    expect(quiet.pledge.activity.sessionCount).toBe(6);
 
     ok(await beat(avery));
     const back = await activityOf(avery);
     expect(back.sessions[0].current).toBe(true);
-    expect(back.pledge.activity.sessionCount).toBe(5);
+    expect(back.pledge.activity.sessionCount).toBe(6);
   });
 
   it("carries the active time over to the response when it is submitted", async () => {

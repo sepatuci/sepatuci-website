@@ -312,6 +312,9 @@ const PeoplePanel: React.FC = () => {
                         <p className="mt-0.5 truncate text-xs text-muted-foreground">{meta.join(" · ")}</p>
                       </div>
                       <div className="flex flex-wrap gap-2">
+                        <Button variant="outline" size="sm" asChild>
+                          <Link href={`/portal/admin/activity/${person.uid}`}>Activity</Link>
+                        </Button>
                         {person.canChangeRole ? (
                           <Button variant="outline" size="sm" disabled={busy} onClick={() => setRoleTarget(person)}>
                             Change role

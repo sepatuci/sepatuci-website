@@ -42,6 +42,7 @@ import {
   call,
   claimsOf,
   countAll,
+  countSessions,
   countWhere,
   createAccount,
   createProfile as profileFor,
@@ -235,9 +236,9 @@ describe("sign-in with an email and a password only", () => {
     }
   });
 
-  it("has forty-six route handlers at thirty-four paths, and none of them is for a second factor", () => {
-    expect(ROUTES).toHaveLength(46);
-    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(34);
+  it("has forty-nine route handlers at thirty-seven paths, and none of them is for a second factor", () => {
+    expect(ROUTES).toHaveLength(49);
+    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(37);
     expect(ROUTES.filter((route) => /mfa|factor|totp|passcode|two-step|enrol/i.test(route.path)).map((route) => route.label)).toEqual([]);
     const labels = ROUTES.map((route) => route.label);
     for (const gone of ["POST /admin/pledges/[uid]/reset-mfa", "POST /admin/actives/[uid]/reset-mfa"]) expect(labels).not.toContain(gone);
@@ -596,12 +597,15 @@ describe("roles", () => {
     expect(Date.parse(active.onboardedAt ?? "")).toBeLessThan(Date.now() - 23 * 86_400_000);
   });
 
-  it("times nobody but pledges: a heartbeat from an active, as from an admin, stores nothing", async () => {
-    const profiles = async () => [await docData(`users/${priya.uid}`), await docData(`users/${admin.uid}`)];
-    const stored = await profiles();
+  it("times everyone: a heartbeat from an active, as from an admin, starts a visit", async () => {
     expect(ok(await call(heartbeat, {}, { method: "POST", token: priya.token, body: { formId: "week2interviews", resume: true } }))).toEqual({ ok: true });
     expect(ok(await call(heartbeat, {}, { method: "POST", token: admin.token }))).toEqual({ ok: true });
-    expect(await profiles()).toEqual(stored);
+    // A visit in progress on each profile, with a document of its own.
+    for (const uid of [priya.uid, admin.uid]) {
+      expect((await docData(`users/${uid}`))?.activity).toMatchObject({ current: expect.objectContaining({ sessionId: expect.any(String) }) });
+      expect(await countSessions(uid)).toBeGreaterThanOrEqual(1);
+    }
+    // Naming a deliverable makes no draft of it for someone who cannot fill it in.
     expect(await docExists(`drafts/week2interviews_${priya.uid}`)).toBe(false);
   });
 

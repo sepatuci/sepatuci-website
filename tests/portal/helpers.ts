@@ -226,15 +226,16 @@ export async function countAll(collection: string): Promise<number> {
   return (await testDb().collection(collection).count().get()).data().count;
 }
 
-/** How many finished visits are stored for a pledge, under their own profile. */
+/** How many visits are stored for a person under their own profile, the one in progress included. */
 export async function countSessions(uid: string): Promise<number> {
   return (await testDb().collection(`users/${uid}/sessions`).count().get()).data().count;
 }
 
 /**
- * Moves a pledge's visit so far into the past by `ms`, as if that much time
+ * Moves a person's visit so far into the past by `ms`, as if that much time
  * had gone by since their last heartbeat. The tests cannot wait out the real
- * intervals, which run to minutes.
+ * intervals, which run to minutes. The visit's own document moves with it,
+ * pages and all, so the two never disagree.
  */
 export async function ageLastHeartbeat(uid: string, ms: number): Promise<void> {
   const ref = testDb().doc(`users/${uid}`);
@@ -248,6 +249,37 @@ export async function ageLastHeartbeat(uid: string, ms: number): Promise<void> {
     "activity.current.startedAt": earlier(activity.current.startedAt),
     "activity.current.lastSeenAt": earlier(activity.current.lastSeenAt),
   });
+  const sessionId = activity.current.sessionId;
+  if (typeof sessionId !== "string") return;
+  const sessionRef = testDb().doc(`users/${uid}/sessions/${sessionId}`);
+  const session = (await sessionRef.get()).data() as
+    | { startedAt: Timestamp; lastSeenAt: Timestamp; pages?: { path: string; at: Timestamp }[] }
+    | undefined;
+  if (!session) return;
+  await sessionRef.update({
+    startedAt: earlier(session.startedAt),
+    lastSeenAt: earlier(session.lastSeenAt),
+    pages: (session.pages ?? []).map((visit) => ({ path: visit.path, at: earlier(visit.at) })),
+  });
+}
+
+/**
+ * Moves the sign-in behind a person's visit in progress `ms` into the past,
+ * as if they had signed in that long ago, on the profile and on the visit's
+ * document alike.
+ */
+export async function ageSignIn(uid: string, ms: number): Promise<void> {
+  const ref = testDb().doc(`users/${uid}`);
+  const activity = (await ref.get()).get("activity") as StoredActivity | undefined;
+  const signedInAt = activity?.current?.signedInAt;
+  if (!activity?.current || !signedInAt) {
+    throw new Error(`${uid} has no visit in progress with a sign-in to age.`);
+  }
+  const earlier = Timestamp.fromMillis(signedInAt.toMillis() - ms);
+  await ref.update({ "activity.current.signedInAt": earlier });
+  if (typeof activity.current.sessionId === "string") {
+    await testDb().doc(`users/${uid}/sessions/${activity.current.sessionId}`).update({ signedInAt: earlier });
+  }
 }
 
 // ── Snapshots, for proving that something changed nothing ────────────────────

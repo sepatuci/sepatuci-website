@@ -1,9 +1,18 @@
 import { FieldPath, FieldValue, Timestamp, type Transaction } from "firebase-admin/firestore";
-import { applyHeartbeat } from "../activity";
+import {
+  applyHeartbeat,
+  endSession as endActivitySession,
+  isQuiet,
+  type ClosedSession,
+  type CurrentSession,
+  type PageVisit,
+} from "../activity";
 import { sanitizeDraftAnswers, validateAnswers } from "../answers";
 import { ID_PATTERN, LIMITS } from "../constants";
+import { deviceLabel } from "../device";
 import { evaluateForm, lateAfterMs, type EvaluatedForm, type FormLike } from "../form-state";
 import { countAnswerable } from "../form-schema";
+import { isPortalPath } from "../pages";
 import { isRecord } from "../parse";
 import { passwordProblem, TEMPORARY_REUSED } from "../password";
 import { isPreviewProfile } from "../preview";
@@ -40,6 +49,8 @@ import {
   submittedToWire,
   type Collections,
   type FormDoc,
+  type SessionDoc,
+  type StoredPageVisit,
   type UserDoc,
 } from "./store";
 
@@ -254,51 +265,163 @@ export async function completeOnboarding({ admin, user, now }: Caller): Promise<
   });
 }
 
+// ── Sessions ─────────────────────────────────────────────────────────────────
+
+type SessionRefs = FirebaseFirestore.CollectionReference<SessionDoc>;
+
+const storedVisit = (visit: PageVisit): StoredPageVisit => ({
+  path: visit.path,
+  at: Timestamp.fromMillis(visit.atMs),
+});
+
+/** The document a session gets when it starts, carrying everything known about it so far. */
+function openSessionDoc(uid: string, current: CurrentSession, device: string, firstPage: PageVisit | null): SessionDoc {
+  return {
+    uid,
+    signedInAt: current.signedInAtMs === null ? null : Timestamp.fromMillis(current.signedInAtMs),
+    startedAt: Timestamp.fromMillis(current.startedAtMs),
+    lastSeenAt: Timestamp.fromMillis(current.lastSeenAtMs),
+    endedAt: null,
+    endReason: null,
+    activeSeconds: current.activeSeconds,
+    device,
+    pages: firstPage ? [storedVisit(firstPage)] : [],
+    pageCount: current.pageCount,
+  };
+}
+
+/**
+ * Marks a session over in its own document. A session from before sessions
+ * had documents is filed now instead, as it used to be when it ended.
+ */
+function closeSessionDoc(tx: Transaction, sessions: SessionRefs, uid: string, closed: ClosedSession): void {
+  const endedAt = Timestamp.fromMillis(closed.endedAtMs);
+  if (closed.sessionId !== null) {
+    tx.set(
+      sessions.doc(closed.sessionId),
+      { lastSeenAt: endedAt, endedAt, endReason: closed.endReason, activeSeconds: closed.activeSeconds },
+      { merge: true },
+    );
+    return;
+  }
+  tx.create(sessions.doc(), {
+    uid,
+    signedInAt: null,
+    startedAt: Timestamp.fromMillis(closed.startedAtMs),
+    lastSeenAt: endedAt,
+    endedAt,
+    endReason: closed.endReason,
+    activeSeconds: closed.activeSeconds,
+    device: "",
+    pages: [],
+    pageCount: 0,
+  });
+}
+
 /**
  * Signing out ends the sign-in everywhere, not only in the browser that asked:
- * every token issued before now stops being accepted.
+ * every token issued before now stops being accepted. A tab that signs itself
+ * out after sitting idle does not come here: it sends a last beat instead, so
+ * that only the visit is ended and the same person can carry on in another tab.
  */
 export async function endSession(caller: Caller): Promise<{ ok: true }> {
-  // Ending the sign-in comes first, so nothing can hold it up. The last stretch
-  // of the visit is then credited in the same request, if that works.
+  // Ending the sign-in comes first, so nothing can hold it up. The visit is
+  // then closed in the same request, if that works.
   await caller.admin.auth.revokeRefreshTokens(caller.user.uid);
-  await recordHeartbeat(caller, {}).catch(() => undefined);
+  await closeVisit(caller, "signed_out").catch(() => undefined);
   return { ok: true };
 }
 
+async function closeVisit({ admin, user, now }: Caller, reason: "signed_out" | "idle"): Promise<void> {
+  const cols = collections(admin.db);
+  const userRef = cols.users.doc(user.uid);
+  const nowMs = now.getTime();
+  await admin.db.runTransaction(async (tx) => {
+    const profile = (await tx.get(userRef)).data();
+    if (!profile) return;
+    const outcome = endActivitySession(activityToPure(profile.activity), nowMs, reason);
+    if (!outcome.changed) return;
+    tx.update(userRef, { activity: activityToStored(outcome.activity) });
+    if (outcome.closed) closeSessionDoc(tx, cols.sessions(user.uid), user.uid, outcome.closed);
+  });
+}
+
+/**
+ * One beat of a visit, from anyone signed in. The profile keeps the running
+ * totals and the visit in progress; the visit's own document keeps the pages
+ * it went through, and is written blind so that a beat reads only the profile.
+ */
 export async function recordHeartbeat(
   { admin, user, now }: Caller,
   body: unknown,
+  userAgent: string | null,
 ): Promise<{ ok: true }> {
-  // Only pledges are timed. Nothing is recorded about how admins use the portal.
-  if (user.role !== "pledge") return { ok: true };
   const input = isRecord(body) ? body : {};
-  const options = { resume: input.resume === true };
+  // A tab that has sat idle sends one last beat saying so. Only the visit
+  // ends; the sign-in stays good for any other tab. This travels as a beat,
+  // under the write ceiling, so it cannot be repeated without limit.
+  if (input.idle === true) {
+    await closeVisit({ admin, user, now }, "idle");
+    return { ok: true };
+  }
   const formId =
     typeof input.formId === "string" && ID_PATTERN.test(input.formId) ? input.formId : null;
+  const path = isPortalPath(input.path) ? input.path : null;
 
   const cols = collections(admin.db);
   const userRef = cols.users.doc(user.uid);
+  const sessions = cols.sessions(user.uid);
   const draftRef = formId ? cols.drafts.doc(responseId(formId, user.uid)) : null;
   const nowMs = now.getTime();
+  // The id a session this beat starts will have, minted here so that the
+  // transaction reads nothing but the profile.
+  const sessionId = sessions.doc().id;
+  const device = deviceLabel(userAgent);
+  const options = {
+    resume: input.resume === true,
+    leaving: input.leaving === true,
+    path,
+    signedInAtMs: user.signedInAtMs,
+    sessionId,
+  };
 
   await admin.db.runTransaction(async (tx) => {
     const profile = (await tx.get(userRef)).data();
     if (!profile) return;
     const draftExists = draftRef ? (await tx.get(draftRef)).exists : false;
 
-    const outcome = applyHeartbeat(activityToPure(profile.activity), nowMs, options);
-    if (!outcome.changed) return;
+    let activity = activityToPure(profile.activity);
+    // A visit begun before sessions had documents of their own gets one now,
+    // keeping its start, so that it can be opened like any other.
+    const legacy = activity.current;
+    const adopting = legacy !== null && legacy.sessionId === null && !isQuiet(legacy, nowMs);
+    if (adopting) {
+      activity = { ...activity, current: { ...legacy, sessionId, signedInAtMs: user.signedInAtMs } };
+    }
+
+    const outcome = applyHeartbeat(activity, nowMs, options);
+    if (!outcome.changed && !adopting) return;
 
     tx.update(userRef, { activity: activityToStored(outcome.activity) });
-    if (outcome.closed) {
-      tx.create(cols.sessions(user.uid).doc(), {
-        uid: user.uid,
-        startedAt: Timestamp.fromMillis(outcome.closed.startedAtMs),
-        endedAt: Timestamp.fromMillis(outcome.closed.endedAtMs),
-        activeSeconds: outcome.closed.activeSeconds,
-      });
+    const current = outcome.activity.current;
+    if (current && current.sessionId !== null) {
+      if (outcome.started || adopting) {
+        tx.set(sessions.doc(current.sessionId), openSessionDoc(user.uid, current, device, outcome.newPage));
+      } else if (outcome.changed) {
+        tx.set(
+          sessions.doc(current.sessionId),
+          {
+            lastSeenAt: Timestamp.fromMillis(current.lastSeenAtMs),
+            activeSeconds: current.activeSeconds,
+            ...(outcome.newPage
+              ? { pages: FieldValue.arrayUnion(storedVisit(outcome.newPage)), pageCount: FieldValue.increment(1) }
+              : {}),
+          },
+          { merge: true },
+        );
+      }
     }
+    if (outcome.closed) closeSessionDoc(tx, sessions, user.uid, outcome.closed);
     // Time spent with a deliverable open counts towards its response time.
     if (draftRef && draftExists && outcome.credited > 0) {
       tx.update(draftRef, { activeSeconds: FieldValue.increment(outcome.credited) });

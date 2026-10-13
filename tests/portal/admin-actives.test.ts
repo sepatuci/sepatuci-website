@@ -545,12 +545,12 @@ describe("one active, from invitation to removal", () => {
     expect(await docData(`users/${uid}`)).toMatchObject({ displayName: "New Active", role: "active", status: "active" });
   });
 
-  it("records nothing about how they use the portal: a heartbeat from an active is accepted and stores nothing", async () => {
-    const before = await docData(`users/${uid}`);
+  it("times them like anyone: a heartbeat from an active starts a visit, without a draft of the deliverable it named", async () => {
+    expect((await docData(`users/${uid}`))?.activity).toEqual(NO_ACTIVITY);
     expect(ok(await call(heartbeat, {}, { method: "POST", token: session.token, body: { formId: "week2interviews" } }))).toEqual({ ok: true });
-    expect(await docData(`users/${uid}`)).toEqual(before);
-    expect(before?.activity).toEqual(NO_ACTIVITY);
-    expect((await testDb().collection(`users/${uid}/sessions`).count().get()).data().count).toBe(0);
+    expect((await docData(`users/${uid}`))?.activity).toMatchObject({ sessionCount: 1, current: expect.objectContaining({ activeSeconds: 0 }) });
+    expect((await testDb().collection(`users/${uid}/sessions`).count().get()).data().count).toBe(1);
+    expect(await docData(`drafts/week2interviews_${uid}`)).toBeNull();
   });
 
   it("shows them as set up once they have signed in, and still adds the introduction to their link while the welcome is to do", async () => {
@@ -756,7 +756,11 @@ describe("one active, from invitation to removal", () => {
     // Nothing of anyone else's went with them: every other document and account is as it was.
     const after = await dumpPortal();
     const withoutThem = (dump: typeof after) => ({
-      firestore: Object.fromEntries(Object.entries(dump.firestore).filter(([path]) => path !== `users/${uid}` && !path.startsWith("auditLog/"))),
+      firestore: Object.fromEntries(
+        Object.entries(dump.firestore).filter(
+          ([path]) => path !== `users/${uid}` && !path.startsWith(`users/${uid}/`) && !path.startsWith("auditLog/"),
+        ),
+      ),
       accounts: Object.fromEntries(Object.entries(dump.accounts).filter(([account]) => account !== uid)),
     });
     expect(withoutThem(after)).toEqual(withoutThem(pledgesBefore));

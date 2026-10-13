@@ -23,6 +23,10 @@ export const LIMITS = {
   maxTeams: 60,
   /** The most sessions shown on a pledge's page. */
   sessionHistory: 200,
+  /** The most page visits kept for one session. Later ones are counted, not listed. */
+  sessionPages: 300,
+  /** The longest portal path a heartbeat may report. */
+  pagePath: 200,
   /** Request body caps, in bytes. */
   smallBodyBytes: 16_000,
   // Sixty paragraph answers of five thousand characters, each up to four bytes
@@ -42,6 +46,13 @@ export const TIMING = {
   heartbeatMinIntervalMs: 20_000,
   /** The most time one beat can credit. Covers a throttled background tab without counting long gaps. */
   heartbeatMaxCreditSeconds: 90,
+  /**
+   * A beat sent because the page changed may follow the one before it this
+   * closely. Together with the minute beat and draft autosaves this stays well
+   * inside the write ceiling, so a quick run through the menu cannot cost
+   * someone an autosave.
+   */
+  navigationBeatMinIntervalMs: 5_000,
   /** A gap longer than this starts a new session. */
   sessionGapMs: 5 * 60_000,
   /** A pledge counts as online if they were seen this recently. */
@@ -72,6 +83,12 @@ export const UCI_EMAIL_PATTERN = /^[a-z0-9._%+-]+@uci\.edu$/;
 
 /** Firestore document ids and Firebase uids that are safe to place in a document path. */
 export const ID_PATTERN = /^[A-Za-z0-9]{1,64}$/;
+
+/** The chapter's time zone. "Today" on the Activity page is a day there. */
+export const PORTAL_TIME_ZONE = "America/Los_Angeles";
+
+/** A path inside the portal as a heartbeat may report it: plain segments, no query or fragment. */
+export const PORTAL_PATH_PATTERN = /^\/portal(\/[A-Za-z0-9][A-Za-z0-9_-]{0,63})*$/;
 
 /**
  * Ids of questions and options, generated in the form builder. They start with a

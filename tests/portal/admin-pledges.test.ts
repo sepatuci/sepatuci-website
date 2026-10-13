@@ -296,10 +296,15 @@ describe("pledge detail", () => {
       expect(detail.sessions.map((session) => session.activeSeconds)).toEqual(Array.from({ length: 200 }, (_, index) => index + 1));
       const starts = detail.sessions.map((session) => Date.parse(session.startedAt));
       expect(starts).toEqual([...starts].sort((a, b) => b - a));
+      // Visits written before pages, reasons and devices were kept read back with those parts empty.
       expect(detail.sessions[0]).toEqual({
+        id: expect.any(String),
         startedAt: new Date(base).toISOString(),
         endedAt: new Date(base + 60_000).toISOString(),
+        endReason: "timed_out",
         activeSeconds: 1,
+        pageCount: 0,
+        device: "",
         current: false,
       });
     });
@@ -1017,8 +1022,8 @@ describe("removing a pledge", () => {
 
     expect(await countWhere("submissions", "uid", avery.uid)).toBe(3);
     expect(await countWhere("drafts", "uid", avery.uid)).toBe(1);
-    // Three finished visits under the profile, and the one in progress on it.
-    expect(await countSessions(avery.uid)).toBe(3);
+    // Three finished visits under the profile, and the one in progress beside them.
+    expect(await countSessions(avery.uid)).toBe(4);
     expect((await detailOf(avery.uid)).sessions).toHaveLength(4);
     expect(await countWhere("punishments", "uid", avery.uid)).toBe(1);
     // Avery is also on a team, with Jordan.
