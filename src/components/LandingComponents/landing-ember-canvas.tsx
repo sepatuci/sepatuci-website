@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { useSplashPhase } from '@/lib/splash/client/use-splash-phase';
 import emberImg from '@/assets/logos/ember.png';
 
 // ── Particle counts ───────────────────────────────────────────────────────────
@@ -13,6 +14,9 @@ const COUNT  = COUNT_RISE + COUNT_BOUND + COUNT_FALL + COUNT_FE;
 const I_BOUND = COUNT_RISE;
 const I_FALL  = COUNT_RISE + COUNT_BOUND;
 const I_FE    = COUNT_RISE + COUNT_BOUND + COUNT_FALL;
+
+/** Enough for a crisp ember on a phone; more only costs battery. */
+const MAX_PIXEL_RATIO = 1.5;
 
 // ── Coordinate system (canvas spans 300vh) ────────────────────────────────────
 //   y = 3  →  top of hero     (CSS: 0vh)
@@ -29,15 +33,22 @@ function smoothstep(e0: number, e1: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
+/**
+ * The slow embers behind the first three sections. They start only once the
+ * opening splash has handed over, so the page never runs two WebGL scenes at
+ * once, and they stay off entirely for anyone who asked for less motion.
+ */
 export default function LandingEmberCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { phase, reducedMotion } = useSplashPhase();
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas || phase !== 'done' || reducedMotion) return;
 
     let animId = 0;
     let torn   = false;
+    let paused = false;
 
     const xArr      = new Float32Array(COUNT);
     const yArr      = new Float32Array(COUNT);
@@ -124,6 +135,8 @@ export default function LandingEmberCanvas() {
     const sizes     = new Float32Array(COUNT);
 
     let disposeAll: () => void = () => {};
+    let onResize: (() => void) | null = null;
+    let onVisibility: (() => void) | null = null;
 
     (async () => {
       const THREE = await import('three');
@@ -133,10 +146,22 @@ export default function LandingEmberCanvas() {
       const h = window.innerHeight;
       aspect = w / h;
 
-      const renderer = new THREE.WebGLRenderer({ canvas, alpha: true, antialias: false });
+      // A device without WebGL keeps the gradient and simply has no embers.
+      let renderer: InstanceType<typeof THREE.WebGLRenderer>;
+      try {
+        renderer = new THREE.WebGLRenderer({
+          canvas,
+          alpha:           true,
+          antialias:       false,
+          powerPreference: 'low-power',
+        });
+      } catch {
+        return;
+      }
+      const pixelRatio = Math.min(window.devicePixelRatio, MAX_PIXEL_RATIO);
       // false: leave canvas CSS alone — width/height via style prop
       renderer.setSize(w, h * 3, false);
-      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.setPixelRatio(pixelRatio);
       renderer.setClearColor(0x000000, 0);
 
       const scene  = new THREE.Scene();
@@ -163,7 +188,7 @@ export default function LandingEmberCanvas() {
       const mat = new THREE.ShaderMaterial({
         uniforms: {
           map:        { value: emberTexture },
-          pixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+          pixelRatio: { value: pixelRatio },
           tint:       { value: new THREE.Color(0xd4aaff) },
         },
         vertexShader: /* glsl */`
@@ -200,7 +225,7 @@ export default function LandingEmberCanvas() {
       };
 
       function animate() {
-        if (torn) return;
+        if (torn || paused) return;
         animId = requestAnimationFrame(animate);
 
         for (let i = 0; i < COUNT; i++) {
@@ -254,15 +279,41 @@ export default function LandingEmberCanvas() {
         renderer.render(scene, camera);
       }
 
-      animate();
+      // A rotated phone or a resized window keeps the scene in proportion.
+      onResize = () => {
+        const nw = window.innerWidth;
+        const nh = window.innerHeight;
+        aspect = nw / nh;
+        renderer.setSize(nw, nh * 3, false);
+        camera.right = aspect;
+        camera.updateProjectionMatrix();
+      };
+      // A hidden tab draws nothing; coming back picks the loop up again.
+      onVisibility = () => {
+        if (document.visibilityState === 'hidden') {
+          paused = true;
+          cancelAnimationFrame(animId);
+        } else if (paused) {
+          paused = false;
+          animate();
+        }
+      };
+      window.addEventListener('resize', onResize);
+      document.addEventListener('visibilitychange', onVisibility);
+      if (document.visibilityState === 'hidden') paused = true;
+      else animate();
     })().catch(console.error);
 
     return () => {
       torn = true;
       cancelAnimationFrame(animId);
+      if (onResize) window.removeEventListener('resize', onResize);
+      if (onVisibility) document.removeEventListener('visibilitychange', onVisibility);
       disposeAll();
     };
-  }, []);
+  }, [phase, reducedMotion]);
+
+  if (reducedMotion) return null;
 
   return (
     <canvas

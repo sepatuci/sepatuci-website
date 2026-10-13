@@ -2,9 +2,12 @@
 
 import { useEffect, useRef } from 'react';
 import { Bebas_Neue } from 'next/font/google';
-import { motion } from 'framer-motion';
+import { motion, type Variants } from 'framer-motion';
 import Link from 'next/link';
+import Image from 'next/image';
 import dynamic from 'next/dynamic';
+import { useSplashPhase } from '@/lib/splash/client/use-splash-phase';
+import { heroReveal } from '@/lib/splash/timeline';
 import phoenixImg from '@/assets/logos/sep_logos/sep_white.png';
 import communityPhoto1 from '@/assets/community/check2.jpeg';
 import communityPhoto2 from '@/assets/community/check.jpeg';
@@ -81,10 +84,13 @@ const FE_CARDS = [
   },
 ];
 
-// Shared photo styles
+// Shared photo styles. The box is fixed by its aspect ratio, so the photos
+// never shift the page while they load, and they shrink to fit a phone.
 const PHOTO_STYLE: React.CSSProperties = {
-  width:        420,
-  height:       280,
+  width:        '100%',
+  maxWidth:     420,
+  height:       'auto',
+  aspectRatio:  '3 / 2',
   objectFit:    'cover',
   borderRadius: 12,
   opacity:      0,
@@ -94,6 +100,21 @@ const PHOTO_STYLE: React.CSSProperties = {
   border:       '1px solid rgba(124, 58, 237, 0.2)',
   boxShadow:    '0 0 40px rgba(0, 0, 0, 0.8)',
 };
+
+// The hero logo only fades: the splash hands its own logo over onto this
+// one's box, so the box must not move while that happens.
+const LOGO_REVEAL = (delay: number): Variants => ({
+  hidden: { opacity: 0 },
+  show:   { opacity: 1, transition: { duration: 0.4, delay, ease: 'easeOut' } },
+});
+
+/** The shared reveal with its own delay, so the lines arrive one after another. */
+function delayed(variants: Variants, delay: number): Variants {
+  const show = variants.show;
+  if (typeof show !== 'object' || show === null) return variants;
+  const transition = typeof show.transition === 'object' && show.transition !== null ? show.transition : {};
+  return { ...variants, show: { ...show, transition: { ...transition, delay } } };
+}
 
 // Count-up fires once per component lifetime when stats section enters viewport
 function useStatCountup(
@@ -126,8 +147,12 @@ function useStatCountup(
 }
 
 export default function LandingHero() {
-  const heroRef        = useRef<HTMLElement>(null);
-  const heatOverlayRef = useRef<HTMLDivElement>(null);
+  // The opening splash hands over to this page: nothing here moves until it
+  // says so, and on a plain navigation it says so at once.
+  const { phase, reducedMotion } = useSplashPhase();
+  const reveal   = heroReveal(reducedMotion);
+  const revealed = phase !== 'pending' ? 'show' : 'hidden';
+
   const statsRef       = useRef<HTMLElement>(null);
   const photoRowRef    = useRef<HTMLDivElement>(null);
   const photo1Ref      = useRef<HTMLImageElement>(null);
@@ -144,25 +169,6 @@ export default function LandingHero() {
   const countStartupsRef = useRef<HTMLSpanElement>(null);
   const countFundingRef  = useRef<HTMLSpanElement>(null);
   const countMajorsRef   = useRef<HTMLSpanElement>(null);
-
-  // Crossfade from splash
-  useEffect(() => {
-    const splashIsShowing = !sessionStorage.getItem('splashSeen');
-    if (!splashIsShowing) return;
-    if (heroRef.current) heroRef.current.style.opacity = '0';
-    const handleCrossfade = async () => {
-      const { gsap } = await import('gsap');
-      if (heroRef.current) gsap.to(heroRef.current, { opacity: 1, duration: 0.5, ease: 'power2.out' });
-      if (heatOverlayRef.current) {
-        gsap.fromTo(heatOverlayRef.current,
-          { opacity: 0.8 },
-          { opacity: 0, duration: 0.8, ease: 'power2.out' }
-        );
-      }
-    };
-    window.addEventListener('splash-crossfade-start', handleCrossfade);
-    return () => window.removeEventListener('splash-crossfade-start', handleCrossfade);
-  }, []);
 
   // Stats count-up (fires once on scroll)
   useStatCountup(statsRef, [
@@ -248,7 +254,6 @@ export default function LandingHero() {
 
         {/* ── Hero section (100vh) ─────────────────────────────────── */}
         <section
-          ref={heroRef}
           style={{
             position:   'relative',
             height:     '100vh',
@@ -259,18 +264,6 @@ export default function LandingHero() {
             background: 'radial-gradient(ellipse at bottom, #1e0a4a 0%, #0f0528 45%, #000000 100%)',
           }}
         >
-          <div
-            ref={heatOverlayRef}
-            style={{
-              position:        'absolute',
-              inset:           0,
-              backgroundColor: '#7c3aed',
-              opacity:         0,
-              pointerEvents:   'none',
-              zIndex:          5,
-            }}
-          />
-
           <div
             style={{
               position:       'absolute',
@@ -285,24 +278,29 @@ export default function LandingHero() {
             }}
           >
             <motion.div
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.1 }}
+              variants={LOGO_REVEAL(reducedMotion ? 0 : 0.1)}
+              data-hero-reveal
+              initial="hidden"
+              animate={revealed}
             >
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={(phoenixImg as { src: string }).src}
+              <Image
+                src={phoenixImg}
                 alt="Sigma Eta Pi at UCI"
-                style={{ width: 210, height: 'auto', display: 'block', marginBottom: '24px' }}
+                width={210}
+                height={210}
+                priority
+                data-hero-logo
+                style={{ width: 210, height: 210, display: 'block', marginBottom: '24px' }}
               />
             </motion.div>
 
             <motion.h1
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.22 }}
+              variants={delayed(reveal, reducedMotion ? 0 : 0.1)}
+              data-hero-reveal
+              initial="hidden"
+              animate={revealed}
               className={bebasNeue.className}
-              style={{ fontSize: 'clamp(6rem, 6.5vw, 7rem)', lineHeight: 1.0, letterSpacing: '0.05em', marginBottom: '16px' }}
+              style={{ fontSize: 'clamp(3.25rem, 6.5vw, 7rem)', lineHeight: 1.0, letterSpacing: '0.05em', marginBottom: '16px' }}
             >
               <span className="text-transparent bg-clip-text bg-gradient-to-r from-foreground to-muted-foreground">
                 UCI&apos;s Home for{' '}
@@ -313,9 +311,10 @@ export default function LandingHero() {
             </motion.h1>
 
             <motion.p
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.34 }}
+              variants={delayed(reveal, reducedMotion ? 0 : 0.25)}
+              data-hero-reveal
+              initial="hidden"
+              animate={revealed}
               style={{
                 fontSize:   '1.15rem',
                 color:      'rgba(255,255,255,0.6)',
@@ -348,18 +347,20 @@ export default function LandingHero() {
             justifyContent: 'center',
           }}
         >
-          {/* Stats row */}
+          {/* Stats row: wraps on a phone instead of running off the edge */}
           <div
             style={{
               display:        'flex',
               flexDirection:  'row',
+              flexWrap:       'wrap',
               alignItems:     'center',
               justifyContent: 'center',
-              gap:            'clamp(3rem, 8vw, 8rem)',
+              gap:            'clamp(2rem, 6vw, 8rem)',
+              rowGap:         '2.5rem',
             }}
           >
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(3.5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span ref={countStartupsRef}>0</span><span>+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -368,7 +369,7 @@ export default function LandingHero() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(3.5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span>$</span><span ref={countFundingRef}>0</span><span>M+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -377,7 +378,7 @@ export default function LandingHero() {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div style={{ fontSize: 'clamp(5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
+              <div style={{ fontSize: 'clamp(3.5rem, 6vw, 7rem)', fontWeight: 700, color: '#7c3aed', lineHeight: 1, marginBottom: '0.75rem', textShadow: '0 0 40px rgba(124, 58, 237, 0.6)' }}>
                 <span ref={countMajorsRef}>0</span><span>+</span>
               </div>
               <div style={{ fontSize: '1.1rem', color: '#ffffff', textTransform: 'uppercase', letterSpacing: '0.2em' }}>
@@ -392,16 +393,32 @@ export default function LandingHero() {
             style={{
               display:        'flex',
               flexDirection:  'row',
+              flexWrap:       'wrap',
               alignItems:     'center',
               justifyContent: 'center',
               gap:            '32px',
               marginTop:      '64px',
+              width:          '100%',
             }}
           >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img ref={photo1Ref} src={(communityPhoto1 as { src: string }).src} alt="SEP community" style={PHOTO_STYLE} />
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img ref={photo2Ref} src={(communityPhoto2 as { src: string }).src} alt="SEP community" style={PHOTO_STYLE} />
+            <Image
+              ref={photo1Ref}
+              src={communityPhoto1}
+              alt="SEP community"
+              width={420}
+              height={280}
+              sizes="(max-width: 640px) 100vw, 420px"
+              style={PHOTO_STYLE}
+            />
+            <Image
+              ref={photo2Ref}
+              src={communityPhoto2}
+              alt="SEP community"
+              width={420}
+              height={280}
+              sizes="(max-width: 640px) 100vw, 420px"
+              style={PHOTO_STYLE}
+            />
           </div>
         </section>
 

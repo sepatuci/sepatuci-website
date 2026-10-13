@@ -5,10 +5,21 @@ import Link from "next/link";
 import Image from "next/image";
 import sepLogo from "../assets/logos/sep_logos/sep_white.png";
 import { Menu, X, ExternalLink, LogIn } from 'lucide-react';
+import { useSplashPhase } from '@/lib/splash/client/use-splash-phase';
+
+const ENTRANCE_EASE = 'cubic-bezier(0.22, 1, 0.36, 1)';
+
+/**
+ * How the bar arrives. On a real load that opens with the splash it slides
+ * down as the splash hands over; on every other page it is simply there.
+ */
+type Entrance = 'none' | 'waiting' | 'shown';
 
 const Navbar: React.FC = () => {
   const [isOpen,    setIsOpen]    = useState(false);
   const [scrolled,  setScrolled]  = useState(false);
+  const [entrance,  setEntrance]  = useState<Entrance>('none');
+  const { phase } = useSplashPhase();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 0);
@@ -16,6 +27,26 @@ const Navbar: React.FC = () => {
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
+
+  // Only a load that began under the splash gets an entrance. The attribute
+  // is read once, at mount, so a later page never replays it.
+  useEffect(() => {
+    const splash = document.documentElement.getAttribute('data-splash');
+    if (splash === 'pending' || splash === 'handoff') setEntrance('waiting');
+  }, []);
+
+  useEffect(() => {
+    if (entrance === 'waiting' && phase !== 'pending') setEntrance('shown');
+  }, [entrance, phase]);
+
+  const entranceStyle: React.CSSProperties =
+    entrance === 'waiting'
+      ? { opacity: 0, transform: 'translateY(-8px)' }
+      : entrance === 'shown'
+        ? { opacity: 1, transform: 'translateY(0)' }
+        : {};
+  const entranceTransition =
+    entrance === 'shown' ? `, opacity 0.5s ${ENTRANCE_EASE}, transform 0.5s ${ENTRANCE_EASE}` : '';
 
   const navItems = [
     { href: "/founderseducation", label: "Founder's Education" },
@@ -36,7 +67,8 @@ const Navbar: React.FC = () => {
         background:     scrolled ? 'rgba(0, 0, 0, 0.75)' : 'transparent',
         backdropFilter: scrolled ? 'blur(12px)'           : 'none',
         borderBottom:   scrolled ? '1px solid rgba(124, 58, 237, 0.15)' : '1px solid transparent',
-        transition:     'background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease',
+        transition:     `background 0.3s ease, backdrop-filter 0.3s ease, border-color 0.3s ease${entranceTransition}`,
+        ...entranceStyle,
       }}
     >
       <div className="content-max-width section-padding">

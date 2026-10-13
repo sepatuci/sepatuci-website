@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useSplashPhase } from '@/lib/splash/client/use-splash-phase';
 
 // ── GLSL ─────────────────────────────────────────────────────────────────────
 
@@ -67,11 +68,30 @@ interface Props {
 export default function FEHeatCanvas({ baseColor }: Props) {
   const canvasRef  = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const { phase, reducedMotion } = useSplashPhase();
+  // Four of these sit well below the fold. Each waits until the opening is
+  // over and the card is close to view before it opens a WebGL context, so
+  // the splash and the first scroll never pay for them.
+  const [near, setNear] = useState(false);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || near) return;
+    const observer = new IntersectionObserver((entries) => {
+      if (entries.some((entry) => entry.isIntersecting)) {
+        setNear(true);
+        observer.disconnect();
+      }
+    }, { rootMargin: '240px' });
+    observer.observe(wrapper);
+    return () => observer.disconnect();
+  }, [near]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    // Respect prefers-reduced-motion — fall back to static CSS gradient
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    // Respect prefers-reduced-motion: fall back to the static CSS gradient
+    if (reducedMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (phase !== 'done' || !near) return;
 
     const canvas  = canvasRef.current;
     const wrapper = wrapperRef.current;
@@ -171,9 +191,9 @@ export default function FEHeatCanvas({ baseColor }: Props) {
       card?.removeEventListener('mouseleave', onLeave);
       disposeWebGL?.();
     };
-  // baseColor is a stable module-level constant tuple — no re-run needed
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    // baseColor is fixed per card, so only the gates above re-run this.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, near, reducedMotion]);
 
   return (
     <div

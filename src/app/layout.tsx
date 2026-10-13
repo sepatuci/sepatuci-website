@@ -3,10 +3,11 @@ import { GeistSans } from "geist/font/sans";
 import "./globals.css";
 import AnalyticsClient from "@/components/AnalyticsClient";
 import { THEME_BOOT_SCRIPT } from "@/lib/portal/theme";
+import { SPLASH_BOOT_SCRIPT } from "@/lib/splash/boot";
 import HideOnPortal from "@/components/HideOnPortal";
 import Navbar from "@/components/Navbar"
 import Footer from "@/components/Footer";
-import SplashScreen from "@/components/SplashScreenClient";
+import SplashScreen from "@/components/SplashScreen";
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://sepatuci.com'),
@@ -96,26 +97,18 @@ export default function RootLayout({
   return (
     <html lang='en' suppressHydrationWarning>
         <head>
-          {/* Synchronous mask: on every real page load (refresh / direct URL)
-              clear splashSeen and hide body content so the splash is the first
-              thing painted. SPA navigations never re-run this script, so the
-              already-mounted SplashScreen component (visible=false) stays hidden.
-              The sign-in and portal pages skip the splash, and mark it as seen
-              so the landing page still appears when someone navigates back to it. */}
-          <script dangerouslySetInnerHTML={{__html:
-            `try{` +
-            `var p=location.pathname;` +
-            `if(p==='/login'||p.indexOf('/login/')===0||p==='/portal'||p.indexOf('/portal/')===0){` +
-            `sessionStorage.setItem('splashSeen','true');` +
-            `}else{` +
-            `sessionStorage.removeItem('splashSeen');` +
-            `var s=document.createElement('style');` +
-            `s.id='splash-mask';` +
-            `s.textContent='body>*:not([data-splash-screen]){opacity:0!important;pointer-events:none}';` +
-            `document.head.appendChild(s);` +
-            `}` +
-            `}catch(e){}`
-          }} />
+          {/* Decides, before anything is painted, whether this real page load
+              opens with the splash: it marks <html data-splash="pending">, masks
+              the page behind the splash shell, and arms a backstop that lifts
+              both after a few seconds whatever else happens. The sign-in and
+              portal pages, single-page navigations and people who asked for
+              less motion never see it. See src/lib/splash/boot.ts. */}
+          <script dangerouslySetInnerHTML={{ __html: SPLASH_BOOT_SCRIPT }} />
+          {/* Without JavaScript nothing animates, so the hero's reveal
+              elements, which start hidden for the animation, are shown. */}
+          <noscript>
+            <style>{"[data-hero-reveal]{opacity:1!important;transform:none!important}"}</style>
+          </noscript>
           {/* Sets light or dark mode on the sign-in and portal pages before
               anything is painted. It does nothing on the public pages. */}
           <script dangerouslySetInnerHTML={{ __html: THEME_BOOT_SCRIPT }} />
