@@ -24,6 +24,9 @@ import type {
   PunishmentDto,
   PunishmentStatus,
   Question,
+  ReportDto,
+  ReportStatus,
+  ReportTopic,
   Role,
   SubmittedMap,
   SubmissionSummaryDto,
@@ -208,6 +211,31 @@ export type AuditDoc = {
   summary: string;
 };
 
+/**
+ * An anonymous report. It holds what was written and the day it was sent,
+ * and deliberately nothing else: no account, address, device or time of day.
+ */
+export type ReportDoc = {
+  topic: ReportTopic | null;
+  body: string;
+  /** YYYY-MM-DD in the portal's time zone. */
+  receivedOn: string;
+  status: ReportStatus;
+  reviewedAt: Timestamp | null;
+  /** The admin who last marked it reviewed. */
+  reviewedBy: string | null;
+};
+
+/**
+ * Holds back a second report from the same account within the hour. The id
+ * is a keyed hash of the account, so the document does not say whose it is.
+ * Once the hour is up it is deleted the next time its owner opens the Report
+ * window or anyone sends a report.
+ */
+export type ReportLimitDoc = {
+  until: Timestamp;
+};
+
 export function emptyStoredActivity(): StoredActivity {
   return {
     firstSeenAt: null,
@@ -280,6 +308,8 @@ export interface Collections {
   sessions: (uid: string) => CollectionReference<SessionDoc>;
   audit: CollectionReference<AuditDoc>;
   previewCodes: CollectionReference<PreviewCodeDoc>;
+  reports: CollectionReference<ReportDoc>;
+  reportLimits: CollectionReference<ReportLimitDoc>;
 }
 
 export function collections(db: Firestore): Collections {
@@ -293,6 +323,20 @@ export function collections(db: Firestore): Collections {
     sessions: (uid) => db.collection("users").doc(uid).collection("sessions").withConverter(sessionConverter),
     audit: db.collection("auditLog").withConverter(passthrough<AuditDoc>()),
     previewCodes: db.collection("previewCodes").withConverter(passthrough<PreviewCodeDoc>()),
+    reports: db.collection("reports").withConverter(passthrough<ReportDoc>()),
+    reportLimits: db.collection("reportLimits").withConverter(passthrough<ReportLimitDoc>()),
+  };
+}
+
+/** A report as admins read it. Built from the stored fields alone, never the document's own timestamps. */
+export function reportDto(id: string, doc: ReportDoc): ReportDto {
+  return {
+    id,
+    topic: doc.topic ?? null,
+    body: doc.body,
+    receivedOn: doc.receivedOn,
+    status: doc.status,
+    reviewedAt: isoOrNull(doc.reviewedAt),
   };
 }
 

@@ -4,6 +4,7 @@ import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { isOnline, resolveSessionEnd } from "../activity";
 import { ID_PATTERN, LIMITS, UCI_EMAIL_PATTERN } from "../constants";
 import { toIso } from "../dates";
+import { isPreviewAddress, normalizeEmail } from "../member-edit";
 import { isRecord, readEnum, readText } from "../parse";
 import { temporaryPassword } from "../password";
 import { isPreviewProfile } from "../preview";
@@ -93,6 +94,26 @@ export function memberClaims(
     // Tells the sign-in page whether to greet a pledge or a returning one.
     ...(temporary.brandNew ? { tempNew: true } : {}),
   };
+}
+
+/**
+ * A temporary password still outstanding on a sign-in, read from its claims,
+ * so that claims written again for another reason carry it over as issued.
+ */
+export function keptTemporary(
+  claims: Record<string, unknown> | undefined,
+): { issuedAt: Date; brandNew: boolean } | null {
+  if (claims?.temp !== true) return null;
+  // A flag without a usable time already reads as expired at the gate. It is
+  // carried over as expired, never dropped, which would make the password permanent.
+  const issuedAt = typeof claims.tempAt === "number" ? new Date(claims.tempAt * 1000) : new Date(0);
+  return { issuedAt, brandNew: claims.tempNew === true };
+}
+
+/** The address a sign-in's claims say it was issued to, or null if they name none. */
+function issuedAddress(record: UserRecord): string | null {
+  const issued = record.customClaims?.issued;
+  return typeof issued === "string" ? issued.toLowerCase() : null;
 }
 
 export const newTemporaryPassword = (): string => temporaryPassword(() => randomBytes(1)[0]);
@@ -271,7 +292,8 @@ export async function createMember(
 
   const emailRead = readText(input.email, 254);
   const email = emailRead.ok ? emailRead.value.toLowerCase() : "";
-  if (!UCI_EMAIL_PATTERN.test(email)) {
+  if (!UCI_EMAIL_PATTERN.test(email) || isPreviewAddress(email)) {
+    // An address tagged for an admin's preview is never given to a real account.
     issues.push({ path: "email", code: "invalid_email", message: "Use a @uci.edu email address." });
   } else if (admin.env.adminEmails.includes(email)) {
     issues.push({ path: "email", code: "is_admin", message: "That address belongs to an admin." });
@@ -460,7 +482,74 @@ export async function getPledgeDetail({ admin, now }: Caller, uid: string): Prom
 export const updatePledge = (caller: Caller, uid: string, body: unknown) =>
   updateMember(caller, uid, body, "pledge");
 
-/** Changes a pledge's or an active's name or status, and a pledge's class or team. */
+const emailTaken = (): HttpError =>
+  new HttpError(409, "email_exists", "An account with that email already exists.", [
+    { path: "email", code: "email_exists", message: "An account with that email already exists." },
+  ]);
+
+/** True when the profile, the sign-in and the claim on it all already hold `email`. */
+function addressSettled(email: string, profile: UserDoc, record: UserRecord | undefined): boolean {
+  if (profile.email !== email) return false;
+  // Without a sign-in there is nothing else for the address to agree with.
+  if (!record) return true;
+  return record.email?.toLowerCase() === email && issuedAddress(record) === email;
+}
+
+/**
+ * Refuses an address that another account holds, at the sign-in or on a
+ * profile. Firebase refuses it again when the sign-in is moved, which is what
+ * settles two admins choosing the same address at once.
+ */
+async function refuseTakenAddress(admin: PortalAdmin, uid: string, email: string): Promise<void> {
+  const holder = await admin.auth.getUserByEmail(email).catch((error: unknown) => {
+    if (errorCode(error) === "auth/user-not-found") return null;
+    throw error;
+  });
+  if (holder !== null && holder.uid !== uid) throw emailTaken();
+  const profiles = await collections(admin.db).users.where("email", "==", email).get();
+  if (profiles.docs.some((doc) => doc.id !== uid)) throw emailTaken();
+}
+
+/**
+ * Puts a sign-in back in line with the profile after an address change that
+ * did not go through: the address, and the claim recording it. Every session
+ * is ended, since one may have started on the address being given up. Best
+ * effort: anything left over is repaired by saving the change again.
+ */
+async function realignSignIn(admin: PortalAdmin, uid: string, role: MemberRole): Promise<void> {
+  const profile = await collections(admin.db).users.doc(uid).get().then(
+    (snapshot) => snapshot.data(),
+    () => undefined,
+  );
+  if (!profile) return;
+  await admin.auth.updateUser(uid, { email: profile.email, emailVerified: true }).catch(() => undefined);
+  // The claims are read again now, not taken from when the request began. If
+  // the role has changed in the meantime, the role change owns the claims and
+  // they are left alone.
+  const claims = await admin.auth.getUser(uid).then(
+    (record) => record.customClaims,
+    () => undefined,
+  );
+  if (profile.role === role && claims?.role === role) {
+    await admin.auth
+      .setCustomUserClaims(uid, memberClaims(role, profile.email, keptTemporary(claims)))
+      .catch(() => undefined);
+  }
+  await nextSecond();
+  await admin.auth.revokeRefreshTokens(uid).catch(() => undefined);
+}
+
+const signInMoved = (): HttpError =>
+  new HttpError(
+    409,
+    "sign_in_moved",
+    "This account's sign-in was moved to another address outside the portal. Use Get password link first: it puts the address back and makes them choose a new password.",
+  );
+
+const changedMeanwhile = (): HttpError =>
+  new HttpError(409, "conflict", "This account changed while you were saving. Reload the page and try again.");
+
+/** Changes a pledge's or an active's name, address or status, and a pledge's class or team. */
 export async function updateMember(
   { admin, user, now }: Caller,
   uid: string,
@@ -471,7 +560,7 @@ export async function updateMember(
   const input = isRecord(body) ? body : {};
   const issues: FieldIssue[] = [];
   const changes: string[] = [];
-  const patch: Partial<Pick<UserDoc, "displayName" | "pledgeClass" | "status" | "teamId">> = {};
+  const patch: Partial<Pick<UserDoc, "displayName" | "email" | "pledgeClass" | "status" | "teamId">> = {};
   const cols = collections(admin.db);
   // Whether sign-in is really blocked, which can differ from the profile if the
   // account was changed in the Firebase console or an earlier update half-failed.
@@ -530,15 +619,90 @@ export async function updateMember(
       }
     }
   }
+  if (input.email !== undefined) {
+    const read = readText(input.email, 254);
+    const wanted = read.ok ? normalizeEmail(read.value) : "";
+    if (!UCI_EMAIL_PATTERN.test(wanted) || isPreviewAddress(wanted)) {
+      issues.push({ path: "email", code: "invalid_email", message: "Use a @uci.edu email address." });
+    } else if (admin.env.adminEmails.includes(wanted)) {
+      issues.push({ path: "email", code: "is_admin", message: "That address belongs to an admin." });
+    } else if (!addressSettled(wanted, profile, record)) {
+      // Also taken when only the sign-in disagrees, so that saving again
+      // finishes a change that stopped part-way.
+      patch.email = wanted;
+      changes.push(
+        wanted === profile.email
+          ? `sign-in address put back to ${wanted}`
+          : `email changed from ${profile.email} to ${wanted}`,
+      );
+    }
+  }
   if (issues.length > 0) throw invalid(issues);
   if (changes.length === 0) return { ok: true };
+
+  const newEmail = patch.email ?? null;
+  if (newEmail !== null) {
+    // A preview's address is made from its admin's, and starting it over makes it again.
+    if (isPreviewProfile(profile)) {
+      throw new HttpError(403, "preview_account", "A preview account's address can't be changed.");
+    }
+    if (!record) {
+      throw new HttpError(
+        409,
+        "no_sign_in",
+        "This account has no sign-in, so its address can't be changed. Remove it and add it again.",
+      );
+    }
+    // A sign-in pointed at an address the portal never gave it may have been
+    // taken over, password and all. It is not moved on with that password:
+    // Get password link puts it back and replaces the password first. A
+    // sign-in already on the address asked for is a change of ours that
+    // stopped part-way, and is finished here.
+    const signInAddress = record.email?.toLowerCase() ?? null;
+    if (signInAddress !== profile.email && signInAddress !== newEmail) throw signInMoved();
+    await refuseTakenAddress(admin, uid, newEmail);
+  }
 
   // Sign-in is cut off first, so a failure afterwards can never leave access open.
   if (patch.status !== undefined) {
     await admin.auth.updateUser(uid, { disabled: patch.status === "disabled" });
     if (patch.status === "disabled") await admin.auth.revokeRefreshTokens(uid);
   }
-  if (patch.displayName !== undefined) {
+  if (newEmail !== null) {
+    // An address lives in three places that must agree: the sign-in, the claim
+    // recording the address the account was issued to, and the profile. The
+    // sign-in moves first: Firebase refuses an address already in use there,
+    // and nothing needs undoing when it does. The profile moves last, and is
+    // the point the change is made; any failure before it puts the sign-in
+    // back in line with the profile.
+    try {
+      await admin.auth.updateUser(uid, {
+        email: newEmail,
+        emailVerified: true,
+        ...(patch.displayName !== undefined ? { displayName: patch.displayName } : {}),
+      });
+    } catch (error) {
+      if (errorCode(error) === "auth/email-already-exists") throw emailTaken();
+      if (errorCode(error) === "auth/invalid-email") {
+        throw invalid([{ path: "email", code: "invalid_email", message: "Use a @uci.edu email address." }]);
+      }
+      // The move may have landed even though its reply did not.
+      await realignSignIn(admin, uid, role);
+      throw error;
+    }
+    try {
+      // Every session ends, and the next sign-in is with the new address.
+      await admin.auth.revokeRefreshTokens(uid);
+      // Read again just before writing, so a temporary password issued, or a
+      // role changed, by another admin a moment ago is not written over.
+      const claimsNow = (await admin.auth.getUser(uid)).customClaims;
+      if (claimsNow?.role !== role) throw changedMeanwhile();
+      await admin.auth.setCustomUserClaims(uid, memberClaims(role, newEmail, keptTemporary(claimsNow)));
+    } catch (error) {
+      await realignSignIn(admin, uid, role);
+      throw error;
+    }
+  } else if (patch.displayName !== undefined) {
     await admin.auth.updateUser(uid, { displayName: patch.displayName });
   }
 
@@ -549,18 +713,48 @@ export async function updateMember(
         ? `${role}.enable`
         : `${role}.update`;
   const joiningTeam = typeof patch.teamId === "string" ? patch.teamId : null;
-  await admin.db.runTransaction(async (tx) => {
-    // The team is checked again here, in the same step as the move, so a team
-    // deleted a moment ago cannot be left with a member.
-    if (joiningTeam && !(await tx.get(cols.teams.doc(joiningTeam))).exists) {
-      throw invalid([{ path: "teamId", code: "invalid", message: "That team no longer exists." }]);
+  const userRef = cols.users.doc(uid);
+  // Named before the step that writes it, so that afterwards its existence
+  // says whether the step committed.
+  const auditRef = cols.audit.doc();
+  try {
+    await admin.db.runTransaction(async (tx) => {
+      // The team is checked again here, in the same step as the move, so a team
+      // deleted a moment ago cannot be left with a member.
+      if (joiningTeam && !(await tx.get(cols.teams.doc(joiningTeam))).exists) {
+        throw invalid([{ path: "teamId", code: "invalid", message: "That team no longer exists." }]);
+      }
+      if (newEmail !== null) {
+        // An address is only given to the account as it was when this request
+        // read it, so two admins changing it at once cannot both win.
+        const current = (await tx.get(userRef)).data();
+        if (!current || current.role !== role || isPreviewProfile(current) || current.email !== profile.email) {
+          throw changedMeanwhile();
+        }
+      }
+      tx.update(userRef, { ...patch, updatedAt: Timestamp.fromDate(now) });
+      tx.create(auditRef, auditEntry(user, now, action, "user", uid, `${profile.email}: ${changes.join(", ")}`));
+    });
+  } catch (error) {
+    if (newEmail === null) throw error;
+    // A commit can land even when its reply is lost. Its audit entry says which.
+    const landed =
+      !(error instanceof HttpError) &&
+      (await auditRef.get().then(
+        (snapshot) => snapshot.exists,
+        () => false,
+      ));
+    if (!landed) {
+      await realignSignIn(admin, uid, role);
+      throw error;
     }
-    tx.update(cols.users.doc(uid), { ...patch, updatedAt: Timestamp.fromDate(now) });
-    tx.create(
-      cols.audit.doc(),
-      auditEntry(user, now, action, "user", uid, `${profile.email}: ${changes.join(", ")}`),
-    );
-  });
+  }
+  if (newEmail !== null) {
+    // Once more, for a sign-in that slipped in between the steps above. From
+    // here on every sign-in is with the new address.
+    await nextSecond();
+    await admin.auth.revokeRefreshTokens(uid);
+  }
   return { ok: true };
 }
 
@@ -724,6 +918,16 @@ export async function createMemberInviteLink(
     // The repair above already replaced the password. Only the flag is left.
     await admin.auth.setCustomUserClaims(uid, memberClaims(role, profile.email, null));
     await collections(admin.db).users.doc(uid).update({ temporaryPassword: FieldValue.delete() });
+  } else if (record) {
+    // A claim naming another address, left by an address change that stopped
+    // part-way, would refuse every sign-in with the link. It is put right too.
+    const issued = issuedAddress(record);
+    if (issued !== null && issued !== profile.email.toLowerCase()) {
+      await admin.auth.setCustomUserClaims(
+        uid,
+        memberClaims(role, profile.email, keptTemporary(record.customClaims)),
+      );
+    }
   }
   // A first-time link opens with the setup steps, for anyone who has not been
   // through their welcome yet.

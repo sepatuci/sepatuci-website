@@ -152,6 +152,8 @@ let rileyUid: string;
 let boreal: string;
 /** The punishment planted for each pledge, by uid. */
 const punishmentIds = new Map<string, string>();
+/** A seeded anonymous report that admins can see, so a refused request has a real one to aim at. */
+let reportId = "";
 /** A seeded deliverable as an admin reads it, for building requests an admin could really send. */
 let week0: AdminFormDto;
 
@@ -251,6 +253,8 @@ beforeAll(async () => {
     );
     punishmentIds.set(uid, added.id);
   }
+  reportId = (await testDb().collection("reports").where("status", "==", "new").get()).docs[0]?.id ?? "";
+  if (!reportId) throw new Error("The seed has no new report.");
   resetRateLimits();
 
   // A response of everyone's own. All but Casey turned in week 0 in the seed.
@@ -737,6 +741,7 @@ function hostile(route: (typeof DISCOVERED)[number], caller: Session, victim: { 
     else if (name === "teamId") params[name] = TEAM_ATLAS;
     else if (name === "id") params[name] = punishmentIds.get(victim.uid) ?? "";
     else if (name === "sessionId") params[name] = "abc123";
+    else if (name === "reportId") params[name] = reportId;
     else throw new Error(`No value for the route parameter ${name}: add one here so the new route is covered.`);
   }
   return call(route.handler, params, {
@@ -794,6 +799,9 @@ describe("the admin routes, called by a pledge", () => {
         // A pledge who could reach either of these could take over anybody's account.
         "POST /admin/pledges/[uid]/temporary-password",
         "POST /admin/actives/[uid]/temporary-password",
+        // A pledge who could reach these could read everyone's anonymous reports, or bury one.
+        "GET /admin/reports",
+        "PATCH /admin/reports/[reportId]",
       ]),
     );
   });
@@ -924,15 +932,17 @@ describe("every route that is an admin's or a pledge's, called by an active", ()
     // Every admin route and every pledge route: nothing is left out but the reads that are an
     // active's own, the routes every role shares, two of which are tried just above, and the
     // one route that needs no sign-in at all.
-    expect(NOT_AN_ACTIVES).toHaveLength(DISCOVERED.length - 8);
+    expect(NOT_AN_ACTIVES).toHaveLength(DISCOVERED.length - 10);
     expect(DISCOVERED.filter((route) => !NOT_AN_ACTIVES.includes(route)).map((route) => route.label).sort()).toEqual([
       "GET /me",
+      "GET /reports/status",
       "GET /review/forms/[formId]",
       "GET /review/overview",
       "POST /heartbeat",
       "POST /onboarding",
       "POST /password",
       "POST /preview/redeem",
+      "POST /reports",
       "POST /sign-out",
     ]);
     expect(PLEDGE_ROUTES.map((route) => route.label)).toEqual(

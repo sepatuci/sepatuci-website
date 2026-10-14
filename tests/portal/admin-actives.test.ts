@@ -630,9 +630,13 @@ describe("one active, from invitation to removal", () => {
     expect((await latestAudit()).summary).toBe(`${NEW_ACTIVE}: name`);
   });
 
-  it("ignores fields an admin may not set, such as role, email and uid", async () => {
+  it("ignores fields an admin may not set, such as role, uid and submissions, and never gives out an admin's address", async () => {
     const auditBefore = await countAll("auditLog");
-    ok(await patch(uid, { role: "admin", email: ADMIN_ONE, uid: admin.uid, submitted: { week0onboarding: {} }, createdAt: "2000-01-01T00:00:00.000Z" }));
+    ok(await patch(uid, { role: "admin", uid: admin.uid, submitted: { week0onboarding: {} }, createdAt: "2000-01-01T00:00:00.000Z" }));
+    // An address can be changed, but never to one that would make the active an admin.
+    expect(fieldCodes(refused(await patch(uid, { role: "admin", email: ADMIN_ONE }), 422, "invalid"))).toEqual([
+      "email:is_admin",
+    ]);
     expect(await docData(`users/${uid}`)).toMatchObject({ role: "active", email: NEW_ACTIVE, submitted: {} });
     expect((await testAuth().getUser(uid)).customClaims).toEqual({ role: "active", issued: NEW_ACTIVE });
     expect(await countAll("auditLog")).toBe(auditBefore);

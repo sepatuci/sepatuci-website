@@ -38,6 +38,7 @@ import type {
   PunishmentDto,
   TemporaryPasswordDto,
 } from "@/lib/portal/types";
+import { EditMemberDialog } from "./edit-member-dialog";
 import TemporaryPasswordDialog from "./temporary-password-dialog";
 
 type Pending = "disable" | "temporary_password" | "remove" | "edit" | null;
@@ -58,13 +59,10 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
   const [pending, setPending] = useState<Pending>(null);
   const [busy, setBusy] = useState(false);
   const [confirmEmail, setConfirmEmail] = useState("");
-  const [editName, setEditName] = useState("");
-  const [editClass, setEditClass] = useState("");
   const [punishTitle, setPunishTitle] = useState("");
   const [punishDetails, setPunishDetails] = useState("");
   const [reopen, setReopen] = useState<{ formId: string; title: string } | null>(null);
   const [removing, setRemoving] = useState<PunishmentDto | null>(null);
-  const [editTeam, setEditTeam] = useState("");
   const [shownLink, setShownLink] = useState<string | null>(null);
   const [linkCopied, setLinkCopied] = useState(false);
   const [temporary, setTemporary] = useState<string | null>(null);
@@ -191,16 +189,7 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              setEditName(pledge.displayName);
-              setEditClass(pledge.pledgeClass ?? "");
-              setEditTeam(teamName ? (pledge.teamId ?? "") : "");
-              setPending("edit");
-            }}
-          >
+          <Button variant="outline" size="sm" onClick={() => setPending("edit")}>
             <Pencil className="mr-1.5 h-3.5 w-3.5" />
             Edit
           </Button>
@@ -498,77 +487,23 @@ const PledgeDetail: React.FC<{ uid: string }> = ({ uid }) => {
         </Link>
       </p>
 
-      <Dialog open={pending === "edit"} onOpenChange={(open) => setPending(open ? "edit" : null)}>
-        <DialogContent title="Edit pledge">
-          <form
-            className="mt-5 space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              void run(
-                () =>
-                  apiFetch(`/admin/pledges/${uid}`, {
-                    method: "PATCH",
-                    // The team is only sent when it was changed here, so saving a name
-                    // never undoes a move made from the Teams page in the meantime.
-                    body: {
-                      displayName: editName,
-                      pledgeClass: editClass,
-                      ...(editTeam !== (teamName ? (pledge.teamId ?? "") : "") ? { teamId: editTeam || null } : {}),
-                    },
-                  }),
-                "Saved.",
-              );
-            }}
-          >
-            <div>
-              <Label htmlFor="edit-pledge-name">Full name</Label>
-              <Input
-                id="edit-pledge-name"
-                value={editName}
-                maxLength={LIMITS.displayName}
-                onChange={(event) => setEditName(event.target.value)}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-pledge-class">Pledge class</Label>
-              <Input
-                id="edit-pledge-class"
-                value={editClass}
-                maxLength={LIMITS.pledgeClass}
-                onChange={(event) => setEditClass(event.target.value)}
-              />
-            </div>
-            {data.teams.length > 0 ? (
-              <div>
-                <Label htmlFor="edit-pledge-team">Team</Label>
-                <select
-                  id="edit-pledge-team"
-                  value={editTeam}
-                  onChange={(event) => setEditTeam(event.target.value)}
-                  className="h-10 w-full rounded-lg border border-border bg-field px-3 text-sm text-foreground"
-                >
-                  <option value="">Working individually</option>
-                  {data.teams.map((team) => (
-                    <option key={team.id} value={team.id}>
-                      {team.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : null}
-            <div className="flex justify-end gap-2 pt-2">
-              <DialogClose asChild>
-                <Button type="button" variant="ghost">
-                  Cancel
-                </Button>
-              </DialogClose>
-              <Button type="submit" variant="accent" disabled={busy || editName.trim().length === 0}>
-                Save
-              </Button>
-            </div>
-          </form>
-        </DialogContent>
-      </Dialog>
+      <EditMemberDialog
+        member={
+          pending === "edit"
+            ? {
+                uid,
+                role: "pledge",
+                email: pledge.email,
+                displayName: pledge.displayName,
+                pledgeClass: pledge.pledgeClass,
+                teamId: pledge.teamId,
+              }
+            : null
+        }
+        teams={data.teams}
+        onOpenChange={(open) => setPending(open ? "edit" : null)}
+        onSaved={reload}
+      />
 
       <Dialog open={shownLink !== null} onOpenChange={(open) => (open ? undefined : setShownLink(null))}>
         <DialogContent

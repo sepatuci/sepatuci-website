@@ -295,7 +295,7 @@ function plain(value: unknown): Plain {
   return String(value);
 }
 
-export const PORTAL_COLLECTIONS = ["users", "teams", "forms", "drafts", "submissions", "punishments", "auditLog", "previewCodes"] as const;
+export const PORTAL_COLLECTIONS = ["users", "teams", "forms", "drafts", "submissions", "punishments", "auditLog", "previewCodes", "reports", "reportLimits"] as const;
 export type PortalCollection = (typeof PORTAL_COLLECTIONS)[number];
 
 /** Every document of the named collections, keyed by its full path. */
@@ -725,7 +725,7 @@ const API_ROOT = fileURLToPath(new URL("../../src/app/api/portal", import.meta.u
  * themselves: the welcome is for pledges and actives, and choosing a password
  * is only for an account that is still on a temporary one.
  */
-const OPEN_TO_ANY_ROLE = new Set(["me", "heartbeat", "sign-out", "onboarding", "password"]);
+const OPEN_TO_ANY_ROLE = new Set(["me", "heartbeat", "sign-out", "onboarding", "password", "reports", "reports/status"]);
 /**
  * The routes that need no sign-in at all. Only the one that trades a preview
  * link for the preview account's sign-in, where the code in the link is the

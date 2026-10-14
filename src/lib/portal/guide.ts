@@ -49,7 +49,7 @@ export const HOW_DELIVERABLES_WORK: GuideTopic = {
 
 export const BEFORE_YOU_START: GuideTopic = {
   title: "Before you start",
-  body: "Six things about your account and who sees what.",
+  body: "Seven things about your account and who sees what.",
   points: [
     "Admins are the Founder's Education chairs.",
     "Admins and SEP's active members can read what you turn in. Other pledges can't.",
@@ -57,6 +57,7 @@ export const BEFORE_YOU_START: GuideTopic = {
     "You start on your own. If an admin puts you on a team, it shows on your Account page. Deliverables are still your own; each pledge turns in their own response.",
     "Sign-in is your UCI email and your password. Thirty idle minutes signs you out.",
     "Forgotten password, or a question about a deadline? Talk to a Founder's Education admin.",
+    "Report, at the top of every page, sends the admins an anonymous report, one an hour. If there are further problems you would like to discuss in person, reach out to e-board.",
   ],
 };
 
@@ -97,6 +98,7 @@ export const ADMIN_TOPICS: GuideTopic[] = [
       "Set up: ready to use. Disabled: signed out and blocked, with all their work kept.",
       "Removing an account deletes it and everything attached to it, for good.",
       "Locked out? Send a new password link or give a new temporary password, from the pledge's page or the People page.",
+      "Edit, on a pledge's page or the People page, corrects a name or a UCI email. A new email signs them out; they sign in with the new address and the same password.",
     ],
   },
   {
@@ -160,6 +162,18 @@ export const ADMIN_TOPICS: GuideTopic[] = [
     ],
   },
   {
+    title: "Reports",
+    body:
+      "Anyone signed in can send the admins an anonymous report with the Report button at the top " +
+      "of every page, one an hour. They arrive on the Reports page.",
+    points: [
+      "A report holds its topic, its text and the day it was sent. Nothing in the portal records who sent it.",
+      "Each report appears the day after it is sent and shows only that day, never the time, so it can't be matched to who was online.",
+      "Mark a report reviewed once it has been dealt with. That is recorded in the Admin log, without the report's text.",
+      "Reports can't be edited or deleted. A report sent from a preview is never stored.",
+    ],
+  },
+  {
     title: "Punishments and privacy",
     body:
       "Pledges are not told about punishments anywhere in the portal. One appears as a notice " +
@@ -202,6 +216,7 @@ export const ACTIVE_TOPICS: GuideTopic[] = [
     points: [
       "Responses can include personal detail. Keep them inside SEP.",
       "If something in a response worries you, tell an admin.",
+      "To raise something anonymously, use Report at the top of the page. If there are further problems you would like to discuss in person, reach out to e-board.",
       "You cannot edit, reopen or delete anything. If something looks wrong, an admin can fix it.",
       "If a pledge asks you about a forgotten password, pass it on to an admin. Only admins can give a new one.",
     ],

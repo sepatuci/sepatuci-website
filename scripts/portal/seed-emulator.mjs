@@ -471,6 +471,34 @@ export async function seed({ extraAdmins = [], firstRun = false } = {}) {
     }
   }
 
+  // Two anonymous reports from earlier days, so the admin page has something
+  // to show. Like real ones, they carry the day they were sent and nothing
+  // about who sent them.
+  const reportDay = (offsetMs) =>
+    new Intl.DateTimeFormat("en-CA", {
+      timeZone: "America/Los_Angeles",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(new Date(now + offsetMs));
+  batch.set(db.collection("reports").doc(), {
+    topic: "conduct",
+    body:
+      "During the Week 2 session a few people talked over the pledges who were presenting and laughed at some answers. It felt disrespectful and made it hard for them to finish.",
+    receivedOn: reportDay(-2 * DAY),
+    status: "new",
+    reviewedAt: null,
+    reviewedBy: null,
+  });
+  batch.set(db.collection("reports").doc(), {
+    topic: "program",
+    body: "The Week 1 deliverable opened later than we were told, so some of us had less time to finish it. Could the opening times be checked?",
+    receivedOn: reportDay(-5 * DAY),
+    status: "reviewed",
+    reviewedAt: at(-4 * DAY),
+    reviewedBy: firstAdminUid,
+  });
+
   batch.set(db.collection("auditLog").doc(), {
     at: at(-22 * DAY),
     actorUid: firstAdminUid,

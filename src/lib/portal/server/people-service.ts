@@ -15,6 +15,7 @@ import type {
 import {
   authRecords,
   errorCode,
+  keptTemporary,
   lastSignIn,
   memberClaims,
   onTemporaryPassword,
@@ -226,11 +227,7 @@ export async function changeRole(caller: Caller, uid: string, body: unknown): Pr
   });
 
   // A temporary password still outstanding goes with them, as it was issued.
-  const claims = record.customClaims ?? {};
-  const temporary =
-    claims.temp === true && typeof claims.tempAt === "number"
-      ? { issuedAt: new Date(claims.tempAt * 1000), brandNew: claims.tempNew === true }
-      : null;
+  const temporary = keptTemporary(record.customClaims);
   await admin.auth.setCustomUserClaims(
     uid,
     role === "admin" ? { role: "admin", granted: true } : memberClaims(role, profile.email, temporary),

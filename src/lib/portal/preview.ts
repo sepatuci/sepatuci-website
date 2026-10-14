@@ -19,6 +19,9 @@ export interface PreviewAccount {
   displayName: string;
 }
 
+/** What marks an address as a preview's. No real account may be given one. */
+export const PREVIEW_ADDRESS_TAG = "+preview-";
+
 /** The most a uid may be, less the longest prefix put in front of an admin's. */
 const UID_ROOM = 64 - "previewactive".length;
 
@@ -53,6 +56,6 @@ export function previewAccount(adminEmail: string, adminUid: string, role: Membe
     .split("@")[0]
     .split("+")[0]
     .replace(/[^a-z0-9._%-]/g, "");
-  const email = `${localPart || "admin"}+preview-${ADDRESS_TAGS[role]}@uci.edu`;
+  const email = `${localPart || "admin"}${PREVIEW_ADDRESS_TAG}${ADDRESS_TAGS[role]}@uci.edu`;
   return { uid, email, displayName: DISPLAY_NAMES[role] };
 }

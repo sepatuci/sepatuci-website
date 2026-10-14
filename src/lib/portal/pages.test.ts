@@ -100,6 +100,7 @@ describe("pageLabel", () => {
     ["/portal/admin/forms", "Deliverables"],
     ["/portal/admin/teams", "Teams"],
     ["/portal/admin/activity", "Activity"],
+    ["/portal/admin/reports", "Reports"],
     ["/portal/admin/guide", "Admin guide"],
   ])("names the fixed page %s, with or without names to hand", (path, label) => {
     expect(pageLabel(path, names)).toBe(label);

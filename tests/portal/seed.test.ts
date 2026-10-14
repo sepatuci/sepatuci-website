@@ -50,6 +50,7 @@ import {
   storedClaims,
   temporaryClaims,
   testAuth,
+  testDb,
   uidOf,
   type Session,
 } from "./helpers";
@@ -115,6 +116,14 @@ describe("the demo seed", () => {
       expect(await countWhere("users", "role", "admin")).toBe(2);
       expect(await countWhere("users", "role", "active")).toBe(3);
       expect(await countWhere("users", "role", "pledge")).toBe(6);
+      // Two anonymous reports from earlier days, one of them already reviewed,
+      // each holding only what any report holds.
+      const reports = (await testDb().collection("reports").get()).docs.map((doc) => doc.data());
+      expect(reports.map((report) => report.status).sort()).toEqual(["new", "reviewed"]);
+      for (const report of reports) {
+        expect(Object.keys(report).sort()).toEqual(["body", "receivedOn", "reviewedAt", "reviewedBy", "status", "topic"]);
+      }
+      expect(await countAll("reportLimits")).toBe(0);
       for (const email of [FIRST_RUN, FIRST_ACTIVE]) {
         await expect(testAuth().getUserByEmail(email)).rejects.toMatchObject({ code: "auth/user-not-found" });
       }

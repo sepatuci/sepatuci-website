@@ -11,8 +11,8 @@ import { ThemeChoice } from "./theme-controls";
 
 const ACCOUNT_NOTE: Record<Role, string> = {
   admin: "Admin accounts are managed by whoever maintains the portal, not from this page.",
-  active: "To correct your name, ask a Founder's Education admin.",
-  pledge: "To correct your name or team, ask a Founder's Education admin.",
+  active: "To correct your name or email, ask a Founder's Education admin.",
+  pledge: "To correct your name, email or team, ask a Founder's Education admin.",
 };
 
 const PASSWORD_NOTE: Record<Role, string> = {
