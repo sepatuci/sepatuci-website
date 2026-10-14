@@ -228,8 +228,9 @@ export type ReportDoc = {
 
 /**
  * Holds back a second report from the same account within the hour. The id
- * is a keyed hash of the account, so the document does not say whose it is,
- * and it is deleted once the hour is up.
+ * is a keyed hash of the account, so the document does not say whose it is.
+ * Once the hour is up it is deleted the next time its owner opens the Report
+ * window or anyone sends a report.
  */
 export type ReportLimitDoc = {
   until: Timestamp;

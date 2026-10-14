@@ -238,15 +238,19 @@ further problems they would like to discuss in person, they should reach out to 
   sender's profile.
 - A report appears the day after it is sent, and only its day is shown. Seen the moment it
   arrived, it could be matched to whoever was online on the Activity page.
-- One report per account per hour. The hold is a document named by a keyed hash of the account,
-  so the database alone does not say whose it is, and it is deleted once the hour is up.
+- One report per account per hour. The hold is a document in `reportLimits` named by a keyed hash
+  of the account, so the database alone does not say whose it is. Once its hour is up it is deleted
+  the next time its owner opens the Report window or anyone sends a report. Holds are never cleared
+  while someone is merely browsing, because how long that took could tell when another person's hour
+  ran out. To have them cleared on a schedule as well, turn on a Firestore TTL policy for the field
+  `until` of the `reportLimits` collection group (Firebase console, Firestore, TTL).
 - Mark a report reviewed once it has been dealt with; that is recorded in the Admin log, without
   the text. Reports cannot be edited or deleted from the portal. A report sent from a preview is
   never stored.
 - The limits of the promise: someone with direct access to the Firebase project, the service
   account key or the hosting logs could still line up times. Firestore keeps the exact moment each
-  document was written, and while one person's hourly hold exists, two of their reports could be
-  linked by it. Keep access to the Firebase project to the people who maintain the portal. An admin
+  document was written, and while one person's hold is still in the database (which can be longer
+  than its hour, see above), its time and id can be lined up with their reports. Keep access to the Firebase project to the people who maintain the portal. An admin
   who took over someone's account (with a temporary password, which is in the Admin log) could see
   whether that account had sent a report in the last hour. The portal itself never shows who sent
   a report. The dialog also asks people to leave out details that would identify them.
