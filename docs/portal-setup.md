@@ -39,6 +39,9 @@ password rules, and admins should use a long one that they use nowhere else.
 
 Actives read responses in full, so anything a pledge types into an answer is visible to them.
 
+Anonymous reports are the exception to "admins see everything": nothing in the portal records who
+sent one. See **Reports** below.
+
 ### Light and dark mode
 
 The sign-in pages and the portal follow the device by default. The button in the header switches,
@@ -206,6 +209,47 @@ idle, closed the tab, went quiet, or the sign-in expired). A session ends on sig
 minutes without a sign of life. Only the pages opened are recorded, never what anyone typed, and
 nothing about the device beyond its browser and system. Time today runs by Pacific time. The Admin
 log tab on the same page is the record of every change an admin has made.
+
+**Correct a name or an email.** Edit, on a pledge's page or on any pledge's or active's row of
+the People page. A pledge's page also edits their class and team. Admin accounts are not edited
+here.
+
+- A new name shows everywhere at once. The person sees it in their own header after a reload.
+- A new email has to be a UCI address nobody else uses. It signs the person out everywhere. They
+  sign in with the new address and the same password. A set-password link sent before the change
+  stops working, so send a new one if they were waiting on it.
+- A change that half fails (a network error part way, say) can leave the person unable to sign in.
+  Save the new address again, or use Get password link: either puts the sign-in and the portal
+  back in step.
+- If the sign-in was moved to some other address outside the portal, the edit is refused. Use Get
+  password link: it puts the address back and replaces the password, since whoever moved it may
+  know the old one. Then make the change.
+- Firebase may email the old address a note about the change with a link that undoes it. Using
+  that link does not let anyone in through the old address, but it does lock the person out until
+  you save the new address again.
+
+**Reports.** Report, at the top of every page, lets anyone signed in send the portal's admins an
+anonymous report: an optional topic and up to 2,000 characters. Admins read them on the Reports
+page, which shows a count of new ones in the menu. The window tells people that if there are
+further problems they would like to discuss in person, they should reach out to e-board.
+
+- What is stored is the topic, the text and the day it was sent (Pacific time). Not the account,
+  the address, the device or the time of day. Sending one writes no audit entry and nothing on the
+  sender's profile.
+- A report appears the day after it is sent, and only its day is shown. Seen the moment it
+  arrived, it could be matched to whoever was online on the Activity page.
+- One report per account per hour. The hold is a document named by a keyed hash of the account,
+  so the database alone does not say whose it is, and it is deleted once the hour is up.
+- Mark a report reviewed once it has been dealt with; that is recorded in the Admin log, without
+  the text. Reports cannot be edited or deleted from the portal. A report sent from a preview is
+  never stored.
+- The limits of the promise: someone with direct access to the Firebase project, the service
+  account key or the hosting logs could still line up times. Firestore keeps the exact moment each
+  document was written, and while one person's hourly hold exists, two of their reports could be
+  linked by it. Keep access to the Firebase project to the people who maintain the portal. An admin
+  who took over someone's account (with a temporary password, which is in the Admin log) could see
+  whether that account had sent a report in the last hour. The portal itself never shows who sent
+  a report. The dialog also asks people to leave out details that would identify them.
 
 **Disable or remove.** Disable signs the person out at once and blocks sign-in, keeping their work.
 Remove deletes the account and everything attached to it, for good.

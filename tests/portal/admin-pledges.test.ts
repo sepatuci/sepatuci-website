@@ -695,18 +695,21 @@ describe("editing a pledge", () => {
     expect(await docData(`users/${sam.uid}`)).toEqual(profileBefore);
   });
 
-  it("ignores fields an admin may not set, such as role, email and submissions", async () => {
+  it("ignores fields an admin may not set, such as role, uid and submissions, and never gives out an admin's address", async () => {
     const before = await countAll("auditLog");
     ok(
       await patch(sam.uid, {
         role: "admin",
-        email: ADMIN_ONE,
         uid: admin.uid,
         submitted: {},
         activity: { totalActiveSeconds: 0 },
         createdAt: "2000-01-01T00:00:00.000Z",
       }),
     );
+    // An address can be changed, but never to one that would make the pledge an admin.
+    expect(fieldCodes(refused(await patch(sam.uid, { role: "admin", email: ADMIN_ONE }), 422, "invalid"))).toEqual([
+      "email:is_admin",
+    ]);
     const profile = await docData(`users/${sam.uid}`);
     expect(profile).toMatchObject({ role: "pledge", email: SAM });
     expect(Object.keys(profile?.submitted as object)).toEqual(["week0onboarding"]);

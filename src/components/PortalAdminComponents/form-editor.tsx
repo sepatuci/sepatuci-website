@@ -222,7 +222,7 @@ const FormEditor: React.FC<{ formId: string }> = ({ formId }) => {
 
   return (
     <>
-      <div className="-mx-4 -mt-8 mb-6 border-b border-border bg-background/95 px-4 pb-0 pt-5 backdrop-blur sm:-mx-6 sm:-mt-10 sm:px-6 md:sticky md:top-16 md:z-40">
+      <div className="-mx-4 -mt-8 mb-6 border-b border-border bg-background/95 px-4 pb-0 pt-5 backdrop-blur sm:-mx-6 sm:-mt-10 sm:px-6 md:sticky md:top-[118px] md:z-40 xl:top-16">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="min-w-0">
             {back}

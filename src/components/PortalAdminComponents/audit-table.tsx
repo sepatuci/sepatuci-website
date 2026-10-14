@@ -50,6 +50,8 @@ const ACTIONS: Record<string, string> = {
   "form.archive": "Archived a deliverable",
   "form.delete": "Deleted a deliverable",
   "response.reopen": "Deleted a response",
+  "report.review": "Marked a report reviewed",
+  "report.reopen": "Marked a report new",
 };
 
 interface AuditTableProps {

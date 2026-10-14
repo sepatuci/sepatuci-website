@@ -18,7 +18,7 @@ import { GET as listForms, POST as createForm } from "@/app/api/portal/admin/for
 import { GET as listPeople } from "@/app/api/portal/admin/people/route";
 import { POST as addPunishment } from "@/app/api/portal/admin/pledges/[uid]/punishments/route";
 import { DELETE as removePledge, GET as getPledgeDetail, PATCH as updatePledge } from "@/app/api/portal/admin/pledges/[uid]/route";
-import { GET as getOverview, POST as createPledge } from "@/app/api/portal/admin/pledges/route";
+import { GET as getOverview } from "@/app/api/portal/admin/pledges/route";
 import { DELETE as removePreview, GET as getPreview, POST as startPreview } from "@/app/api/portal/admin/preview/route";
 import { PATCH as updateTeam } from "@/app/api/portal/admin/teams/[teamId]/route";
 import { POST as createTeam } from "@/app/api/portal/admin/teams/route";
@@ -716,8 +716,12 @@ describe("when the address is in the way", () => {
   const theirs = () => previewAccount(ADMIN_TWO, adminTwo.uid, "pledge");
 
   it("refuses to start when a real account has the address, says so, and makes nothing", async () => {
-    // A real pledge, as it happens, at the address the other admin's preview would take.
-    const made = ok<{ pledge: { uid: string } }>(await call(createPledge, {}, { method: "POST", token: admin.token, body: { email: theirs().email, displayName: "Really A Pledge" } }));
+    // A real pledge, as it happens, at the address the other admin's preview would take. The portal
+    // no longer gives such an address to a new account, but one made before that, or in the
+    // Firebase console, can still hold it.
+    const record = await testAuth().createUser({ email: theirs().email, emailVerified: true });
+    await createProfile(record.uid, theirs().email, "pledge", "Really A Pledge");
+    const made = { pledge: { uid: record.uid } };
     try {
       const usersBefore = await countAll("users");
       const auditBefore = await countAll("auditLog");

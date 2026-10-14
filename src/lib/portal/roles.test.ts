@@ -26,6 +26,7 @@ describe("areaAllows", () => {
       "/portal/admin/forms/week2interviews",
       "/portal/admin/guide",
       "/portal/admin/pledges/abc123",
+      "/portal/admin/reports",
       "/portal/admin/teams",
       // Not pages that exist, but still inside the area: nobody else may be sent there.
       "/portal/admin/review",

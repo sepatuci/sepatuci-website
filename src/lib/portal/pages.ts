@@ -37,6 +37,7 @@ const FIXED: Readonly<Record<string, string>> = {
   "/portal/admin/forms": "Deliverables",
   "/portal/admin/teams": "Teams",
   "/portal/admin/activity": "Activity",
+  "/portal/admin/reports": "Reports",
   "/portal/admin/guide": "Admin guide",
 };
 

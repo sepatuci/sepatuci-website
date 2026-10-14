@@ -1,17 +1,20 @@
 "use client";
 
+import { useEffect, useRef } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { LogOut } from "lucide-react";
 import sepLogo from "@/assets/logos/sep_logos/sep_white.png";
 import { Button } from "@/components/ui/button";
+import { useApi } from "@/lib/portal/client/use-api";
 import { PROGRAM_NAME } from "@/lib/portal/constants";
 import { PORTAL_LABEL, ROLE_HOME } from "@/lib/portal/roles";
-import type { MemberRole, Role } from "@/lib/portal/types";
+import type { MemberRole, ReportCountDto, Role } from "@/lib/portal/types";
 import { cn } from "@/lib/utils";
 import { usePortal, WELCOME_PATH } from "./portal-session";
 import { ToastProvider } from "./primitives";
+import { REPORTS_CHANGED_EVENT, ReportButton } from "./report-dialog";
 import { ThemeToggle } from "./theme-controls";
 
 interface NavItem {
@@ -20,6 +23,8 @@ interface NavItem {
   /** Other paths that should also light this item up. */
   match?: string[];
 }
+
+const REPORTS_PAGE = "/portal/admin/reports";
 
 // One entry per role, so a new role cannot quietly inherit another's navigation.
 const NAV: Record<Role, NavItem[]> = {
@@ -41,6 +46,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/portal/admin/teams", label: "Teams" },
     { href: "/portal/admin/forms", label: "Deliverables" },
     { href: "/portal/admin/activity", label: "Activity" },
+    { href: REPORTS_PAGE, label: "Reports" },
     { href: "/portal/admin/guide", label: "Guide" },
     { href: "/portal/account", label: "Account" },
   ],
@@ -62,6 +68,33 @@ function isActive(item: NavItem, pathname: string): boolean {
   return prefixes.some((prefix) => pathname.startsWith(`${prefix}/`) || pathname === prefix);
 }
 
+/**
+ * How many reports are waiting for an admin, for the count on the Reports
+ * link. Checked again on each page change and whenever a report is marked,
+ * never on a timer. Zero for everyone else, who never asks.
+ */
+function useNewReports(admin: boolean, pathname: string): number {
+  const { data, reload } = useApi<ReportCountDto>(admin ? "/admin/reports/count" : null);
+  const first = useRef(true);
+
+  useEffect(() => {
+    // The first load comes from useApi itself.
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    if (admin) reload();
+  }, [admin, pathname, reload]);
+
+  useEffect(() => {
+    if (!admin) return;
+    window.addEventListener(REPORTS_CHANGED_EVENT, reload);
+    return () => window.removeEventListener(REPORTS_CHANGED_EVENT, reload);
+  }, [admin, reload]);
+
+  return admin ? (data?.newCount ?? 0) : 0;
+}
+
 const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { me, signOut } = usePortal();
   const pathname = usePathname() ?? "/portal";
@@ -70,22 +103,35 @@ const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const touring = welcomePath !== null && pathname === welcomePath && me.onboardedAt === null;
   const items = touring ? [] : NAV[me.role];
   const home = touring && welcomePath ? welcomePath : ROLE_HOME[me.role];
+  const newReports = useNewReports(me.role === "admin", pathname);
 
   const links = items.map((item) => {
     const active = isActive(item, pathname);
+    const count = item.href === REPORTS_PAGE ? newReports : 0;
     return (
       <Link
         key={item.href}
         href={item.href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors",
+          "inline-flex items-center whitespace-nowrap rounded-lg px-3 py-2 text-sm transition-colors",
           active
             ? "bg-accent/15 text-foreground"
             : "text-muted-foreground hover:bg-muted hover:text-foreground",
         )}
       >
         {item.label}
+        {count > 0 ? (
+          <>
+            <span
+              aria-hidden
+              className="ml-1.5 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[11px] font-medium tabular-nums text-accent-foreground"
+            >
+              {count > 99 ? "99+" : count}
+            </span>
+            <span className="sr-only">, {count} new</span>
+          </>
+        ) : null}
       </Link>
     );
   });
@@ -105,22 +151,29 @@ const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </span>
             </Link>
 
-            <nav aria-label="Portal" className="ml-4 hidden items-center gap-1 lg:flex">
+            {/* In the header row only on a wide screen. The admins' eight items do not fit beside
+                the logo and the buttons any narrower, so below that they get a row of their own. */}
+            <nav aria-label="Portal" className="ml-4 hidden items-center gap-1 xl:flex">
               {links}
             </nav>
 
-            <div className="ml-auto flex items-center gap-3">
-              <span className="hidden max-w-[14rem] truncate text-sm text-muted-foreground sm:block">
+            {/* Icons alone on a phone, so the header still fits beside the logo. */}
+            {/* The name gives way first, so the buttons always stay on screen. */}
+            <div className="ml-auto flex min-w-0 items-center gap-2 sm:gap-3">
+              <span className="hidden min-w-0 max-w-[14rem] truncate text-sm text-muted-foreground sm:block">
                 {me.displayName}
               </span>
+              <ReportButton />
               <ThemeToggle />
               <button
                 type="button"
                 onClick={() => void signOut()}
-                className="flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                aria-label="Sign out"
+                title="Sign out"
+                className="flex h-9 shrink-0 items-center gap-2 rounded-lg border border-border px-2.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground sm:px-3"
               >
-                <LogOut className="h-4 w-4" />
-                <span>Sign out</span>
+                <LogOut className="h-4 w-4" aria-hidden />
+                <span className="hidden sm:inline">Sign out</span>
               </button>
             </div>
           </div>
@@ -128,7 +181,7 @@ const PortalShell: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           {links.length > 0 ? (
             <nav
               aria-label="Portal"
-              className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 lg:hidden print:hidden"
+              className="flex gap-1 overflow-x-auto border-t border-border px-3 py-2 xl:hidden print:hidden"
             >
               {links}
             </nav>

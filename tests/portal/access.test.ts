@@ -84,13 +84,14 @@ const mayCall = (role: CallerRole, need: (typeof ROUTES)[number]["need"]): boole
 const REFUSALS = ROUTES.flatMap((route) => ROLES.filter((role) => !mayCall(role, route.need)).map((role) => ({ route, role })));
 /** The routes every role is let through to, whatever each then does with the request. */
 const SHARED_ROUTES = ROUTES.filter((route) => route.need === "any");
-const SHARED = ["GET /me", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /sign-out"];
+const SHARED = ["GET /me", "GET /reports/status", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /reports", "POST /sign-out"];
 /**
  * The changes someone who is not an admin can ask for outside their own
  * deliverables: keeping their visit alive, ending it, finishing their own
- * welcome, and replacing a temporary password of their own.
+ * welcome, replacing a temporary password of their own, and sending an
+ * anonymous report.
  */
-const SHARED_WRITES = ["POST /heartbeat", "POST /onboarding", "POST /password", "POST /sign-out"];
+const SHARED_WRITES = ["POST /heartbeat", "POST /onboarding", "POST /password", "POST /reports", "POST /sign-out"];
 /** The two shared routes that answer every role alike and leave the sign-in as it is. */
 const OPEN_TO_EVERYONE_ALIKE = SHARED_ROUTES.filter((route) => route.label === "GET /me" || route.label === "POST /heartbeat");
 /** A password that would be accepted from an account that had one to replace. */
@@ -236,9 +237,9 @@ describe("sign-in with an email and a password only", () => {
     }
   });
 
-  it("has forty-nine route handlers at thirty-seven paths, and none of them is for a second factor", () => {
-    expect(ROUTES).toHaveLength(49);
-    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(37);
+  it("has fifty-four route handlers at forty-two paths, and none of them is for a second factor", () => {
+    expect(ROUTES).toHaveLength(54);
+    expect(new Set(ROUTES.map((route) => route.path)).size).toBe(42);
     expect(ROUTES.filter((route) => /mfa|factor|totp|passcode|two-step|enrol/i.test(route.path)).map((route) => route.label)).toEqual([]);
     const labels = ROUTES.map((route) => route.label);
     for (const gone of ["POST /admin/pledges/[uid]/reset-mfa", "POST /admin/actives/[uid]/reset-mfa"]) expect(labels).not.toContain(gone);
@@ -450,7 +451,7 @@ describe("roles", () => {
       expect(ACTIVE_ROUTES.every((route) => route.method === "GET")).toBe(true);
     });
 
-    it("includes no route that changes anything, other than the four that are about the caller's own sign-in and welcome", () => {
+    it("includes no route that changes anything, other than the caller's own sign-in and welcome, and an anonymous report", () => {
       // The one route open to anyone is a change too, but of nothing an active has: it spends a preview link.
       const changes = SIGNED_IN_ROUTES.filter((route) => route.method !== "GET");
       expect(changes.length).toBeGreaterThanOrEqual(25);
@@ -525,7 +526,8 @@ describe("roles", () => {
 
     it("are at least one read for every role", () => {
       for (const role of ROLES) expect(READS.filter((cell) => cell.role === role && cell.route.need === role).length, role).toBeGreaterThanOrEqual(2);
-      expect(READS.filter((cell) => cell.route.need === "any")).toHaveLength(3);
+      // GET /me and GET /reports/status, each for all three roles.
+      expect(READS.filter((cell) => cell.route.need === "any")).toHaveLength(6);
     });
 
     for (const { route, role } of READS) {

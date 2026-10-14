@@ -2,7 +2,7 @@
 
 import { Fragment, useMemo, useState } from "react";
 import Link from "next/link";
-import { Search, UserPlus, Users } from "lucide-react";
+import { Pencil, Search, UserPlus, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Input, Label } from "@/components/ui/input";
@@ -33,6 +33,7 @@ import BulkAddDialog from "./bulk-add-dialog";
 import ChangeRoleDialog from "./change-role-dialog";
 import CreateActiveDialog from "./create-active-dialog";
 import CreatePledgeDialog from "./create-pledge-dialog";
+import { EditMemberDialog } from "./edit-member-dialog";
 import PreviewCard from "./preview-card";
 import { CopyWarning, TemporaryPassword, useCopyGuard } from "./temporary-password-dialog";
 
@@ -76,6 +77,7 @@ const PeoplePanel: React.FC = () => {
   const [bulkKind, setBulkKind] = useState<MemberRole>("pledge");
   const [bulkOpen, setBulkOpen] = useState(false);
   const [roleTarget, setRoleTarget] = useState<PersonRowDto | null>(null);
+  const [editTarget, setEditTarget] = useState<PersonRowDto | null>(null);
   const [pending, setPending] = useState<Pending | null>(null);
   const [confirmEmail, setConfirmEmail] = useState("");
   const [busy, setBusy] = useState(false);
@@ -108,7 +110,7 @@ const PeoplePanel: React.FC = () => {
   const header = (
     <PageHeader
       title="People"
-      subtitle="Everyone with a portal account: admins, actives and pledges. Change roles, reset passwords and add accounts here."
+      subtitle="Everyone with a portal account: admins, actives and pledges. Edit names and emails, change roles, reset passwords and add accounts here."
       actions={
         <>
           <Button variant="outline" onClick={() => setBulkChoosing(true)}>
@@ -205,6 +207,20 @@ const PeoplePanel: React.FC = () => {
         person={roleTarget}
         onOpenChange={(open) => (open ? undefined : setRoleTarget(null))}
         onChanged={reload}
+      />
+      <EditMemberDialog
+        member={
+          editTarget && editTarget.role !== "admin"
+            ? {
+                uid: editTarget.uid,
+                role: editTarget.role,
+                email: editTarget.email,
+                displayName: editTarget.displayName,
+              }
+            : null
+        }
+        onOpenChange={(open) => (open ? undefined : setEditTarget(null))}
+        onSaved={reload}
       />
     </Fragment>
   );
@@ -315,6 +331,12 @@ const PeoplePanel: React.FC = () => {
                         <Button variant="outline" size="sm" asChild>
                           <Link href={`/portal/admin/activity/${person.uid}`}>Activity</Link>
                         </Button>
+                        {path !== null ? (
+                          <Button variant="outline" size="sm" disabled={busy} onClick={() => setEditTarget(person)}>
+                            <Pencil className="mr-1.5 h-3.5 w-3.5" />
+                            Edit
+                          </Button>
+                        ) : null}
                         {person.canChangeRole ? (
                           <Button variant="outline" size="sm" disabled={busy} onClick={() => setRoleTarget(person)}>
                             Change role

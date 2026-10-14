@@ -691,7 +691,49 @@ export interface ReviewFormDto {
   notTurnedIn: ReviewNotTurnedInDto[];
 }
 
-export type AuditTargetType = "user" | "form" | "submission" | "punishment" | "team";
+// ── Anonymous reports ────────────────────────────────────────────────────────
+
+export type ReportTopic = "conduct" | "safety" | "program" | "other";
+export type ReportStatus = "new" | "reviewed";
+
+/** What the report dialog needs before anything is written. */
+export interface ReportStatusDto {
+  /** Whole minutes until the caller may send another report. Zero when they may now. */
+  waitMinutes: number;
+  /** True for an admin's preview account, whose reports are never stored. */
+  preview: boolean;
+}
+
+export interface ReportReceiptDto {
+  /** False for a preview account: nothing was stored. */
+  stored: boolean;
+  /** Whole minutes until the next report may be sent. */
+  waitMinutes: number;
+}
+
+/** A report as admins read it. Nothing in it says who sent it or at what time. */
+export interface ReportDto {
+  id: string;
+  topic: ReportTopic | null;
+  body: string;
+  /** The day it was sent, YYYY-MM-DD in the portal's time zone. Never the time. */
+  receivedOn: string;
+  status: ReportStatus;
+  reviewedAt: IsoDateTime | null;
+}
+
+export interface ReportsDto {
+  /** The reports with the status asked for, newest day first. */
+  reports: ReportDto[];
+  newCount: number;
+  reviewedCount: number;
+}
+
+export interface ReportCountDto {
+  newCount: number;
+}
+
+export type AuditTargetType = "user" | "form" | "submission" | "punishment" | "team" | "report";
 
 export interface AuditEntryDto {
   id: string;

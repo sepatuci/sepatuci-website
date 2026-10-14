@@ -38,6 +38,11 @@ export const LIMITS = {
   submissionStoredBytes: 900_000,
   formBodyBytes: 400_000,
   auditPageSize: 50,
+  /** An anonymous report: long enough to say something, short enough to read in one go. */
+  reportBodyMin: 10,
+  reportBody: 2000,
+  /** The most reports of one kind, new or reviewed, the admin page lists at once, newest day first. */
+  reportList: 500,
 } as const;
 
 export const TIMING = {
@@ -74,6 +79,8 @@ export const TIMING = {
   draftSaveMinIntervalMs: 8_000,
   /** How often an open dashboard checks for changes while it is in view. */
   dashboardRefreshMs: 5 * 60_000,
+  /** One anonymous report per account in this window. */
+  reportIntervalMs: 60 * 60_000,
 } as const;
 
 export const PASSWORD_MIN_LENGTH = 10;

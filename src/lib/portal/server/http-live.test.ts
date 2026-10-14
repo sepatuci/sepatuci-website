@@ -1141,7 +1141,7 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
     pledge: pledgeClaims,
   };
   /** The routes every role is let through to. Every other route is one role's alone. */
-  const SHARED = ["GET /me", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /sign-out"];
+  const SHARED = ["GET /me", "GET /reports/status", "POST /heartbeat", "POST /onboarding", "POST /password", "POST /reports", "POST /sign-out"];
   /** Who a route is for, going by the folder it is in: /admin for admins, /review for actives. */
   const needOf = (label: string): "any" | "public" | CallerRole => {
     if (label === REDEEM_PREVIEW) return "public";
@@ -1175,21 +1175,24 @@ describe("the portal's own routes on the live site, for a sign-in with an email 
     for (const spy of muted) spy.mockRestore();
   });
 
-  it("are forty-nine, none of them for a second factor, and each one role's, everyone's, or the one that is anyone's", () => {
+  it("are fifty-four, none of them for a second factor, and each one role's, everyone's, or the one that is anyone's", () => {
     const labels = REAL_ROUTES.map((candidate) => candidate.label);
-    expect(labels).toHaveLength(49);
+    expect(labels).toHaveLength(54);
     expect(labels.filter((label) => /mfa|factor|totp|passcode|two-step|enrol/i.test(label))).toEqual([]);
     expect(labels).not.toContain("POST /admin/pledges/[uid]/reset-mfa");
     expect(labels).not.toContain("POST /admin/actives/[uid]/reset-mfa");
     expect(labels.filter((label) => needOf(label) === "any").sort()).toEqual(SHARED);
     expect(labels.filter((label) => needOf(label) === "active").sort()).toEqual(["GET /review/forms/[formId]", "GET /review/overview"]);
     expect(labels.filter((label) => needOf(label) === "pledge")).toHaveLength(6);
-    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(35);
+    expect(labels.filter((label) => needOf(label) === "admin")).toHaveLength(38);
     expect(labels).toEqual(
       expect.arrayContaining(["GET /admin/activity", "GET /admin/activity/[uid]", "GET /admin/activity/[uid]/sessions/[sessionId]"]),
     );
+    expect(labels).toEqual(
+      expect.arrayContaining(["GET /admin/reports", "GET /admin/reports/count", "PATCH /admin/reports/[reportId]"]),
+    );
     expect(labels.filter((label) => needOf(label) === "public")).toEqual([REDEEM_PREVIEW]);
-    expect(SIGNED_IN_ROUTES).toHaveLength(48);
+    expect(SIGNED_IN_ROUTES).toHaveLength(53);
   });
 
   // The one route open to anyone is reached with no token at all, and its requests are
